@@ -1,8 +1,7 @@
 {
     "version": 2,
     "buildCommand": "npm run build",
-    "outputDirectory": ".next",
-    "installCommand": "npm install",
+    "devCommand": "npm run dev",
     "framework": "nextjs",
     "regions": ["iad1"],
     "env": {
@@ -62,19 +61,5 @@
           "key": "next-auth.session-token"
         }
       ], "destination": "/login" }
-    ],
-    "functions": {
-      "api/documents/*/file.js": {
-        "memory": 1024,
-        "maxDuration": 10
-      },
-      "api/documents/upload.js": {
-        "memory": 1024,
-        "maxDuration": 30
-      },
-      "api/**/export.js": {
-        "memory": 1024,
-        "maxDuration": 15
-      }
-    }
+    ]
   }
