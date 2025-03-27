@@ -1,0 +1,4 @@
+{
+    "extends": "next/core-web-vitals"
+    // You can add more rules or plugins here later
+  }

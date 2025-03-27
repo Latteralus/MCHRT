@@ -1,8 +1,12 @@
-# Mountain Care HR Management Platform - Technical Document
+# Mountain Care HR Management Platform - Technical Document (Revised)
 
 ## 1. Introduction
 
-Mountain Care is a Next.js-based, single-tenant HR Management platform intended to handle core HR functionalities—employee management, attendance tracking, leave management, onboarding/offboarding automation, compliance (including HIPAA considerations), document management, and basic reporting. The target organization has approximately 250 employees and does not experience significant usage spikes.
+Mountain Care is a Next.js-based, single-tenant HR Management platform intended for a Compounding Pharmacy environment. It handles core HR functionalities—employee management, attendance tracking, leave management, onboarding/offboarding automation, compliance (including HIPAA considerations for employee data), document management, and basic reporting. The target organization has approximately 250 employees across departments including Administration, Human Resources, Operations, Compounding, and Shipping, and does not experience significant usage spikes.
+
+**MVP Focus:** While this document outlines the comprehensive technical plan, the initial development phase will focus on delivering a Minimum Viable Product (MVP) encompassing basic functionality for all core modules.
+
+**UI Goal:** The user interface should aim to closely match the provided dashboard design screenshot.
 
 ## 2. Architectural Approach
 
@@ -22,28 +26,28 @@ Mountain Care is a Next.js-based, single-tenant HR Management platform intended 
 ### Frameworks & Libraries
 
 - **Next.js** (React 19+) for front-end + server-side rendering
-- **NextAuth.js** for authentication
-- **TypeORM** as the ORM for structured database access, using EntitySchema approach
+- **NextAuth.js** for authentication, configured with **CredentialsProvider**
+- **Sequelize** as the ORM for structured database access
 - **PostgreSQL** for the primary relational database
 - **Node.js** (16+ recommended)
 
 ### Key Rationale
 
-- **TypeORM & PostgreSQL**: Well-suited for relational data and transactions. TypeORM simplifies migrations, schema updates, and eliminates most raw SQL complexities.
-- **Next.js**: Provides both client and server logic in one place, plus easy serverless deployment.
+- **Sequelize & PostgreSQL**: A mature and feature-rich combination well-suited for relational data and complex queries. Sequelize supports transactions, migrations, and various querying methods.
+- **Next.js**: Provides both client and server logic in one place, plus easy serverless deployment options.
+- **NextAuth.js CredentialsProvider**: Allows for secure username/password authentication as required, with email login disabled.
 - **Single-Tenancy**: Data modeling is simpler than multi-tenant (no separate tenant tables or schemas needed).
-- **EntitySchema Approach**: Ensures compatibility with serverless environments like Vercel by avoiding TypeScript decorators.
 
 ## 4. Front-End & Back-End Communication
 
 ### Next.js API Routes
 
-- Each domain has a dedicated route (e.g., `/api/employees`, `/api/attendance`) handling CRUD via TypeORM.
+- Each domain has a dedicated route (e.g., `/api/employees`, `/api/attendance`) handling CRUD operations via Sequelize.
 - Requests use fetch() or axios from the client to these serverless endpoints.
 
 ### Data Flow
 
-Front-End → API Route → TypeORM → PostgreSQL
+Front-End → API Route → Sequelize → PostgreSQL
 
 The NextAuth.js session ensures secure authentication tokens or cookies are attached to these requests.
 
@@ -54,13 +58,13 @@ The NextAuth.js session ensures secure authentication tokens or cookies are atta
 While final designs may vary, below are examples of likely tables in PostgreSQL:
 
 **Users** (for authentication via NextAuth + role management):
-- id, name, email, passwordHash, role, departmentId, createdAt, updatedAt
+- id, username, passwordHash, role, departmentId, createdAt, updatedAt (*Note: No email field required for login*)
 
 **Employees**:
-- id, firstName, lastName, departmentId, position, hireDate, etc.
+- id, firstName, lastName, ssn (*handle with care*), departmentId, position, hireDate, etc.
 
 **Departments**:
-- id, name, managerId, etc.
+- id, name (Administration, Human Resources, Operations, Compounding, Shipping), managerId, etc.
 
 **Attendance**:
 - id, employeeId, date, timeIn, timeOut, etc.
@@ -72,71 +76,58 @@ While final designs may vary, below are examples of likely tables in PostgreSQL:
 - id, employeeId, licenseType, expirationDate, status, etc.
 
 **Documents**:
-- id, title, filePath, ownerId, version, createdAt, updatedAt
+- id, title, filePath (*path on local server*), ownerId, version, createdAt, updatedAt
 
 Note: Onboarding/offboarding can have their own tables or be integrated into Employees/Tasks tables, depending on the complexity of automation.
 
-### TypeORM Entity Management
+### Sequelize Model Management
 
-- Using TypeORM's EntitySchema approach rather than TypeScript decorators for better compatibility with serverless environments
-- Schema definitions maintained in individual entity files using JavaScript classes and schemas
-- Database synchronization available for development; migrations for production
+- Model definitions maintained using JavaScript/TypeScript classes following Sequelize conventions.
+- Database migrations will be managed using the Sequelize CLI.
 
 ### Backup & Recovery
 
-- A backup every 8 hours is recommended. Tools like pg_dump or cloud provider snapshots can achieve this schedule.
-- Plan for point-in-time recovery if storing transaction logs.
+- **Database:** A backup every 8 hours is recommended. Tools like pg_dump or cloud provider snapshots can achieve this schedule. Plan for point-in-time recovery if storing transaction logs.
+- **Documents (Local Filesystem):** The backup strategy for documents stored on the local server filesystem is **deferred** and will be defined later.
 
-## 6. Core Features & Modules
+## 6. Core Features & Modules (MVP Scope Included)
 
-Below is a more precise alignment with your clarifications:
+The MVP aims to provide basic, functional implementations for all modules listed below, using mock data initially where needed. Dashboard stats and feeds should be functional in the MVP.
 
 ### Employee Management
-
-- ~250 employees; no large concurrency or peak usage concerns.
-- Department-based roles and permissions for managers vs. employees.
-- CRUD (create, read, update, delete) with separate detail pages for each employee.
+- Basic CRUD operations for ~250 employees.
+- Department-based roles and permissions (details in Section 8).
+- Detail pages for each employee.
 
 ### Onboarding/Offboarding Automation
-
-- Custom tasks assigned (equipment provisioning, document collection, orientation schedule).
-- Automated notifications or checklists triggered by hiring/termination events.
-- Optional advanced features: e-signatures, scheduling exit interviews.
+- MVP: Basic automation like sending email reminders based on criteria (e.g., license expiry).
+- Future: Custom task assignments, checklists triggered by hiring/termination events, potential e-signatures, etc.
 
 ### Attendance Tracking
-
-- Daily logs with time in/out.
-- Potential to integrate with a scheduling or timeclock system.
-- Summaries and attendance analytics (e.g., monthly absenteeism rate).
+- MVP: Basic daily log viewing and entry.
+- Future: Integration with scheduling/timeclocks, summaries, analytics.
 
 ### Leave Management
-
-- Submission forms, approval flows, calendar visualization.
-- Department heads or HR managers can approve, reject, or adjust requests.
-- Integration with attendance to avoid double-booking or conflicting data.
+- MVP: Basic submission forms, viewing requests.
+- Future: Approval flows, calendar visualization, integration with attendance.
 
 ### Compliance (HIPAA & Expirations)
-
-- Track licenses/certifications, set expiry reminders.
-- Store potentially sensitive health-related details for employees (subject to HIPAA).
-- Apply encryption at rest for relevant fields (TypeORM can integrate with Postgres-level encryption or external KMS).
+- Track licenses/certifications, set expiry reminders (MVP includes tracking & email reminders).
+- Store potentially sensitive employee details like **Social Security Numbers** (subject to HIPAA considerations for employee data, requiring encryption at rest and strict access controls). Note: No patient PHI involved.
+- Apply encryption at rest for relevant sensitive fields.
 
 ### Document Management
-
-- Upload documents, store path references in Postgres.
-- Version control and departmental permission checks.
-- 60-day retention for logs/auditing: keep track of who accessed/modified each document.
+- Upload documents to the **local server filesystem**, store path references in Postgres.
+- MVP includes upload and **RBAC-controlled viewing** capabilities.
+- Future: Version control, advanced permission checks, auditing (60-day log retention mentioned previously may apply here).
 
 ### Reporting & Analytics
-
-- Basic data exports (CSV or PDF) for attendance, leave requests, compliance statuses.
-- Potentially display high-level HR metrics (turnover rate, time-to-hire, etc.).
-- Storage of logs for 60 days.
+- MVP: Basic data viewing corresponding to core features.
+- Future: Basic data exports (CSV or PDF), high-level HR metrics. No complex custom reports required initially.
 
 ### Settings & Configuration
-
-- Roles and department-based access (RBAC).
-- System-level preferences (notifications, backup schedules).
+- Manage Roles and department-based access (RBAC).
+- System-level preferences (notifications).
 - Self-service for employees to update personal info; managers and HR staff have higher privileges.
 
 ## 7. Environment Setup & Configuration
@@ -146,131 +137,108 @@ Below is a more precise alignment with your clarifications:
 - DATABASE_URL=postgresql://...
 - NEXTAUTH_SECRET=<some-random-string>
 - NEXTAUTH_URL=<https://mountain-care.example.com>
-- Additional secrets for encryption keys if storing HIPAA data in an encrypted column.
+- Additional secrets for encryption keys if storing sensitive data (like SSNs) in encrypted columns.
+- `FILE_STORAGE_PATH`=</path/to/local/document/storage>
 
 ### Dependencies
 
 - Node.js 16+
-- TypeORM 0.3+
+- Sequelize 6+
 - PostgreSQL 12+
 - Next.js 14+ and React 19+
 - NextAuth 4+
 
 ### Automated Deployments
 
-- If using Vercel, environment variables can be set in project settings.
-- If using Docker or AWS, ensure the container or server can access the DB.
+- Environment variables configuration depends on the chosen hosting (Vercel, Docker, AWS, etc.). Ensure the deployment environment can access the DB and the local filesystem path for documents.
 
 ## 8. Security & Access Control
 
-### HIPAA Compliance
+### HIPAA Compliance (Employee Data)
 
-- **Encryption at Rest**: Use Postgres features like TDE (if available) or disk-level encryption.
+- **Encryption at Rest**: Use appropriate methods (e.g., Postgres extensions like pgcrypto, application-level encryption, or disk-level encryption) for sensitive fields like SSNs.
 - **Secure Transport**: Enforce HTTPS in production, SSL/TLS for DB connections.
-- **Access Logs & Auditing**: Keep logs for 60 days to track user actions on sensitive data.
+- **Access Logs & Auditing**: Implement logging (e.g., 60-day retention) to track user actions on sensitive data and documents.
 
 ### Role-Based Access Control (RBAC)
 
-- **Admins/HR Managers**: Full control over employee data, can manage departments.
-- **Department Heads**: Limited to employees within their department.
-- **Employees**: Access to their own profiles, attendance, and leave data.
-- Department-based checks integrated with TypeORM queries (e.g., only fetch employees from allowed departments for a manager).
+- **Admin Role:** Assigned to "Administration Managers" and "Human Resources Managers". Grants full access across all departments and system settings.
+- **Department Head Role:** Assigned to managers of Operations, Compounding, or Shipping. Grants access to manage employees and data *only* within their specific department.
+- **Employee Role:** Applies to standard employees and non-manager Administration staff. Grants access only to their own personal information and general company documents/resources.
+- RBAC checks integrated into API routes and data queries (Sequelize scopes/hooks).
 
-### Scheduled Tasks & Notifications
-
-- Next.js environment or a Node-based cron for daily HIPAA compliance checks, license expirations, or daily backups.
+### Document Access Control (Local Filesystem)
+- Access to documents stored on the local filesystem will be controlled via application-level RBAC checks, ensuring users can only access documents permitted by their role and department association. Filesystem permissions should be restrictive, allowing access primarily via the application service account.
 
 ### Authentication
 
-- NextAuth.js: Session tokens (JWT or database sessions).
-- Implement 2FA if required for compliance or sensitive operations.
+- Implemented using **NextAuth.js** with the **CredentialsProvider**.
+- Handles login via unique **username** and password. Email is not used for login.
+- Consider implementing 2FA if required for compliance or sensitive operations in the future.
 
 ## 9. Deployment & Hosting Plans
 
-### Vercel
+### Vercel (for testing)
 
 - Straightforward Next.js deployment.
-- Automatic scaling of API routes; only pay for usage.
-- Connect to a hosted PostgreSQL (e.g., Azure, Heroku, or AWS RDS).
-- Works with the EntitySchema approach we've implemented.
-
-### Docker / On-Prem (Alternate)
-
-- Build a Docker image with npm run build && npm run start.
-- Use docker-compose for local dev environment with a Postgres container.
-- Could be deployed to AWS ECS/EKS or an on-prem Kubernetes cluster.
+- Automatic scaling of API routes.
+- Requires connecting to a hosted PostgreSQL (e.g., Vercel Postgres, Azure, Heroku, AWS RDS).
+- **Challenge:** Vercel's serverless nature might complicate direct access to a persistent local filesystem for documents. Requires careful consideration or alternative storage (like S3/compatible service) if using Vercel.
 
 ### CI/CD
 
-- If on GitHub, use GitHub Actions to run tests, lint, build, and migrations prior to deployment.
-- Migrations: Run using custom scripts or TypeORM CLI.
+- Use tools like GitHub Actions to run tests, lint, build, and migrations prior to deployment.
+- Migrations: Run using the Sequelize CLI as part of the deployment process.
 
 ## 10. Maintenance & Scalability
 
 ### Logging & Monitoring
 
-- Use console logs or Winston for structured logs.
-- Monitoring solutions like Datadog, New Relic, or AWS CloudWatch if scaling beyond Vercel.
+- Use console logs or a library like Winston for structured application logs.
+- Implement basic health checks. Monitoring solutions (Datadog, New Relic, CloudWatch) can be added if needed.
 
 ### Backup Strategy
 
-- Database snapshots every 8 hours. Retain incremental logs or transaction logs for point-in-time restore if needed.
-- For documents, consider a versioned object store (S3, local file system with versioning, or an external solution).
+- **Database:** Snapshots every 8 hours (via hosting provider or `pg_dump`).
+- **Documents (Local Filesystem):** Strategy is **deferred** and needs to be defined. Consider filesystem-level backups or syncing to a secondary location.
 
 ### Scheduled Jobs
 
-- License expiry notifications and compliance checks can run as serverless cron jobs (e.g., Vercel Cron, GitHub Scheduled Workflows, or an external cron service).
-- Email reminders or Slack notifications for tasks nearing deadlines.
+- Implement using Node-cron, external cron services, or platform-specific features for tasks like license expiry notifications and compliance checks.
 
 ### Scalability
 
-- 250 employees is manageable with minimal concurrency concerns; the monolithic approach should suffice.
-- Future growth can be handled by increasing DB resources or introducing caching (Redis). If user count grows significantly, consider microservices or splitting heavier modules.
+- The initial ~250 employee count is manageable with the monolithic approach.
+- **Local Storage:** User is confident current infrastructure can handle document volume, with plans to expand server storage units if needed. Future growth might necessitate evaluating cloud storage options.
+- Database performance can be scaled by increasing resources or introducing caching (Redis) if required.
 
 ### Ongoing Updates
 
-- Maintain a CHANGELOG.md for version tracking.
-- Keep Node.js, Next.js, and TypeORM updated for security patches.
-- Regularly review logs and audits to ensure HIPAA and internal compliance.
+- Maintain a CHANGELOG.md.
+- Keep Node.js, Next.js, Sequelize, and other dependencies updated.
+- Regularly review logs and audits.
 
-## 11. Troubleshooting & Edge Cases
+## 11. Error Handling Approach
 
-### Concurrency & Transactions
+- Implement centralized error logging (e.g., using Winston or a similar library).
+- API routes should return standardized error responses (e.g., consistent JSON structure with appropriate HTTP status codes) to the client.
+- Front-end should handle API errors gracefully, providing user-friendly feedback.
 
-- Automated portions of onboarding/offboarding may require careful transaction handling to avoid partial data updates.
-- TypeORM's transaction support ensures atomic operations.
+## 12. Testing Strategy
 
-### HIPAA & Data Privacy
+- **Unit Tests:** Use a framework like Jest to test critical business logic, utility functions, and potentially Sequelize model validations.
+- **Integration Tests:** Test API routes, ensuring they interact correctly with the database (or mock DB) and enforce RBAC rules. Tools like Supertest can be used.
+- **End-to-End (E2E) Tests:** Use frameworks like Cypress or Playwright to test key user flows through the UI.
+- **Mock Database:** Utilize a mock database setup (e.g., using SQLite with Sequelize) during development and automated testing (especially for the MVP) to enable rapid feedback cycles. Ensure the mock setup can simulate necessary data and relationships, including RBAC scenarios, and is designed for easy transition to PostgreSQL.
 
-- Must restrict access to any medical data to authorized personnel only.
-- Sensitive columns (e.g., health details) should be encrypted or stored in a separate table if needed.
-
-### Automatic Offboarding
-
-- Removing or deactivating employees from the system must ensure no orphan records remain.
-- Carefully revoke system access, handle final pay/leave, and archive relevant data.
-
-### Department-based Roles
-
-- Ensure queries filter by department for managers, or you risk data leaks.
-- Implemented middleware to verify user's department ID before returning data.
-
-## 12. Additional Considerations
+## 13. Additional Considerations
 
 ### Documentation:
-
-- Maintain code-level docs for critical modules.
-- Provide internal Wiki pages for common HR workflows (like how to manage employee benefits, compliance, etc.).
+- Maintain code-level docs (JSDoc/TSDoc) for critical modules and functions.
+- Provide internal Wiki pages or guides for common HR workflows.
 
 ### Integrations:
-
-- If external payroll or benefits systems become necessary, maintain clean separation of concerns with dedicated modules or microservices in the future.
+- Currently none planned. If external systems (payroll, benefits) are needed later, design modules for clean separation.
 
 ### Naming Conventions:
-
-- Use PascalCase for React components and TypeORM entities, camelCase for function/variable names, UPPER_CASE for environment variables.
-
-### Deployment Compatibility:
-
-- Using EntitySchema approach instead of TypeScript decorators to ensure compatibility with Vercel and other serverless environments.
-- Proper TypeScript configuration with experimentalDecorators enabled for development convenience.
+- Use PascalCase for React components and Sequelize models, camelCase for function/variable names, UPPER_CASE for environment variables.

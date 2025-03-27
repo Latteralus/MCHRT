@@ -1,0 +1,45 @@
+{
+    "name": "mountain-care-hr",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+      "dev": "next dev",
+      "build": "next build",
+      "start": "next start",
+      "lint": "next lint",
+      "db:migrate": "sequelize db:migrate",
+      "db:seed:all": "sequelize db:seed:all",
+      "test": "jest",
+      "test:e2e": "playwright test"
+    },
+    "dependencies": {
+      "next": "14.2.4",
+      "react": "^18.3.0",
+      "react-dom": "^18.3.0",
+      "next-auth": "^4.24.7",
+      "sequelize": "^6.37.3",
+      "pg": "^8.12.0",
+      "pg-hstore": "^2.3.4",
+      "bcrypt": "^5.1.1",
+      "axios": "^1.7.2",
+      "winston": "^3.13.0",
+      "node-cron": "^3.0.3"
+    },
+    "devDependencies": {
+      "@types/node": "^18.19.3",
+      "@types/react": "^18.3.3",
+      "@types/react-dom": "^18.3.0",
+      "@types/bcrypt": "^5.0.2",
+      "@types/sequelize": "^4.28.20",
+      "@types/validator": "^13.12.0",
+      "@types/node-cron": "^3.0.11",
+      "@types/jest": "^29.5.12",
+      "@playwright/test": "^1.45.0",
+      "typescript": "^5.5.2",
+      "eslint": "^8.57.0",
+      "eslint-config-next": "14.2.4",
+      "prettier": "^3.3.2",
+      "sequelize-cli": "^6.6.2",
+      "jest": "^29.7.0"
+    }
+  }

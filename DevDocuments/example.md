@@ -1,3 +1,5 @@
+// Use the below file as a guide for our platform. This is the Dashboard and the styling should be similar throughout the entire website.
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
