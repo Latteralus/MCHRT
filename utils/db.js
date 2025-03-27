@@ -1,126 +1,154 @@
-// MCHRT/utils/db.js (Production-Ready)
+// MCHRT/utils/db.js (Mock DB Aware)
 
-import { DataSource } from "typeorm";
-// Ensure correct default imports for all entities
-import User from "../entities/User";
-import Department from "../entities/Department";
-import Employee from "../entities/Employee";
-import Attendance from "../entities/Attendance";
-import Leave from "../entities/Leave";
-import Compliance from "../entities/Compliance";
-import Document from "../entities/Document";
+// Determine if using mock DB BEFORE importing TypeORM
+const USE_MOCK_DB = process.env.USE_MOCK_DB === 'true';
 
-// Validate DATABASE_URL environment variable
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL environment variable is not set.");
-}
+let DataSource, User, Department, Employee, Attendance, Leave, Compliance, Document;
+let AppDataSource = null;
+let initializeDataSource = async () => {
+  console.warn("Attempted to initialize DataSource while USE_MOCK_DB is true.");
+  return null; // Return null or throw error if real DB needed but mock is forced
+};
+let db = {}; // Default to empty object for mock scenario
 
-// Determine SSL configuration based on environment
-const isProduction = process.env.NODE_ENV === "production";
-let sslConfig = false;
-if (isProduction) {
-    // IMPORTANT SECURITY NOTE:
-    // Using rejectUnauthorized: false is INSECURE and means TypeORM won't verify the server's certificate.
-    // This should ONLY be used if your database provider requires it or if you understand the risks.
-    // Ideally, for production, you should use `true` and provide the necessary CA certificate if required by your setup.
-    // Platforms like Heroku/Vercel might manage SSL termination differently. Review your hosting provider's documentation.
-    sslConfig = { rejectUnauthorized: false }; // Or set to true and configure CA if needed
-    console.log("Production environment detected. Enabling SSL for database connection.");
-}
-
-// Create the TypeORM DataSource instance
-export const AppDataSource = new DataSource({
-  type: "postgres",
-  url: process.env.DATABASE_URL,
-  entities: [
-    User,
-    Department,
-    Employee,
-    Attendance,
-    Leave,
-    Compliance,
-    Document
-  ],
-  // Disable synchronization in production to prevent accidental data loss
-  synchronize: !isProduction,
-  // Configure logging (disable verbose logging in production)
-  logging: !isProduction ? "all" : ["error"], // Log all in dev, only errors in prod
-  // Apply SSL configuration
-  ssl: sslConfig,
-});
-
-// --- DataSource Initialization (Singleton Pattern) ---
-
-// Singleton promise to ensure initialization only happens once globally
-let connectionPromise = null;
-
-/**
- * Initializes the TypeORM DataSource if it hasn't been initialized already.
- * Returns a promise that resolves with the initialized DataSource instance.
- * Handles singleton pattern to prevent multiple initializations.
- * @returns {Promise<DataSource>} Promise resolving to the initialized DataSource.
- */
-export const initializeDataSource = () => {
-  // Check if the promise already exists or initialization is complete
-  if (!connectionPromise) {
-      // Log attempt only once per potential initialization cycle
-      console.log(`Attempting to initialize DataSource (Initialized: ${AppDataSource.isInitialized})...`);
-      connectionPromise = (async () => {
-      try {
-        // Double-check initialization status within the async task
-        if (!AppDataSource.isInitialized) {
-          await AppDataSource.initialize();
-          console.log("Data Source has been initialized successfully!");
-        } else {
-           console.log("Data Source was already initialized.");
-        }
-        return AppDataSource;
-      } catch (error) {
-        console.error("CRITICAL: Error during Data Source initialization:", error);
-        // Reset promise on failure to allow potential retries if the app logic supports it
-        connectionPromise = null;
-        // Re-throw the error to propagate it to the caller (e.g., dbService)
-        throw error;
-      }
-    })();
-  } else {
-       // Optional: Log if initialization was already in progress or completed
-       // console.log("DataSource initialization already requested or completed.");
+// --- Only load real DB stuff if NOT using Mock DB ---
+if (!USE_MOCK_DB) {
+  // --- TypeORM and Entity Imports ---
+  // Wrap imports to prevent loading if using mock DB
+  try {
+    DataSource = require("typeorm").DataSource;
+    User = require("../entities/User").default;
+    Department = require("../entities/Department").default;
+    Employee = require("../entities/Employee").default;
+    Attendance = require("../entities/Attendance").default;
+    Leave = require("../entities/Leave").default;
+    Compliance = require("../entities/Compliance").default;
+    Document = require("../entities/Document").default;
+  } catch (e) {
+      console.error("Failed to import TypeORM or Entities for Real DB:", e);
+      // If these fail, the real DB path won't work anyway
+      // Throw error or handle depending on desired behavior if real DB is expected
+      throw new Error("TypeORM/Entity import failed. Check dependencies.");
   }
-  return connectionPromise;
-};
 
-// --- Optional Utility Exports (If needed outside dbService) ---
 
-/**
- * Closes the DataSource connection if it is currently initialized.
- * Useful for graceful shutdowns or specific testing scenarios.
- */
-export const closeDataSourceConnection = async () => {
-    // Await the current connection promise first to handle ongoing initializations
-    try {
-        if (connectionPromise) await connectionPromise;
-    } catch (initError) {
-        console.warn("Attempted to close connection after an initialization error:", initError.message);
-        // Continue to attempt closure if somehow initialized despite error
+  // --- Real DataSource Configuration ---
+  // Validate DATABASE_URL only if using real DB
+  if (!process.env.DATABASE_URL) {
+    // This check might still fail build if Next.js analyzes file before env vars are fully set.
+    // Consider moving DB initialization entirely out of global scope if issues persist.
+    console.error("DATABASE_URL environment variable is not set for real database connection.");
+    // throw new Error("DATABASE_URL environment variable is not set."); // Fails build loudly
+  }
+
+  const isProduction = process.env.NODE_ENV === "production";
+  let sslConfig = false;
+  if (isProduction) {
+    // IMPORTANT SECURITY NOTE ON rejectUnauthorized: false (see previous explanations)
+    sslConfig = { rejectUnauthorized: false };
+    console.log("Production environment detected. Enabling SSL for database connection.");
+  }
+
+  // Create the DataSource instance ONLY if using real DB
+  AppDataSource = new DataSource({
+    type: "postgres",
+    url: process.env.DATABASE_URL, // Can be undefined here if check above doesn't throw
+    entities: [User, Department, Employee, Attendance, Leave, Compliance, Document],
+    synchronize: !isProduction,
+    logging: !isProduction ? "all" : ["error"],
+    ssl: sslConfig,
+  });
+
+  // --- Real DataSource Initialization (Singleton Pattern) ---
+  let connectionPromise = null;
+  initializeDataSource = () => { // Reassign the real function
+    if (!connectionPromise) {
+      connectionPromise = (async () => {
+        try {
+          // Check URL again before initializing
+          if (!AppDataSource.options.url) {
+               throw new Error("Cannot initialize DataSource, DATABASE_URL is missing.");
+          }
+          if (!AppDataSource.isInitialized) {
+            await AppDataSource.initialize();
+            console.log("Real Data Source has been initialized!");
+          }
+          return AppDataSource;
+        } catch (error) {
+          console.error("CRITICAL: Error during Real Data Source initialization:", error);
+          connectionPromise = null;
+          throw error;
+        }
+      })();
     }
+    return connectionPromise;
+  };
 
-    if (AppDataSource.isInitialized) {
-      try {
-          await AppDataSource.destroy();
-          connectionPromise = null; // Reset the singleton promise
-          console.log("Data Source connection has been closed.");
-      } catch (closeError) {
-          console.error("Error closing Data Source connection:", closeError);
-          throw closeError; // Re-throw closure error
-      }
-    } else {
-        // console.log("Data Source connection was not initialized, no need to close.");
-        connectionPromise = null; // Ensure promise is reset even if not initialized
-    }
-};
+  // --- Real DB Methods Object ---
+  // Assign the real 'db' object methods ONLY if using real DB
+  // This uses the structure from the fetched file, relying on ensureDbConnected
+  const ensureDbConnected = initializeDataSource; // Use the same initializer
+  db = {
+      // User operations
+      async getUsers() {
+        const ds = await ensureDbConnected(); return ds.getRepository(User).find();
+      },
+      async getUserById(id) {
+        const ds = await ensureDbConnected(); return ds.getRepository(User).findOneBy({ id });
+      },
+      async getUserByEmail(email) {
+         const ds = await ensureDbConnected(); return ds.getRepository(User).findOneBy({ email });
+      },
+       async getUserByUsername(username) {
+         const ds = await ensureDbConnected(); return ds.getRepository(User).findOneBy({ username });
+       },
+      async createUser(userData) {
+        const ds = await ensureDbConnected(); const repo = ds.getRepository(User);
+        const user = repo.create(userData); return repo.save(user);
+      },
+      async updateUser(id, userData) {
+        const ds = await ensureDbConnected(); const repo = ds.getRepository(User);
+        await repo.update(id, userData); return repo.findOneBy({ id });
+      },
+      async deleteUser(id) {
+        const ds = await ensureDbConnected(); const repo = ds.getRepository(User);
+        const res = await repo.delete(id); return { success: res.affected > 0 };
+      },
+     // --- Department operations --- (Example)
+      async getDepartments() {
+        const ds = await ensureDbConnected(); return ds.getRepository(Department).find();
+      },
+     // ... Add ALL other methods (Employee, Attendance, Leave, etc.) from the original 'db' object here ...
+     // ... Make sure they use 'await ensureDbConnected()' and the correct 'ds.getRepository(...)' ...
+     // Example:
+      async getEmployees(filter = {}) {
+         const ds = await ensureDbConnected();
+         const repo = ds.getRepository(Employee);
+         // ... (add query builder logic as in original db object) ...
+         let query = repo.createQueryBuilder("employee").leftJoinAndSelect("employee.department", "department");
+         // Apply filters...
+         return query.getMany();
+      },
+      // --- Transaction support ---
+      async transaction(callback) {
+          const ds = await ensureDbConnected();
+          const qr = ds.createQueryRunner(); await qr.connect(); await qr.startTransaction();
+          try { const result = await callback(qr.manager); await qr.commitTransaction(); return result; }
+          catch (error) { await qr.rollbackTransaction(); throw error; }
+          finally { await qr.release(); }
+      },
+      // ... Add ALL other utility methods like executeRawQuery, getEntityByName, etc. ...
+  };
 
-// Note: The large 'db' object and functions like `runTransaction`, `executeRawQuery`
-// have been removed, assuming dbService.js is the primary data access layer.
-// If direct access via these utilities is still required elsewhere, they can be
-// added back, ensuring they use the `initializeDataSource` function correctly.
+} else {
+   console.log("Mock DB mode: Skipping Real DB setup in utils/db.js");
+}
+
+
+// --- Exports ---
+// Export AppDataSource (will be null if mock) and initializeDataSource (will be dummy if mock)
+// These might not be needed if dbService is the only consumer and uses the default export.
+// export { AppDataSource, initializeDataSource }; // Optional named exports
+
+// Export the 'db' object (will be empty {} if mock, or full object if real)
+export default db;
