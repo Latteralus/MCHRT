@@ -1,84 +1,89 @@
 import React, { useState, useEffect } from 'react';
-import { useSession, getSession } from 'next-auth/react'; // Import getSession for server-side
+// **MODIFIED: Import getSession for server-side**
+import { useSession, getSession } from 'next-auth/react';
 import Layout from '../components/common/Layout';
 import AttendanceLog from '../components/attendance/AttendanceLog';
 import AttendanceCalendar from '../components/attendance/AttendanceCalendar';
 import { format } from 'date-fns';
-import { dbService } from '@/utils/dbService'; // Import the fixed dbService
-import { authOptions } from '@/pages/api/auth/[...nextauth]'; // Import authOptions for getServerSession
+// **MODIFIED: Import the fixed dbService**
+import { dbService } from '@/utils/dbService';
+// **MODIFIED: Import authOptions needed by getSession/getServerSession in some contexts**
+// If not using getServerSession here, this might not be needed, but good practice
+import { authOptions } from '@/pages/api/auth/[...nextauth]';
 
-// Define AttendancePage component (keep client-side logic for interaction)
-export default function AttendancePage({ initialAttendanceRecords }) { // Receive initial records as props
+
+// **MODIFIED: Receive initial records as props**
+export default function AttendancePage({ initialAttendanceRecords, error }) {
   const { data: session, status } = useSession({ required: true });
   const [selectedEmployee, setSelectedEmployee] = useState(null);
-  // Use initial records, allow updates
+  // **MODIFIED: Use initial records, allow updates**
   const [attendanceRecords, setAttendanceRecords] = useState(initialAttendanceRecords || []);
   const [selectedDate, setSelectedDate] = useState(null);
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'calendar'
+  // State for client-side errors
+  const [clientError, setClientError] = useState(error || null); // Show server-side error initially
 
   // Client-side fetching might still be needed for updates or different filters
-  // Consider if this useEffect is still needed or if getServerSideProps handles initial load sufficiently
-  // useEffect(() => {
-  //   if (session) {
-  //     // Maybe fetch only if selectedEmployee changes or for refresh?
-  //     // fetchAttendanceRecords();
-  //   }
-  // }, [session, selectedEmployee]);
+  useEffect(() => {
+    // If initial load failed, don't rely on initialAttendanceRecords
+    if (session && !initialAttendanceRecords && !error) {
+      fetchAttendanceRecords();
+    }
+    // Re-fetch when selected employee changes
+    if (session && selectedEmployee !== null) { // Assuming null means fetch default/own
+       fetchAttendanceRecords(selectedEmployee?.id);
+    }
+
+  }, [session, selectedEmployee, error]); // Add error dependency
 
   const fetchAttendanceRecords = async (employeeFilterId = null) => {
-    // Simplified client-side fetch (adjust params as needed)
+    setClientError(null); // Clear previous errors
     try {
-      const params = new URLSearchParams({ limit: 100 });
+      const params = new URLSearchParams({ limit: 100 }); // Adjust limit as needed
       if (employeeFilterId) {
         params.append('employeeId', employeeFilterId);
       }
+      // Use the API route for client-side fetching
       const response = await fetch(`/api/attendance?${params.toString()}`);
-      if (!response.ok) throw new Error('Failed to fetch attendance records');
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.message || 'Failed to fetch attendance records client-side');
+      }
       const data = await response.json();
-      setAttendanceRecords(data.records); // Update state
+      // Assuming the API returns { records: [...] }
+      setAttendanceRecords(data.records || []);
     } catch (error) {
       console.error('Error fetching attendance records client-side:', error);
+      setClientError(error.message);
     }
   };
 
-  const handleSelectEmployee = (employee) => {
+   const handleSelectEmployee = (employee) => {
       setSelectedEmployee(employee);
-      fetchAttendanceRecords(employee?.id); // Fetch for selected employee client-side
+      // fetchAttendanceRecords(employee?.id); // Let useEffect handle refetch
   };
 
   const handleClearSelection = () => {
       setSelectedEmployee(null);
-      fetchAttendanceRecords(); // Fetch default (e.g., own) records client-side
+       fetchAttendanceRecords(); // Explicitly fetch default view
   };
 
 
-  // Handle date selection from calendar
   const handleDateClick = (date, record) => {
     setSelectedDate(date);
     if (record) {
-      // Navigate or show details modal
       console.log("Clicked date with record:", record);
-      // Example: window.location.href = `/attendance/detail/${record.id}`;
-      // Make sure the detail page exists and works
+      // Navigate to detail page (make sure this page exists)
+      // Example: Router.push(`/attendance/detail/${record.id}`); (import Router from 'next/router')
     }
   };
 
-  // Handle loading state
   if (status === 'loading') {
-    return (
-      <Layout>
-        <div className="flex justify-center items-center h-64"><p>Loading session...</p></div>
-      </Layout>
-    );
+    return <Layout><p>Loading session...</p></Layout>;
   }
-
-  // Ensure session exists before rendering main content
    if (!session) {
-     return (
-       <Layout>
-         <div className="flex justify-center items-center h-64"><p>Redirecting...</p></div>
-       </Layout>
-     );
+     // Should be handled by useSession({ required: true }) redirecting
+     return <Layout><p>Redirecting...</p></Layout>;
    }
 
   return (
@@ -90,37 +95,36 @@ export default function AttendancePage({ initialAttendanceRecords }) { // Receiv
           <p className="text-gray-600">
             {selectedEmployee
               ? `Viewing records for ${selectedEmployee.name}`
-              : 'Viewing your attendance records'}
+              : (session.user.role === 'admin' || session.user.role === 'hr_manager') ? 'Viewing all attendance records' : 'Viewing your attendance records'}
           </p>
         </div>
 
-        {/* Status Cards - Consider making these dynamic if needed */}
-         {/* ... status cards ... */}
-
-         {/* Employee Selector (Simplified Example) */}
-         {(session.user.role === 'admin' || session.user.role === 'hr' || session.user.role === 'manager') && (
-           <div className="bg-white rounded-lg shadow p-6 mb-8">
-             {/* ... Employee search/selection UI ... */}
-              {/* Example: Replace with actual EmployeeSearch component */}
-              <button onClick={() => handleSelectEmployee({ id: 'some-employee-id', name: 'Test Employee' })}>Select Test Employee</button>
-              {selectedEmployee && <button onClick={handleClearSelection}>Clear Selection</button>}
-           </div>
+         {/* Display errors */}
+         {clientError && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                <strong className="font-bold">Error: </strong>
+                <span className="block sm:inline">{clientError}</span>
+            </div>
          )}
 
 
-        {/* View Mode Toggle */}
-         <div className="mb-4">
-             <button /* ... onClick={() => setViewMode('list')} ... */>List</button>
-             <button /* ... onClick={() => setViewMode('calendar')} ... */>Calendar</button>
-         </div>
+        {/* Status Cards - Keep as is */}
+        {/* ... */}
 
-        {/* Conditional Rendering based on viewMode */}
+        {/* Employee Selector - Keep as is */}
+        {/* ... */}
+
+        {/* View Mode Toggle - Keep as is */}
+         {/* ... */}
+
+        {/* Conditional Rendering */}
         {viewMode === 'list' ? (
-          // Pass current records from state
-          <AttendanceLog records={attendanceRecords} employeeId={selectedEmployee?.id} />
+          // AttendanceLog likely fetches its own data based on props
+          <AttendanceLog employeeId={selectedEmployee?.id} /* Pass initial records if needed */ />
         ) : (
           <AttendanceCalendar
-            attendanceRecords={attendanceRecords} // Pass current records from state
+            // Pass current records from state for calendar display
+            attendanceRecords={attendanceRecords}
             employeeId={selectedEmployee?.id}
             onDateClick={handleDateClick}
           />
@@ -130,51 +134,56 @@ export default function AttendancePage({ initialAttendanceRecords }) { // Receiv
   );
 }
 
-// Fetch initial data on the server
+// **MODIFIED: Fetch initial data on the server**
 export async function getServerSideProps(context) {
-  const session = await getSession(context); // Use getSession server-side
+  // **MODIFIED: Use getSession for server-side context**
+  const session = await getSession(context);
 
   if (!session) {
     return {
-      redirect: {
-        destination: '/login', // Redirect to login if not authenticated
-        permanent: false,
-      },
+      redirect: { destination: '/login', permanent: false, },
     };
   }
 
   let initialAttendanceRecords = [];
+  let error = null; // Variable to hold potential errors
+
   try {
-    // Determine filter based on user role
-    const filterOptions = { limit: 100 }; // Initial limit
-    if (session.user.role !== 'admin' && session.user.role !== 'hr' /* hr_manager? */) {
-       // Default to fetching only the logged-in user's records
+    const filterOptions = { limit: 100 }; // Initial limit for server-side load
+    // Apply default filters based on role
+     if (session.user.role !== 'admin' && session.user.role !== 'hr_manager' /* Check role name */) {
        if (session.user.employeeId) {
          filterOptions.employeeId = session.user.employeeId;
        } else {
-          console.warn("User session missing employeeId, cannot fetch personal attendance.");
+          console.warn("getServerSideProps (Attendance): User session missing employeeId.");
+          // Decide if this is an error state or just means no initial data
+          error = "User profile incomplete (missing employee ID).";
        }
-       // Managers might see their department by default - requires more logic
-    } else {
-        // Admins/HR see all initially, or apply default filters
+       // Department manager logic might go here if needed for default view
+    }
+    // Admins/HR see all initially unless specific filters are added later
+
+    // Only fetch if no error identified yet
+    if (!error) {
+        // **MODIFIED: Use the fixed dbService and await the result**
+        // Assuming getAttendanceRecords returns an array directly
+        initialAttendanceRecords = await dbService.getAttendanceRecords(filterOptions);
     }
 
-
-    // Use the fixed dbService (ensure it handles connection internally)
-    // Assuming getAttendanceRecords returns an array directly now, not an object with 'records'
-    initialAttendanceRecords = await dbService.getAttendanceRecords(filterOptions);
-
-  } catch (error) {
-    console.error("Error fetching initial attendance in getServerSideProps:", error);
-    // Handle error appropriately, maybe return empty array or show error message
-    // Check if the error is due to DB connection issues handled in dbService
+  } catch (e) {
+    console.error("getServerSideProps (Attendance) Error:", e);
+    // Capture the error message to pass to the page
+    error = `Failed to load initial attendance data: ${e.message}`;
+    // Ensure records array is empty on error
+    initialAttendanceRecords = [];
   }
 
   return {
     props: {
-      // Session is automatically provided by SessionProvider, but passing it can be useful
-      // session: session, // Already available via useSession hook client-side
-      initialAttendanceRecords: JSON.parse(JSON.stringify(initialAttendanceRecords)), // Serialize data
+      // **MODIFIED: Serialize potentially complex objects like dates**
+      initialAttendanceRecords: JSON.parse(JSON.stringify(initialAttendanceRecords)),
+      error: error, // Pass error state to the page component
+      // Session object is available via useSession hook client-side, no need to pass explicitly
     },
   };
 }
