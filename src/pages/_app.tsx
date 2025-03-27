@@ -1,9 +1,10 @@
 import '@/styles/global.css'; // Keep existing global styles import
 import type { AppProps } from 'next/app';
 import Head from 'next/head'; // Import Head for managing <head> elements
+import { SessionProvider } from 'next-auth/react'; // Import SessionProvider
 import MainLayout from '@/components/layouts/MainLayout'; // Import the MainLayout
 
-export default function App({ Component, pageProps }: AppProps) {
+export default function App({ Component, pageProps: { session, ...pageProps } }: AppProps) {
   // Pages like login might not need the MainLayout.
   // We can add logic here later to conditionally apply the layout.
   // For now, apply it to all pages.
@@ -13,9 +14,10 @@ export default function App({ Component, pageProps }: AppProps) {
   // For MVP, we'll wrap everything in MainLayout
 
   return (
-    <>
-      <Head>
-        {/* Add Google Fonts */}
+    <SessionProvider session={session}>
+      <>
+        <Head>
+          {/* Add Google Fonts */}
         <link
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Nunito:wght@400;600;700&display=swap"
           rel="stylesheet"
@@ -34,6 +36,7 @@ export default function App({ Component, pageProps }: AppProps) {
         <Component {...pageProps} />
       </MainLayout>
     </>
+  </SessionProvider>
   );
 }
 

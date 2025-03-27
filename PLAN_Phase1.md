@@ -10,8 +10,8 @@ This plan outlines the steps to establish the foundational structure, layout, au
 2.  **Establish Folder Structure:**
     *   Create the core directories outlined in `DevDocuments/Project.md` (lines 84-548) within the `src` folder (e.g., `components`, `config`, `db`, `lib`, `modules`, `types`) and the root level (`local-storage`, `tests`, `docs`, `e2e`).
 3.  **Implement Core Layout Components:**
-    *   Create `MainLayout.tsx` incorporating a `Sidebar` and `TopBar` component based on the structure and styling provided in `DevDocuments/example.md`.
-    *   Place these layout components likely within `src/components/layouts/` and `src/components/navigation/`.
+    *   Create `MainLayout.tsx` incorporating a `Sidebar` component based on the structure and styling provided in `DevDocuments/example.md`. (Note: TopBar component removed as per user instruction).
+    *   Place the layout components likely within `src/components/layouts/` and `src/components/navigation/`.
     *   Update `src/pages/_app.tsx` to use `MainLayout` for relevant pages.
 4.  **Set Up Basic Authentication:**
     *   Install `next-auth`.
