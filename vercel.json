@@ -3,6 +3,7 @@
     "buildCommand": "npm run build",
     "devCommand": "npm run dev",
     "framework": "nextjs",
+    "outputDirectory": ".next",
     "regions": ["iad1"],
     "env": {
       "NODE_ENV": "production",
@@ -48,18 +49,26 @@
     "rewrites": [
       { "source": "/login", "destination": "/login" },
       { "source": "/api/:path*", "destination": "/api/:path*" },
-      { "source": "/:path*", "has": [
-        {
-          "type": "cookie",
-          "key": "next-auth.session-token",
-          "value": "(?<session>.*)"
-        }
-      ], "destination": "/:path*" },
-      { "source": "/:path*", "missing": [
-        {
-          "type": "cookie",
-          "key": "next-auth.session-token"
-        }
-      ], "destination": "/login" }
+      { 
+        "source": "/:path*", 
+        "has": [
+          {
+            "type": "cookie",
+            "key": "next-auth.session-token",
+            "value": "(?<session>.*)"
+          }
+        ], 
+        "destination": "/:path*" 
+      },
+      { 
+        "source": "/:path*", 
+        "missing": [
+          {
+            "type": "cookie",
+            "key": "next-auth.session-token"
+          }
+        ], 
+        "destination": "/login" 
+      }
     ]
   }
