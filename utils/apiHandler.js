@@ -1,8 +1,10 @@
 // utils/apiHandler.js
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '../pages/api/auth/[...nextauth]';
-import { dbService } from './dbService';
+// Corrected import: Use named import and path alias
+import { authOptions } from '@/pages/api/auth/[...nextauth]';
+import { dbService } from './dbService'; // Assuming dbService is in the same directory
 
+// ... (rest of the apiHandler code remains the same)
 /**
  * A wrapper for API route handlers to provide consistent error handling and response format
  * @param {Object} handlers - Object containing handler functions for different HTTP methods
@@ -17,13 +19,16 @@ export const apiHandler = (
   return async (req, res) => {
     // Handle CORS preflight
     if (req.method === 'OPTIONS') {
+      res.setHeader('Access-Control-Allow-Origin', '*'); // Adjust origin policy as needed
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-      return res.status(200).end();
+      // Add other headers if needed, e.g., 'X-Requested-With'
+      return res.status(204).end(); // Use 204 No Content for OPTIONS
     }
 
     // Check request method is supported
-    const handler = handlers[req.method?.toLowerCase()];
+    const method = req.method?.toLowerCase();
+    const handler = handlers[method];
     if (!handler) {
       return res.status(405).json({
         success: false,
@@ -34,170 +39,188 @@ export const apiHandler = (
     // Authenticate request if required
     let session = null;
     if (options.requireAuth) {
-      // Use try/catch as getServerSession might throw if parameters are incorrect
       try {
-        // Pass the authOptions correctly
+        // Use the imported authOptions
         session = await getServerSession(req, res, authOptions);
       } catch (error) {
-        console.error("Authentication error:", error);
+        console.error("Error fetching session in apiHandler:", error);
+        // Return 500 if session fetching fails unexpectedly
+         return res.status(500).json({
+          success: false,
+          error: 'Failed to retrieve session',
+        });
       }
-      
+
       if (!session) {
         return res.status(401).json({
           success: false,
-          error: 'Unauthorized',
+          error: 'Unauthorized - Session required',
         });
       }
 
       // Check allowed roles if specified
       if (options.allowedRoles && options.allowedRoles.length > 0) {
-        // Allow if user role is Admin (they can access everything)
-        if (session.user.role !== 'Admin' && !options.allowedRoles.includes(session.user.role)) {
+        // Allow if user role is 'admin' (or any other globally allowed role)
+        const userRole = session.user?.role; // Use optional chaining
+        if (userRole !== 'admin' && !options.allowedRoles.includes(userRole)) {
           return res.status(403).json({
             success: false,
             error: 'Forbidden - Insufficient permissions',
           });
         }
       }
-      
+
       // Add isMockDb flag in development for UI hints
-      if (process.env.NODE_ENV !== 'production') {
-        session.isMockDb = dbService.isMockDb();
+      // Moved this inside requireAuth block as it depends on session logic potentially
+      if (process.env.NODE_ENV === 'development') {
+         try {
+            session.isMockDb = dbService.isMockDb();
+         } catch (dbError) {
+            console.error("Error checking dbService state in apiHandler:", dbError);
+            session.isMockDb = undefined;
+         }
+      } else {
+         session.isMockDb = false;
       }
     }
 
     try {
-      // Add session to request for handler use
+      // Add session to request for handler use (even if auth not strictly required, session might exist)
       req.session = session;
-      
+
       // Execute the handler function
       await handler(req, res);
     } catch (error) {
+      // Log the full error for server-side debugging
       console.error(`API Error [${req.method} ${req.url}]:`, error);
 
       // Determine status code and message
-      const status = error.statusCode || 500;
+      // Use ApiError specific status code if available
+      const status = error instanceof ApiError ? error.statusCode : 500;
       const message = error.message || 'Internal server error';
-      
-      // Include stack trace in development
+
+      // Basic error response structure
       const errorResponse = {
         success: false,
         error: message,
       };
-      
-      if (process.env.NODE_ENV !== 'production' && status === 500) {
+
+      // Add stack trace only in development for internal server errors
+      if (process.env.NODE_ENV === 'development' && status === 500 && error.stack) {
         errorResponse.stack = error.stack;
       }
-      
-      return res.status(status).json(errorResponse);
+
+      // Ensure headers aren't already sent before sending error response
+       if (!res.headersSent) {
+           return res.status(status).json(errorResponse);
+       } else {
+           console.error("Headers already sent, could not send error response JSON.");
+           // If headers are sent, we can't send a JSON response, but ensure the response ends.
+           res.end();
+       }
     }
   };
 };
 
-// Helper function to parse query parameters
+// ... (rest of the helper functions like parseQueryParams, validateDepartmentAccess, etc.)
+
+// Helper function to parse query parameters (Example refinement)
 export const parseQueryParams = (query) => {
   const params = {};
-  
+
   // Handle pagination
-  params.skip = query.skip ? parseInt(query.skip, 10) : 0;
-  params.take = query.take ? parseInt(query.take, 10) : 10;
-  
+  const page = parseInt(query.page, 10);
+  const limit = parseInt(query.limit, 10);
+  params.page = !isNaN(page) && page > 0 ? page : 1;
+  params.limit = !isNaN(limit) && limit > 0 ? limit : 20; // Default limit
+  params.skip = (params.page - 1) * params.limit;
+  params.take = params.limit; // For TypeORM
+
   // Handle sorting
   if (query.sortBy) {
-    params.order = {
-      [query.sortBy]: (query.order?.toLowerCase() === 'desc' ? 'DESC' : 'ASC'),
-    };
+      const validSortFields = ['name', 'email', 'role', 'status', 'date', 'createdAt', 'updatedAt', 'firstName', 'lastName', 'hireDate', 'expirationDate', 'startDate', 'endDate', 'requestDate', 'title', 'documentType']; // Add valid fields
+      const safeField = validSortFields.includes(query.sortBy) ? query.sortBy : 'createdAt'; // Default sort field
+      const safeOrder = query.order?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+      params.order = { [safeField]: safeOrder };
+  } else {
+      params.order = { createdAt: 'DESC' }; // Default sort order
   }
-  
-  // Handle search and filters
-  if (query.search) {
-    params.search = query.search;
+
+
+  // Handle search
+  if (query.search && typeof query.search === 'string') {
+    params.search = query.search.trim();
   }
-  
-  // Department filter
-  if (query.departmentId) {
-    params.departmentId = query.departmentId;
-  }
-  
-  // Status filter
-  if (query.status) {
-    params.status = query.status;
-  }
-  
+
+  // Generic filter handling (add specific filters as needed)
+   if (query.departmentId) params.departmentId = query.departmentId;
+   if (query.status) params.status = query.status;
+   if (query.role) params.role = query.role;
+   if (query.employeeId) params.employeeId = query.employeeId;
+   if (query.leaveType) params.leaveType = query.leaveType;
+   if (query.licenseType) params.licenseType = query.licenseType;
+   if (query.documentType) params.documentType = query.documentType;
+   if (query.accessLevel) params.accessLevel = query.accessLevel;
+
+
   // Date range filters
-  if (query.startDate) {
-    params.startDate = new Date(query.startDate);
+  try {
+      if (query.startDate) params.startDate = new Date(query.startDate);
+      if (query.endDate) params.endDate = new Date(query.endDate);
+       if (query.expiringBefore) params.expiringBefore = new Date(query.expiringBefore);
+       if (query.expiresBefore) params.expiresBefore = new Date(query.expiresBefore);
+       if (query.expiresAfter) params.expiresAfter = new Date(query.expiresAfter);
+       // Validate dates if needed: !isNaN(params.startDate.getTime())
+  } catch (dateError) {
+      console.warn("Invalid date format received in query params:", dateError);
+      // Optionally remove invalid dates or handle error
   }
-  
-  if (query.endDate) {
-    params.endDate = new Date(query.endDate);
-  }
-  
+
+
   return params;
 };
 
-/**
- * Validate access to department data based on user role and department
- * @param {Object} session - User session data
- * @param {string} departmentId - Department ID to check access for
- * @returns {boolean} - Whether user has access
- */
+// ... (validateDepartmentAccess, validateEmployeeAccess as before) ...
 export const validateDepartmentAccess = (session, departmentId) => {
-  // Skip validation if no department ID is provided
-  if (!departmentId) return true;
-  
-  // Admins can access all departments
-  if (session.user.role === 'Admin') {
-    return true;
-  }
-  
-  // Department managers can only access their own department
-  if (session.user.role === 'Manager') {
-    return session.user.departmentId === departmentId;
-  }
-  
-  // Regular employees can access their own department data if needed
-  if (session.user.departmentId === departmentId) {
-    return true;
-  }
-  
-  // Deny access in all other cases
+  if (!session?.user || !departmentId) return false; // Need session and ID
+  const userRole = session.user.role;
+  const userDeptId = session.user.departmentId;
+
+  if (userRole === 'admin' || userRole === 'hr_manager') return true;
+  if ((userRole === 'department_manager' || userRole === 'employee') && userDeptId === departmentId) return true; // Dept Mgr or Employee in their own dept
+
   return false;
 };
 
-/**
- * Validate access to employee data based on user role and departments
- * @param {Object} session - User session data
- * @param {Object|string} employee - Employee data or employee ID
- * @returns {boolean} - Whether user has access
- */
-export const validateEmployeeAccess = async (session, employee) => {
-  // Admins can access all employee data
-  if (session.user.role === 'Admin') {
-    return true;
-  }
-  
-  // Get employee data if only ID was provided
-  let employeeData = employee;
-  if (typeof employee === 'string') {
-    employeeData = await dbService.getEmployeeById(employee);
-    if (!employeeData) return false;
-  }
-  
-  // Department managers can access employees in their department
-  if (session.user.role === 'Manager' && 
-      session.user.departmentId === employeeData.departmentId) {
-    return true;
-  }
-  
-  // Users can access their own data
-  if (session.user.id === employeeData.id) {
-    return true;
-  }
-  
-  // Deny access in all other cases
-  return false;
+export const validateEmployeeAccess = async (session, employeeOrId) => {
+   if (!session?.user || !employeeOrId) return false;
+   const userRole = session.user.role;
+   const userDeptId = session.user.departmentId;
+   const userEmployeeId = session.user.employeeId; // Assuming employeeId is on session.user
+
+   if (userRole === 'admin' || userRole === 'hr_manager') return true;
+
+   let employeeData = null;
+   try {
+       if (typeof employeeOrId === 'string') {
+           employeeData = await dbService.getEmployeeById(employeeOrId);
+       } else {
+           employeeData = employeeOrId; // Assume object is passed
+       }
+   } catch(e) { console.error("DB error fetching employee for access check:", e); return false; }
+
+
+   if (!employeeData) return false; // Employee not found
+
+   // Employees can access their own record
+   if (userEmployeeId === employeeData.id) return true;
+
+   // Department managers can access employees in their department
+   if (userRole === 'department_manager' && userDeptId === employeeData.departmentId) return true;
+
+   return false;
 };
+
 
 // Error class for API errors
 export class ApiError extends Error {
@@ -222,7 +245,10 @@ export const throwApiError = {
   forbidden: (message = 'Forbidden') => {
     throw new ApiError(message, 403);
   },
-  conflict: (message = 'Resource already exists') => {
+  conflict: (message = 'Resource conflict or already exists') => {
     throw new ApiError(message, 409);
   },
+   internal: (message = 'Internal server error') => {
+    throw new ApiError(message, 500);
+  }
 };

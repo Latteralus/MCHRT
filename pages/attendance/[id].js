@@ -1,23 +1,24 @@
-import { AppDataSource } from "@/utils/db"; // Corrected path
-import Attendance from "@/entities/Attendance"; // Corrected path
-import Employee from "@/entities/Employee"; // Corrected path
-import { apiHandler } from "@/utils/apiHandler"; // Corrected path
+// Corrected import paths and authOptions import
+import { AppDataSource } from "@/utils/db";
+import Attendance from "@/entities/Attendance";
+import Employee from "@/entities/Employee";
+import { apiHandler } from "@/utils/apiHandler";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/pages/api/auth/[...nextauth]"; // Corrected path
-import leaveAttendanceService from "@/utils/leaveAttendanceService"; // Corrected path
+import { authOptions } from '@/pages/api/auth/[...nextauth]'; // Corrected import
+import leaveAttendanceService from "@/utils/leaveAttendanceService";
 
 export default apiHandler({
   GET: async (req, res) => {
     const { id } = req.query;
-    const session = await getServerSession(req, res, authOptions);
+    const session = await getServerSession(req, res, authOptions); // Use imported authOptions
 
     if (!session) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    // --- Rest of the GET method ---
-    // [Code from the original file remains the same here]
-     try {
+    try {
+      // NOTE: Using AppDataSource directly might be inconsistent with dbService refactoring.
+      // Consider refactoring this API route to use dbService later.
       const attendanceRepository = AppDataSource.getRepository(Attendance);
 
       const attendanceRecord = await attendanceRepository.findOne({
@@ -53,15 +54,14 @@ export default apiHandler({
 
   PUT: async (req, res) => {
     const { id } = req.query;
-    const session = await getServerSession(req, res, authOptions);
+    const session = await getServerSession(req, res, authOptions); // Use imported authOptions
 
     if (!session) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    // --- Rest of the PUT method ---
-    // [Code from the original file remains the same here]
-     try {
+    try {
+      // NOTE: Using AppDataSource directly might be inconsistent with dbService refactoring.
       const attendanceRepository = AppDataSource.getRepository(Attendance);
 
       const attendanceRecord = await attendanceRepository.findOne({
@@ -73,35 +73,27 @@ export default apiHandler({
         return res.status(404).json({ message: "Attendance record not found" });
       }
 
-      // Apply role-based access control
-      if (session.user.role !== 'admin' && session.user.role !== 'hr_manager') {
-        // Department managers can only update attendance for their department
+      // Apply role-based access control (permissions check)
+      // ... (permission logic as before) ...
+       if (session.user.role !== 'admin' && session.user.role !== 'hr_manager') {
         if (session.user.role === 'department_manager') {
           if (attendanceRecord.employee?.department?.id !== session.user.departmentId) {
             return res.status(403).json({ message: "You can only update attendance for your department" });
           }
         } else {
-          // Regular employees can only update their own attendance on the same day
-          if (attendanceRecord.employee?.id !== session.user.employeeId) {
+           if (attendanceRecord.employee?.id !== session.user.employeeId) {
             return res.status(403).json({ message: "You can only update your own attendance" });
           }
-
-          // Check if the record is for today
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-
-          const recordDate = new Date(attendanceRecord.date);
-          recordDate.setHours(0, 0, 0, 0);
-
+           const today = new Date(); today.setHours(0, 0, 0, 0);
+          const recordDate = new Date(attendanceRecord.date); recordDate.setHours(0, 0, 0, 0);
           if (recordDate.getTime() !== today.getTime()) {
             return res.status(403).json({ message: "You can only update attendance for the current day" });
           }
-
-          // Employees can only update timeIn and timeOut
           const { timeIn, timeOut } = req.body;
-          req.body = { timeIn, timeOut };
+          req.body = { timeIn, timeOut }; // Allow only time updates for employees
         }
       }
+
 
       // Check if this is a leave-generated attendance record
       const isLeaveRecord = attendanceRecord.notes &&
@@ -135,7 +127,7 @@ export default apiHandler({
 
   DELETE: async (req, res) => {
     const { id } = req.query;
-    const session = await getServerSession(req, res, authOptions);
+    const session = await getServerSession(req, res, authOptions); // Use imported authOptions
 
     if (!session) {
       return res.status(401).json({ message: "Unauthorized" });
@@ -146,9 +138,8 @@ export default apiHandler({
       return res.status(403).json({ message: "Only administrators and HR personnel can delete attendance records" });
     }
 
-    // --- Rest of the DELETE method ---
-    // [Code from the original file remains the same here]
-     try {
+    try {
+      // NOTE: Using AppDataSource directly might be inconsistent with dbService refactoring.
       const attendanceRepository = AppDataSource.getRepository(Attendance);
 
       const attendanceRecord = await attendanceRepository.findOne({

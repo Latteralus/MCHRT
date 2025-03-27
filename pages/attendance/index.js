@@ -1,25 +1,25 @@
-// pages/api/attendance/index.js // Note: Original file path comment might be slightly inaccurate, file is at pages/attendance/index.js
-import { AppDataSource } from "@/utils/db"; // Corrected path
-import Attendance from "@/entities/Attendance"; // Corrected path
-import Employee from "@/entities/Employee"; // Corrected path
-import { apiHandler } from "@/utils/apiHandler"; // Corrected path
+// pages/api/attendance/index.js // File path comment seems incorrect, actual path is pages/attendance/index.js
+// Corrected import paths and authOptions import
+import { AppDataSource } from "@/utils/db";
+import Attendance from "@/entities/Attendance";
+import Employee from "@/entities/Employee";
+import { apiHandler } from "@/utils/apiHandler";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/pages/api/auth/[...nextauth]"; // Corrected path
-import leaveAttendanceService from "@/utils/leaveAttendanceService"; // Corrected path
+import { authOptions } from '@/pages/api/auth/[...nextauth]'; // Corrected import
+import leaveAttendanceService from "@/utils/leaveAttendanceService";
 
 export default apiHandler({
   GET: async (req, res) => {
-    const session = await getServerSession(req, res, authOptions);
+    const session = await getServerSession(req, res, authOptions); // Use imported authOptions
 
     if (!session) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    // --- Rest of the GET method ---
-    // [Code from the original file remains the same here]
     try {
+      // NOTE: Using AppDataSource directly might be inconsistent with dbService refactoring.
       const attendanceRepository = AppDataSource.getRepository(Attendance);
-      const employeeRepository = AppDataSource.getRepository(Employee);
+      const employeeRepository = AppDataSource.getRepository(Employee); // Needed for joins/checks
 
       // Process query parameters
       const {
@@ -53,28 +53,54 @@ export default apiHandler({
         }
       }
 
-      // Apply filters
-      if (employeeId && (session.user.role === 'admin' || session.user.role === 'hr_manager' ||
-          (session.user.role === 'department_manager' && session.user.departmentId))) {
-        queryBuilder.andWhere("employee.id = :employeeId", { employeeId });
+      // Apply filters (ensure subsequent filters use andWhere)
+      let hasWhere = session.user.role !== 'admin' && session.user.role !== 'hr_manager'; // Check if initial restriction applied
+
+      if (employeeId) {
+         // Only apply if user has permission to filter by arbitrary employeeId
+         if (session.user.role === 'admin' || session.user.role === 'hr_manager' ||
+             (session.user.role === 'department_manager' && /* additional check if needed */ true)
+            ) {
+             const clause = hasWhere ? "andWhere" : "where";
+             queryBuilder = queryBuilder[clause]("employee.id = :employeeId", { employeeId });
+             hasWhere = true;
+         } else if (session.user.role === 'employee' && employeeId !== session.user.employeeId) {
+             // Prevent employee from filtering for others
+             return res.status(403).json({ message: "Cannot filter by other employee IDs." });
+         }
+         // If employee role and ID matches session, filter is implicitly applied by initial restriction
       }
 
       if (status) {
-        queryBuilder.andWhere("attendance.status = :status", { status });
+        const clause = hasWhere ? "andWhere" : "where";
+        queryBuilder = queryBuilder[clause]("attendance.status = :status", { status });
+        hasWhere = true;
       }
 
       if (startDate) {
         const parsedStartDate = new Date(startDate);
-        queryBuilder.andWhere("attendance.date >= :startDate", { startDate: parsedStartDate });
+        const clause = hasWhere ? "andWhere" : "where";
+        queryBuilder = queryBuilder[clause]("attendance.date >= :startDate", { startDate: parsedStartDate });
+        hasWhere = true;
       }
 
       if (endDate) {
         const parsedEndDate = new Date(endDate);
-        queryBuilder.andWhere("attendance.date <= :endDate", { endDate: parsedEndDate });
+        const clause = hasWhere ? "andWhere" : "where";
+        queryBuilder = queryBuilder[clause]("attendance.date <= :endDate", { endDate: parsedEndDate });
+        hasWhere = true;
       }
 
-      if (departmentId && (session.user.role === 'admin' || session.user.role === 'hr_manager')) {
-        queryBuilder.andWhere("department.id = :departmentId", { departmentId });
+      if (departmentId) {
+          // Only apply if user has permission to filter by department
+         if (session.user.role === 'admin' || session.user.role === 'hr_manager') {
+            const clause = hasWhere ? "andWhere" : "where";
+            queryBuilder = queryBuilder[clause]("department.id = :departmentId", { departmentId });
+            hasWhere = true;
+         } else if (session.user.role === 'department_manager' && departmentId !== session.user.departmentId) {
+             return res.status(403).json({ message: "Cannot filter by other department IDs." });
+         }
+         // If dept manager and ID matches session, filter is implicitly applied by initial restriction
       }
 
       // Add order and pagination
@@ -87,7 +113,7 @@ export default apiHandler({
       // Execute query
       const [records, total] = await Promise.all([
         queryBuilder.getMany(),
-        queryBuilder.getCount()
+        queryBuilder.getCount() // Count should ideally apply the same filters
       ]);
 
       // Return paginated results with metadata
@@ -107,15 +133,14 @@ export default apiHandler({
   },
 
   POST: async (req, res) => {
-    const session = await getServerSession(req, res, authOptions);
+    const session = await getServerSession(req, res, authOptions); // Use imported authOptions
 
     if (!session) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    // --- Rest of the POST method ---
-    // [Code from the original file remains the same here]
-     try {
+    try {
+      // NOTE: Using AppDataSource directly might be inconsistent with dbService refactoring.
       const attendanceRepository = AppDataSource.getRepository(Attendance);
       const employeeRepository = AppDataSource.getRepository(Employee);
 
@@ -150,50 +175,52 @@ export default apiHandler({
       }
 
       // Check for existing attendance record for the same date and employee
-      const existingRecord = await attendanceRepository.findOne({
-        where: {
-          employee: { id: employeeId },
-          date: new Date(date)
-        }
-      });
+       // Ensure date comparison is robust (ignore time part)
+      const targetDate = new Date(date);
+      targetDate.setUTCHours(0, 0, 0, 0);
+      const nextDay = new Date(targetDate);
+      nextDay.setUTCDate(targetDate.getUTCDate() + 1);
+
+      const existingRecord = await attendanceRepository.createQueryBuilder("attendance")
+          .where("attendance.employeeId = :employeeId", { employeeId })
+          .andWhere("attendance.date >= :startOfDay AND attendance.date < :startOfNextDay", {
+              startOfDay: targetDate.toISOString().split('T')[0], // Format as YYYY-MM-DD string
+              startOfNextDay: nextDay.toISOString().split('T')[0] // Format as YYYY-MM-DD string
+          })
+          .getOne();
+
 
       if (existingRecord) {
-        return res.status(409).json({ message: "An attendance record already exists for this employee on this date" });
+        return res.status(409).json({ message: `An attendance record already exists for this employee on ${targetDate.toISOString().split('T')[0]}` });
       }
 
       // Check for conflicts with approved leave requests
       const { hasConflict, conflictingLeave } = await leaveAttendanceService.checkLeaveConflicts(
         employeeId,
-        new Date(date)
+        targetDate // Use normalized date
       );
 
       if (hasConflict) {
-        // If there's a conflicting leave request, we have options:
-        // 1. Reject the attendance record (strict approach)
-        // 2. Create a special attendance record that shows both attendance and leave (flexible approach)
-        // 3. Ask the user to clarify which one is correct (interactive approach)
-
-        // For this implementation, we'll take the approach of checking if user is admin/HR who can override
-        if (session.user.role !== 'admin' && session.user.role !== 'hr_manager') {
+        // Handle conflict logic (as before)
+         if (session.user.role !== 'admin' && session.user.role !== 'hr_manager') {
           return res.status(409).json({
             message: "Cannot create attendance record - conflicts with approved leave request",
             conflict: conflictingLeave
           });
         } else {
-          // Add warning note about the conflict for admin/HR users who force the creation
           const warningNote = `WARNING: This record conflicts with an approved leave request (ID: ${conflictingLeave.id}). ${notes || ''}`;
-          req.body.notes = warningNote;
+          req.body.notes = warningNote; // Add warning if admin overrides
         }
       }
 
       // Create new attendance record
       const newAttendance = attendanceRepository.create({
         employee: { id: employeeId },
-        date: new Date(date),
+        date: targetDate, // Use normalized date
         timeIn: timeIn || null,
         timeOut: timeOut || null,
         status: status || 'present',
-        notes: notes || ''
+        notes: req.body.notes || notes || '' // Use potentially modified notes
       });
 
       const savedRecord = await attendanceRepository.save(newAttendance);
@@ -201,7 +228,7 @@ export default apiHandler({
       return res.status(201).json(savedRecord);
     } catch (error) {
       console.error("Error creating attendance record:", error);
-      return res.status(500).json({ message: "Failed to create attendance record" });
+      return res.status(500).json({ message: "Failed to create attendance record", error: error.message });
     }
   }
 });

@@ -1,15 +1,17 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '../../api/auth/[...nextauth]';
-import { AppDataSource } from '../../../utils/db';
-import { Employee } from '../../../entities/Employee';
-import EmployeeForm from '../../../components/employee/EmployeeForm';
+// Corrected import: Use named import and path alias
+import { authOptions } from '@/pages/api/auth/[...nextauth]';
+// Use dbService instead of directly using AppDataSource or Employee entity
+import { dbService } from '@/utils/dbService';
+import EmployeeForm from '@/components/employee/EmployeeForm'; // Use alias
+import Layout from '@/components/common/Layout'; // Use alias
 
-// Import Layout component
-import Layout from '../../../components/common/Layout';
+export default function EditEmployeePage({ employeeJson }) {
+   // Re-parse employee data on client-side
+   const employee = employeeJson ? JSON.parse(employeeJson) : null;
 
-export default function EditEmployeePage({ employee }) {
   return (
     <Layout>
       <Head>
@@ -20,27 +22,35 @@ export default function EditEmployeePage({ employee }) {
       </Head>
 
       <div className="header">
-        <div className="page-title">
-          <Link href={`/employees/${employee.id}`} className="back-link">
-            <i className="fas fa-arrow-left"></i> {employee.firstName} {employee.lastName}
-          </Link>
-          <h1>Edit Employee</h1>
-          <div className="page-subtitle">Update employee information</div>
-        </div>
+         {employee ? (
+             <div className="page-title">
+                <Link href={`/employees/${employee.id}`} className="back-link">
+                    <i className="fas fa-arrow-left"></i> {employee.firstName} {employee.lastName}
+                </Link>
+                <h1>Edit Employee</h1>
+                <div className="page-subtitle">Update employee information</div>
+            </div>
+         ) : (
+             <h1>Edit Employee</h1> // Fallback title if employee data failed
+         )}
       </div>
 
-      <EmployeeForm 
-        employeeId={employee.id} 
-        initialData={employee}
-      />
+       {employee ? (
+           <EmployeeForm
+            employeeId={employee.id}
+            initialData={employee}
+            />
+       ) : (
+           <p>Employee data could not be loaded.</p>
+       )}
     </Layout>
   );
 }
 
 export async function getServerSideProps(context) {
   // Check authentication
-  const session = await getServerSession(context.req, context.res, authOptions);
-  
+  const session = await getServerSession(context.req, context.res, authOptions); // Use imported authOptions
+
   if (!session) {
     return {
       redirect: {
@@ -49,62 +59,52 @@ export async function getServerSideProps(context) {
       },
     };
   }
-  
+
   try {
-    // Get employee ID from URL
     const { id } = context.params;
-    
-    // Initialize database connection
-    if (!AppDataSource.isInitialized) {
-      await AppDataSource.initialize();
-    }
-    
-    // Get employee with related data
-    const employeeRepository = AppDataSource.getRepository(Employee);
-    const employee = await employeeRepository.findOne({
-      where: { id },
-      relations: ['department', 'manager']
-    });
-    
-    // If employee not found, return 404
+
+    // Use dbService to get employee data
+    const employee = await dbService.getEmployeeById(id);
+
     if (!employee) {
       return {
         notFound: true,
       };
     }
-    
+
     // Check if user has permission to edit this employee
-    const canEdit = session.user.role === 'admin' || 
-                   session.user.role === 'hr_manager' || 
-                   (session.user.role === 'department_head' && session.user.departmentId === employee.departmentId);
-    
+    const userRole = session.user.role;
+    const userDeptId = session.user.departmentId;
+
+    const canEdit =
+        userRole === 'admin' ||
+        userRole === 'hr_manager' ||
+        (userRole === 'department_manager' && userDeptId === employee.departmentId);
+
+
     if (!canEdit) {
+       console.warn(`Access denied for user ${session.user.id} to edit employee ${id}`);
       return {
         redirect: {
-          destination: `/employees/${id}`,
+          destination: `/employees/${id}`, // Redirect back to profile view
           permanent: false,
         },
       };
     }
-    
-    // Return employee data
+
+    // Need to stringify complex objects like Date for props
+    const employeeJson = JSON.stringify(employee);
+
     return {
       props: {
-        employee: JSON.parse(JSON.stringify(employee)),
+        employeeJson, // Pass stringified JSON
       },
     };
   } catch (error) {
-    console.error('Error fetching employee:', error);
-    
-    // Return not found on error
+     console.error(`Error fetching employee ${context.params.id} for edit:`, error);
     return {
-      notFound: true,
+      notFound: true, // Treat errors as not found for simplicity
     };
-  } finally {
-    // Close database connection
-    if (AppDataSource.isInitialized) {
-      // Leave connection open for other requests
-      // await AppDataSource.destroy();
-    }
   }
+   // No need to manage DB connection explicitly when using dbService
 }
