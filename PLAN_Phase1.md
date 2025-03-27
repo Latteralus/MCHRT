@@ -35,7 +35,7 @@ graph TD
     B -- Yes --> C[1. Verify Initial Setup (TS, Linting)];
     B -- No --> D[Initialize Next.js Project (Not needed)];
     C --> E[2. Establish Folder Structure];
-    E --> F[3. Implement Core Layout (Sidebar, TopBar, MainLayout)];
+    E --> F[3. Implement Core Layout (Sidebar, MainLayout)];
     F --> G[4. Setup NextAuth (CredentialsProvider, Login Page)];
     G --> H[5. Configure Mock DB (SQLite + Sequelize)];
     H --> I[6. Setup Environment Variables (.env.local)];

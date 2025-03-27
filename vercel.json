@@ -1,0 +1,80 @@
+{
+    "version": 2,
+    "buildCommand": "npm run build",
+    "outputDirectory": ".next",
+    "installCommand": "npm install",
+    "framework": "nextjs",
+    "regions": ["iad1"],
+    "env": {
+      "NODE_ENV": "production",
+      "NEXTAUTH_URL": "${VERCEL_URL}",
+      "DATABASE_URL": "@database_url"
+    },
+    "headers": [
+      {
+        "source": "/(.*)",
+        "headers": [
+          {
+            "key": "X-Content-Type-Options",
+            "value": "nosniff"
+          },
+          {
+            "key": "X-Frame-Options",
+            "value": "DENY"
+          },
+          {
+            "key": "X-XSS-Protection",
+            "value": "1; mode=block"
+          },
+          {
+            "key": "Referrer-Policy",
+            "value": "strict-origin-when-cross-origin"
+          },
+          {
+            "key": "Permissions-Policy",
+            "value": "camera=(), microphone=(), geolocation=()"
+          }
+        ]
+      },
+      {
+        "source": "/api/(.*)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store, max-age=0"
+          }
+        ]
+      }
+    ],
+    "rewrites": [
+      { "source": "/login", "destination": "/login" },
+      { "source": "/api/:path*", "destination": "/api/:path*" },
+      { "source": "/:path*", "has": [
+        {
+          "type": "cookie",
+          "key": "next-auth.session-token",
+          "value": "(?<session>.*)"
+        }
+      ], "destination": "/:path*" },
+      { "source": "/:path*", "missing": [
+        {
+          "type": "cookie",
+          "key": "next-auth.session-token"
+        }
+      ], "destination": "/login" }
+    ],
+    "functions": {
+      "api/documents/*/file.js": {
+        "memory": 1024,
+        "maxDuration": 10
+      },
+      "api/documents/upload.js": {
+        "memory": 1024,
+        "maxDuration": 30
+      },
+      "api/**/export.js": {
+        "memory": 1024,
+        "maxDuration": 15
+      }
+    }
+  }
