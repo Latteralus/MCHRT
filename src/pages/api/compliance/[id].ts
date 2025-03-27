@@ -1,17 +1,17 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import Compliance from '@/modules/compliance/models/Compliance';
+import { withRole } from '@/lib/middleware/withRole'; // Import withRole
+import { AuthenticatedNextApiHandler } from '@/lib/middleware/withAuth'; // Import handler type
 // import { defineAssociations } from '@/db/associations';
 
-// TODO: Add authentication and authorization checks
+// TODO: Add more granular authorization (e.g., Dept Head for own dept)
 // TODO: Add proper error handling and validation
 
 // Ensure associations are defined
 // defineAssociations();
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+// Define the core handler logic expecting authentication and session
+const handler: AuthenticatedNextApiHandler = async (req, res, session) => {
   const { method } = req;
   const { id } = req.query; // Get the compliance item ID from the URL path
 

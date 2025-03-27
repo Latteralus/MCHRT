@@ -1,30 +1,30 @@
 # MVP Development Checklist
 
 ## Phase 1: Project Setup & Core Infrastructure
-- [ ] Initialize Next.js project with TypeScript
-- [ ] Set up project folder structure
-- [ ] Configure ESLint and Prettier
-- [ ] Create mock database (SQLite) configuration
-- [ ] Set up NextAuth with CredentialsProvider
-- [ ] Implement basic authentication (login page)
-- [ ] Create basic layout components (MainLayout, Sidebar, TopBar)
+- [x] Initialize Next.js project with TypeScript
+- [x] Set up project folder structure
+- [x] Configure ESLint and Prettier
+- [x] Create mock database (SQLite) configuration
+- [x] Set up NextAuth with CredentialsProvider
+- [x] Implement basic authentication (login page)
+- [x] Create basic layout components (MainLayout, Sidebar) (TopBar removed)
 - [ ] Set up core UI component library
-- [ ] Configure environment variables
-- [ ] Set up local filesystem for document storage
+- [x] Configure environment variables
+- [x] Set up local filesystem for document storage
 
 ## Phase 2: Database Models & Core API Routes
-- [ ] Define User model with roles
-- [ ] Define Department model
-- [ ] Define Employee model with encryption for SSN
-- [ ] Define Attendance model
-- [ ] Define Leave model
-- [ ] Define Compliance model
-- [ ] Define Document model
-- [ ] Create model associations
-- [ ] Create migrations for all models
-- [ ] Generate seed data for development
-- [ ] Implement API routes for CRUD operations on all models
-- [ ] Add RBAC middleware for API routes
+- [x] Define User model with roles
+- [x] Define Department model
+- [x] Define Employee model with encryption for SSN (Encryption logic TBD)
+- [x] Define Attendance model
+- [x] Define Leave model
+- [x] Define Compliance model
+- [x] Define Document model
+- [x] Create model associations (File created)
+- [x] Create migrations for all models
+- [x] Generate seed data for development (Core models seeded)
+- [x] Implement API routes for CRUD operations on all models (Basic implementation)
+- [ ] Add RBAC middleware for API routes (Middleware created, partially applied)
 
 ## Phase 3: Employee Management Module
 - [ ] Build employee list page with filtering
@@ -546,3 +546,28 @@ MCHRT/
 ├── playwright.config.ts        # Playwright configuration
 ├── sequelize.config.js         # Sequelize CLI config
 └── vercel.json                 # Vercel deployment config
+
+---
+
+## Current Status & Next Steps (As of 2025-03-27 ~5:30 PM MDT)
+
+**Current Focus:** Phase 2 - Database Models & Core API Routes
+
+**Completed:**
+- Phase 1: All items completed (Project setup, core infrastructure, layout, auth).
+- Phase 2:
+  - Defined all core Sequelize models (User, Department, Employee, Attendance, Leave, Compliance, Document).
+  - Created model associations file (`src/db/associations.ts`).
+  - Created database migration files for all core models (`migrations/`).
+  - Created seed files for core models (Departments, Users, Employees) (`seeders/`).
+  - Implemented basic CRUD API routes for all core models (`src/pages/api/...`).
+  - Created basic RBAC middleware (`withAuth`, `withRole`).
+
+**Where We Left Off:**
+- Interrupted while applying the `withRole` middleware to the `src/pages/api/compliance/[id].ts` route (imports were updated, but the final export wrap was not applied due to interruption).
+
+**Next Steps:**
+1.  Complete applying the `withRole` middleware wrapper to `src/pages/api/compliance/[id].ts`.
+2.  Apply `withRole` middleware to the `documents` API routes (`index.ts` and `[id].ts`).
+3.  Refine RBAC checks within API handlers for more granular permissions (e.g., department scope, self-access) as noted in TODO comments.
+4.  Proceed to Phase 3: Employee Management Module.

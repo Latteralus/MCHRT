@@ -1,18 +1,18 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import Leave from '@/modules/leave/models/Leave';
+import { withRole } from '@/lib/middleware/withRole'; // Import withRole
+import { AuthenticatedNextApiHandler } from '@/lib/middleware/withAuth'; // Import handler type
 // import { defineAssociations } from '@/db/associations';
 // import { getSession } from 'next-auth/react'; // To get approver ID
 
-// TODO: Add authentication and authorization checks (employee can view own, manager/admin can update/delete)
+// TODO: Add more granular authorization (employee can view/cancel own, manager/admin can update/delete)
 // TODO: Add proper error handling and validation
 
 // Ensure associations are defined
 // defineAssociations();
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+// Define the core handler logic expecting authentication and session
+const handler: AuthenticatedNextApiHandler = async (req, res, session) => {
   const { method } = req;
   const { id } = req.query; // Get the leave request ID from the URL path
 
@@ -117,4 +117,8 @@ export default async function handler(
       res.setHeader('Allow', ['GET', 'PUT', 'DELETE']);
       res.status(405).end(`Method ${method} Not Allowed`);
   }
-}
+};
+
+// Wrap the handler with the RBAC middleware, allowing Admins and Department Heads
+// TODO: Add more specific checks inside the handler (e.g., Employee can GET/PUT(cancel) own request)
+export default withRole(['Admin', 'DepartmentHead'], handler);
