@@ -1,15 +1,43 @@
 // utils/dbService.js
 import { mockDb } from './mockDb';
 
-// To switch to real database implementation later, change this to false
-const USE_MOCK_DB = true;
+// =========================================================================
+// DATABASE SWITCH (Mock vs Real)
+// -------------------------------------------------------------------------
+// Controls whether the application uses the mock database or attempts to
+// connect to the real database configured in utils/db.js.
+//
+// Set the environment variable USE_MOCK_DB to 'true' to use the mock database.
+// Set USE_MOCK_DB to 'false' or leave it unset to use the real database.
+//
+// Example (.env.local or environment setup):
+// USE_MOCK_DB=true   // Use Mock DB for development/testing
+// # USE_MOCK_DB=false  // Use Real DB for staging/production
+// =========================================================================
+const USE_MOCK_DB = process.env.USE_MOCK_DB === 'true';
 
-// Import real database if not using mock
+// Import real database implementation if not using mock
 let realDb = null;
 if (!USE_MOCK_DB) {
-  // This would be imported dynamically when implemented
-  // realDb = require('./db').default;
+  // Dynamically import the real database connection logic
+  // Ensure './db' exports the necessary functions or an object with them.
+  try {
+    // Assuming './db' default exports an object compatible with the dbService methods
+    realDb = require('./db').default;
+    if (!realDb) {
+      console.warn("Attempted to load real DB, but './db' export was empty or invalid.");
+      // Optionally, throw an error if real DB is mandatory when USE_MOCK_DB is false
+      // throw new Error("Real database implementation failed to load.");
+    }
+  } catch (error) {
+    console.error("Error loading real database implementation from './db':", error);
+    // Optionally, throw an error to prevent startup without a DB
+    // throw new Error("Failed to load real database implementation.");
+  }
+} else {
+  console.log("Using Mock Database (USE_MOCK_DB is set to true).");
 }
+
 
 /**
  * Database service that abstracts the actual database implementation.
@@ -29,7 +57,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.reset();
     }
-    return Promise.reject(new Error('Reset not available for production database'));
+    return Promise.reject(new Error('Reset not available for non-mock database'));
   },
 
   // ==================== User Methods ====================
@@ -44,9 +72,10 @@ export const dbService = {
       const users = await mockDb.findAll('users', { email });
       return users[0] || null;
     }
+    if (!realDb?.getUserByEmail) throw new Error("Real DB method 'getUserByEmail' not loaded.");
     return realDb.getUserByEmail(email);
   },
-  
+
   /**
    * Get user by username
    * @param {string} username - Username
@@ -57,7 +86,8 @@ export const dbService = {
       const users = await mockDb.findAll('users', { username });
       return users[0] || null;
     }
-    return realDb.getUserByUsername ? realDb.getUserByUsername(username) : null;
+    if (!realDb?.getUserByUsername) throw new Error("Real DB method 'getUserByUsername' not loaded.");
+    return realDb.getUserByUsername(username);
   },
 
   /**
@@ -69,6 +99,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.findById('users', id);
     }
+    if (!realDb?.getUserById) throw new Error("Real DB method 'getUserById' not loaded.");
     return realDb.getUserById(id);
   },
 
@@ -81,6 +112,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.findAll('users', options);
     }
+    if (!realDb?.getUsers) throw new Error("Real DB method 'getUsers' not loaded.");
     return realDb.getUsers(options);
   },
 
@@ -93,6 +125,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.create('users', userData);
     }
+    if (!realDb?.createUser) throw new Error("Real DB method 'createUser' not loaded.");
     return realDb.createUser(userData);
   },
 
@@ -106,6 +139,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.update('users', id, userData);
     }
+    if (!realDb?.updateUser) throw new Error("Real DB method 'updateUser' not loaded.");
     return realDb.updateUser(id, userData);
   },
 
@@ -118,6 +152,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.remove('users', id);
     }
+    if (!realDb?.deleteUser) throw new Error("Real DB method 'deleteUser' not loaded.");
     return realDb.deleteUser(id);
   },
 
@@ -132,6 +167,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.findById('employees', id);
     }
+    if (!realDb?.getEmployeeById) throw new Error("Real DB method 'getEmployeeById' not loaded.");
     return realDb.getEmployeeById(id);
   },
 
@@ -144,6 +180,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.findAll('employees', options);
     }
+    if (!realDb?.getEmployees) throw new Error("Real DB method 'getEmployees' not loaded.");
     return realDb.getEmployees(options);
   },
 
@@ -156,6 +193,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.create('employees', employeeData);
     }
+    if (!realDb?.createEmployee) throw new Error("Real DB method 'createEmployee' not loaded.");
     return realDb.createEmployee(employeeData);
   },
 
@@ -169,6 +207,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.update('employees', id, employeeData);
     }
+    if (!realDb?.updateEmployee) throw new Error("Real DB method 'updateEmployee' not loaded.");
     return realDb.updateEmployee(id, employeeData);
   },
 
@@ -181,6 +220,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.remove('employees', id);
     }
+    if (!realDb?.deleteEmployee) throw new Error("Real DB method 'deleteEmployee' not loaded.");
     return realDb.deleteEmployee(id);
   },
 
@@ -195,6 +235,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.findById('departments', id);
     }
+    if (!realDb?.getDepartmentById) throw new Error("Real DB method 'getDepartmentById' not loaded.");
     return realDb.getDepartmentById(id);
   },
 
@@ -207,6 +248,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.findAll('departments', options);
     }
+    if (!realDb?.getDepartments) throw new Error("Real DB method 'getDepartments' not loaded.");
     return realDb.getDepartments(options);
   },
 
@@ -219,6 +261,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.create('departments', departmentData);
     }
+    if (!realDb?.createDepartment) throw new Error("Real DB method 'createDepartment' not loaded.");
     return realDb.createDepartment(departmentData);
   },
 
@@ -232,6 +275,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.update('departments', id, departmentData);
     }
+    if (!realDb?.updateDepartment) throw new Error("Real DB method 'updateDepartment' not loaded.");
     return realDb.updateDepartment(id, departmentData);
   },
 
@@ -244,6 +288,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.remove('departments', id);
     }
+    if (!realDb?.deleteDepartment) throw new Error("Real DB method 'deleteDepartment' not loaded.");
     return realDb.deleteDepartment(id);
   },
 
@@ -258,6 +303,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.findById('attendance', id);
     }
+    if (!realDb?.getAttendanceById) throw new Error("Real DB method 'getAttendanceById' not loaded.");
     return realDb.getAttendanceById(id);
   },
 
@@ -268,19 +314,20 @@ export const dbService = {
    */
   getAttendanceRecords: async (options = {}) => {
     if (USE_MOCK_DB) {
+      // Mock DB specific filtering logic might need refinement
+      let results = await mockDb.findAll('attendance', options);
       if (options.date) {
-        // Convert to date string for comparison since we're using in-memory DB
         const dateStr = options.date instanceof Date ? options.date.toISOString().split('T')[0] : options.date;
-        return mockDb.findAll('attendance').then(records => {
-          return records.filter(record => {
-            const recordDateStr = record.date instanceof Date ? 
-              record.date.toISOString().split('T')[0] : record.date;
-            return recordDateStr === dateStr;
-          });
+        results = results.filter(record => {
+          const recordDateStr = record.date instanceof Date ?
+            record.date.toISOString().split('T')[0] : record.date;
+          return recordDateStr === dateStr;
         });
       }
-      return mockDb.findAll('attendance', options);
+      // Add filtering for date ranges if needed for mock
+      return results;
     }
+    if (!realDb?.getAttendanceRecords) throw new Error("Real DB method 'getAttendanceRecords' not loaded.");
     return realDb.getAttendanceRecords(options);
   },
 
@@ -293,6 +340,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.findAll('attendance', { employeeId });
     }
+    if (!realDb?.getAttendanceByEmployeeId) throw new Error("Real DB method 'getAttendanceByEmployeeId' not loaded.");
     return realDb.getAttendanceByEmployeeId(employeeId);
   },
 
@@ -303,16 +351,16 @@ export const dbService = {
    */
   getAttendanceByDate: async (date) => {
     if (USE_MOCK_DB) {
-      // Convert to date string for comparison since we're using in-memory DB
       const dateStr = date instanceof Date ? date.toISOString().split('T')[0] : date;
       return mockDb.findAll('attendance').then(records => {
         return records.filter(record => {
-          const recordDateStr = record.date instanceof Date ? 
+          const recordDateStr = record.date instanceof Date ?
             record.date.toISOString().split('T')[0] : record.date;
           return recordDateStr === dateStr;
         });
       });
     }
+     if (!realDb?.getAttendanceByDate) throw new Error("Real DB method 'getAttendanceByDate' not loaded.");
     return realDb.getAttendanceByDate(date);
   },
 
@@ -325,6 +373,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.create('attendance', attendanceData);
     }
+    if (!realDb?.createAttendance) throw new Error("Real DB method 'createAttendance' not loaded.");
     return realDb.createAttendance(attendanceData);
   },
 
@@ -338,6 +387,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.update('attendance', id, attendanceData);
     }
+     if (!realDb?.updateAttendance) throw new Error("Real DB method 'updateAttendance' not loaded.");
     return realDb.updateAttendance(id, attendanceData);
   },
 
@@ -350,6 +400,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.remove('attendance', id);
     }
+    if (!realDb?.deleteAttendance) throw new Error("Real DB method 'deleteAttendance' not loaded.");
     return realDb.deleteAttendance(id);
   },
 
@@ -364,6 +415,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.findById('leave', id);
     }
+    if (!realDb?.getLeaveById) throw new Error("Real DB method 'getLeaveById' not loaded.");
     return realDb.getLeaveById(id);
   },
 
@@ -376,6 +428,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.findAll('leave', options);
     }
+    if (!realDb?.getLeaveRequests) throw new Error("Real DB method 'getLeaveRequests' not loaded.");
     return realDb.getLeaveRequests(options);
   },
 
@@ -388,6 +441,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.findAll('leave', { employeeId });
     }
+    if (!realDb?.getLeaveByEmployeeId) throw new Error("Real DB method 'getLeaveByEmployeeId' not loaded.");
     return realDb.getLeaveByEmployeeId(employeeId);
   },
 
@@ -400,6 +454,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.create('leave', leaveData);
     }
+    if (!realDb?.createLeave) throw new Error("Real DB method 'createLeave' not loaded.");
     return realDb.createLeave(leaveData);
   },
 
@@ -413,6 +468,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.update('leave', id, leaveData);
     }
+    if (!realDb?.updateLeave) throw new Error("Real DB method 'updateLeave' not loaded.");
     return realDb.updateLeave(id, leaveData);
   },
 
@@ -425,11 +481,12 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.remove('leave', id);
     }
+    if (!realDb?.deleteLeave) throw new Error("Real DB method 'deleteLeave' not loaded.");
     return realDb.deleteLeave(id);
   },
 
   // ==================== Compliance Methods ====================
-  
+
   /**
    * Get compliance record by ID
    * @param {string} id - Compliance record ID
@@ -439,6 +496,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.findById('compliance', id);
     }
+    if (!realDb?.getComplianceById) throw new Error("Real DB method 'getComplianceById' not loaded.");
     return realDb.getComplianceById(id);
   },
 
@@ -451,6 +509,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.findAll('compliance', options);
     }
+    if (!realDb?.getComplianceRecords) throw new Error("Real DB method 'getComplianceRecords' not loaded.");
     return realDb.getComplianceRecords(options);
   },
   /**
@@ -462,6 +521,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.findAll('compliance', { employeeId });
     }
+    if (!realDb?.getComplianceByEmployeeId) throw new Error("Real DB method 'getComplianceByEmployeeId' not loaded.");
     return realDb.getComplianceByEmployeeId(employeeId);
   },
 
@@ -472,15 +532,20 @@ export const dbService = {
    */
   getExpiringCompliance: async (daysUntil) => {
     if (USE_MOCK_DB) {
-      const futureDate = new Date();
+      const today = new Date();
+      const futureDate = new Date(today);
       futureDate.setDate(futureDate.getDate() + daysUntil);
-      
+
       return mockDb.findAll('compliance').then(records => {
         return records.filter(record => {
-          return record.expirationDate <= futureDate && record.status === 'Active';
+          const expirationDate = new Date(record.expirationDate); // Ensure it's a Date object
+          return expirationDate >= today &&
+                 expirationDate <= futureDate &&
+                 record.status === 'Active';
         });
       });
     }
+    if (!realDb?.getExpiringCompliance) throw new Error("Real DB method 'getExpiringCompliance' not loaded.");
     return realDb.getExpiringCompliance(daysUntil);
   },
 
@@ -493,6 +558,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.create('compliance', complianceData);
     }
+    if (!realDb?.createCompliance) throw new Error("Real DB method 'createCompliance' not loaded.");
     return realDb.createCompliance(complianceData);
   },
 
@@ -506,6 +572,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.update('compliance', id, complianceData);
     }
+    if (!realDb?.updateCompliance) throw new Error("Real DB method 'updateCompliance' not loaded.");
     return realDb.updateCompliance(id, complianceData);
   },
 
@@ -518,6 +585,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.remove('compliance', id);
     }
+    if (!realDb?.deleteCompliance) throw new Error("Real DB method 'deleteCompliance' not loaded.");
     return realDb.deleteCompliance(id);
   },
 
@@ -532,6 +600,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.findById('documents', id);
     }
+    if (!realDb?.getDocumentById) throw new Error("Real DB method 'getDocumentById' not loaded.");
     return realDb.getDocumentById(id);
   },
 
@@ -544,6 +613,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.findAll('documents', options);
     }
+    if (!realDb?.getDocuments) throw new Error("Real DB method 'getDocuments' not loaded.");
     return realDb.getDocuments(options);
   },
 
@@ -556,11 +626,12 @@ export const dbService = {
     if (USE_MOCK_DB) {
       // Get department-specific docs and general docs (departmentId = null)
       return mockDb.findAll('documents').then(docs => {
-        return docs.filter(doc => 
+        return docs.filter(doc =>
           doc.departmentId === departmentId || doc.departmentId === null
         );
       });
     }
+    if (!realDb?.getDocumentsByDepartment) throw new Error("Real DB method 'getDocumentsByDepartment' not loaded.");
     return realDb.getDocumentsByDepartment(departmentId);
   },
 
@@ -573,6 +644,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.create('documents', documentData);
     }
+    if (!realDb?.createDocument) throw new Error("Real DB method 'createDocument' not loaded.");
     return realDb.createDocument(documentData);
   },
 
@@ -586,6 +658,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.update('documents', id, documentData);
     }
+    if (!realDb?.updateDocument) throw new Error("Real DB method 'updateDocument' not loaded.");
     return realDb.updateDocument(id, documentData);
   },
 
@@ -598,6 +671,7 @@ export const dbService = {
     if (USE_MOCK_DB) {
       return mockDb.remove('documents', id);
     }
+    if (!realDb?.deleteDocument) throw new Error("Real DB method 'deleteDocument' not loaded.");
     return realDb.deleteDocument(id);
   },
 
@@ -609,41 +683,43 @@ export const dbService = {
    */
   getDashboardStats: async () => {
     if (USE_MOCK_DB) {
-      // Get counts for various entities
-      const employeesCount = (await mockDb.findAll('employees')).length;
-      const departmentsCount = (await mockDb.findAll('departments')).length;
-      const pendingLeave = (await mockDb.findAll('leave', { status: 'Pending' })).length;
-      
-      // Get upcoming compliance expirations (next 30 days)
+      const employees = await mockDb.findAll('employees');
+      const departments = await mockDb.findAll('departments');
+      const pendingLeave = await mockDb.findAll('leave', { status: 'Pending' });
+      const complianceRecords = await mockDb.findAll('compliance');
+      const attendanceRecords = await mockDb.findAll('attendance');
+
+      const employeesCount = employees.length;
+      const departmentsCount = departments.length;
+      const pendingLeaveCount = pendingLeave.length;
+
       const today = new Date();
       const thirtyDaysLater = new Date(today);
       thirtyDaysLater.setDate(today.getDate() + 30);
-      
-      const complianceRecords = await mockDb.findAll('compliance');
-      const expiringCompliance = complianceRecords.filter(record => {
-        return record.expirationDate >= today && 
-              record.expirationDate <= thirtyDaysLater && 
-              record.status === 'Active';
+      const expiringComplianceCount = complianceRecords.filter(record => {
+        const expirationDate = new Date(record.expirationDate);
+        return expirationDate >= today &&
+               expirationDate <= thirtyDaysLater &&
+               record.status === 'Active';
       }).length;
-      
-      // Today's attendance
+
       const todayStr = today.toISOString().split('T')[0];
-      const attendanceRecords = await mockDb.findAll('attendance');
-      const todayAttendance = attendanceRecords.filter(record => {
-        const recordDate = record.date instanceof Date ? 
+      const todayAttendanceCount = attendanceRecords.filter(record => {
+        const recordDate = record.date instanceof Date ?
           record.date.toISOString().split('T')[0] : record.date;
         return recordDate === todayStr;
       }).length;
-      
+
       return {
         totalEmployees: employeesCount,
         totalDepartments: departmentsCount,
-        pendingLeaveRequests: pendingLeave,
-        expiringCompliance,
-        todayAttendance,
-        attendanceRate: Math.round((todayAttendance / employeesCount) * 100) || 0
+        pendingLeaveRequests: pendingLeaveCount,
+        expiringCompliance: expiringComplianceCount,
+        todayAttendance: todayAttendanceCount,
+        attendanceRate: employeesCount > 0 ? Math.round((todayAttendanceCount / employeesCount) * 100) : 0
       };
     }
+    if (!realDb?.getDashboardStats) throw new Error("Real DB method 'getDashboardStats' not loaded.");
     return realDb.getDashboardStats();
   }
 }
