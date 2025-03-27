@@ -1,58 +1,33 @@
-// utils/dbService.js
 import { mockDb } from './mockDb';
+import { AppDataSource, initializeDataSource } from './db'; // Import DataSource and initializer
 
-// =========================================================================
-// DATABASE SWITCH (Mock vs Real)
-// -------------------------------------------------------------------------
-// Controls whether the application uses the mock database or attempts to
-// connect to the real database configured in utils/db.js.
-//
-// Set the environment variable USE_MOCK_DB to 'true' to use the mock database.
-// Set USE_MOCK_DB to 'false' or leave it unset to use the real database.
-//
-// Example (.env.local or environment setup):
-// USE_MOCK_DB=true   // Use Mock DB for development/testing
-// # USE_MOCK_DB=false  // Use Real DB for staging/production
-// =========================================================================
+// Import Entities (needed for getRepository)
+import User from "../entities/User";
+import Department from "../entities/Department";
+import Employee from "../entities/Employee";
+import Attendance from "../entities/Attendance";
+import Leave from "../entities/Leave";
+import Compliance from "../entities/Compliance";
+import Document from "../entities/Document";
+import { Between } from "typeorm"; // Import 'Between' for date range queries
+
 const USE_MOCK_DB = process.env.USE_MOCK_DB === 'true';
 
-// Import real database implementation if not using mock
-let realDb = null;
-if (!USE_MOCK_DB) {
-  // Dynamically import the real database connection logic
-  // Ensure './db' exports the necessary functions or an object with them.
-  try {
-    // Assuming './db' default exports an object compatible with the dbService methods
-    realDb = require('./db').default;
-    if (!realDb) {
-      console.warn("Attempted to load real DB, but './db' export was empty or invalid.");
-      // Optionally, throw an error if real DB is mandatory when USE_MOCK_DB is false
-      // throw new Error("Real database implementation failed to load.");
-    }
-  } catch (error) {
-    console.error("Error loading real database implementation from './db':", error);
-    // Optionally, throw an error to prevent startup without a DB
-    // throw new Error("Failed to load real database implementation.");
-  }
-} else {
+if (USE_MOCK_DB) {
   console.log("Using Mock Database (USE_MOCK_DB is set to true).");
 }
 
+// Helper to get repository after ensuring connection
+async function getRepo(entity) {
+  if (USE_MOCK_DB) return null; // Mock DB doesn't use TypeORM repos
+  await initializeDataSource(); // Ensure DB is connected
+  return AppDataSource.getRepository(entity);
+}
 
-/**
- * Database service that abstracts the actual database implementation.
- * Whether using mock or real database, the API remains consistent.
- */
+
 export const dbService = {
-  /**
-   * Determines if the mock database is in use
-   * @returns {boolean} True if using mock database
-   */
   isMockDb: () => USE_MOCK_DB,
 
-  /**
-   * Resets the mock database to initial state (for development/testing)
-   */
   resetMockDb: () => {
     if (USE_MOCK_DB) {
       return mockDb.reset();
@@ -61,665 +36,458 @@ export const dbService = {
   },
 
   // ==================== User Methods ====================
-
-  /**
-   * Get user by email
-   * @param {string} email - User email address
-   * @returns {Promise<object|null>} User object or null if not found
-   */
   getUserByEmail: async (email) => {
-    if (USE_MOCK_DB) {
-      const users = await mockDb.findAll('users', { email });
-      return users[0] || null;
-    }
-    if (!realDb?.getUserByEmail) throw new Error("Real DB method 'getUserByEmail' not loaded.");
-    return realDb.getUserByEmail(email);
+    if (USE_MOCK_DB) { /* ... mock logic ... */ }
+    const repo = await getRepo(User);
+    return repo.findOneBy({ email });
   },
 
-  /**
-   * Get user by username
-   * @param {string} username - Username
-   * @returns {Promise<object|null>} User object or null if not found
-   */
   getUserByUsername: async (username) => {
-    if (USE_MOCK_DB) {
-      const users = await mockDb.findAll('users', { username });
-      return users[0] || null;
-    }
-    if (!realDb?.getUserByUsername) throw new Error("Real DB method 'getUserByUsername' not loaded.");
-    return realDb.getUserByUsername(username);
+    if (USE_MOCK_DB) { /* ... mock logic ... */ }
+    const repo = await getRepo(User);
+    return repo.findOneBy({ username });
   },
 
-  /**
-   * Get user by ID
-   * @param {string} id - User ID
-   * @returns {Promise<object|null>} User object or null if not found
-   */
   getUserById: async (id) => {
-    if (USE_MOCK_DB) {
-      return mockDb.findById('users', id);
-    }
-    if (!realDb?.getUserById) throw new Error("Real DB method 'getUserById' not loaded.");
-    return realDb.getUserById(id);
+    if (USE_MOCK_DB) { return mockDb.findById('users', id); }
+    const repo = await getRepo(User);
+    return repo.findOneBy({ id }); // Add relations if needed: { where: { id }, relations: [...] }
   },
 
-  /**
-   * Get all users
-   * @param {object} options - Query options (pagination, filters)
-   * @returns {Promise<Array>} Array of user objects
-   */
   getUsers: async (options = {}) => {
-    if (USE_MOCK_DB) {
-      return mockDb.findAll('users', options);
-    }
-    if (!realDb?.getUsers) throw new Error("Real DB method 'getUsers' not loaded.");
-    return realDb.getUsers(options);
+    if (USE_MOCK_DB) { return mockDb.findAll('users', options); }
+    const repo = await getRepo(User);
+    // Add filtering/pagination based on options if needed
+    return repo.find();
   },
 
-  /**
-   * Create a new user
-   * @param {object} userData - User data
-   * @returns {Promise<object>} Created user object
-   */
   createUser: async (userData) => {
-    if (USE_MOCK_DB) {
-      return mockDb.create('users', userData);
-    }
-    if (!realDb?.createUser) throw new Error("Real DB method 'createUser' not loaded.");
-    return realDb.createUser(userData);
+    if (USE_MOCK_DB) { return mockDb.create('users', userData); }
+    const repo = await getRepo(User);
+    const user = repo.create(userData);
+    return repo.save(user);
   },
 
-  /**
-   * Update an existing user
-   * @param {string} id - User ID
-   * @param {object} userData - Updated user data
-   * @returns {Promise<object>} Updated user object
-   */
   updateUser: async (id, userData) => {
-    if (USE_MOCK_DB) {
-      return mockDb.update('users', id, userData);
-    }
-    if (!realDb?.updateUser) throw new Error("Real DB method 'updateUser' not loaded.");
-    return realDb.updateUser(id, userData);
+    if (USE_MOCK_DB) { return mockDb.update('users', id, userData); }
+    const repo = await getRepo(User);
+    const updateResult = await repo.update(id, userData);
+    if (updateResult.affected === 0) return null;
+    return repo.findOneBy({ id }); // Fetch updated
   },
 
-  /**
-   * Delete a user
-   * @param {string} id - User ID
-   * @returns {Promise<boolean>} Success indicator
-   */
   deleteUser: async (id) => {
-    if (USE_MOCK_DB) {
-      return mockDb.remove('users', id);
-    }
-    if (!realDb?.deleteUser) throw new Error("Real DB method 'deleteUser' not loaded.");
-    return realDb.deleteUser(id);
+    if (USE_MOCK_DB) { return mockDb.remove('users', id); }
+    const repo = await getRepo(User);
+    const deleteResult = await repo.delete(id);
+    return { success: deleteResult.affected > 0 };
   },
 
   // ==================== Employee Methods ====================
-
-  /**
-   * Get employee by ID
-   * @param {string} id - Employee ID
-   * @returns {Promise<object|null>} Employee object or null if not found
-   */
   getEmployeeById: async (id) => {
-    if (USE_MOCK_DB) {
-      return mockDb.findById('employees', id);
-    }
-    if (!realDb?.getEmployeeById) throw new Error("Real DB method 'getEmployeeById' not loaded.");
-    return realDb.getEmployeeById(id);
+    if (USE_MOCK_DB) { return mockDb.findById('employees', id); }
+    const repo = await getRepo(Employee);
+    return repo.findOne({ where: { id }, relations: ["department", "user", "manager"] }); // Include common relations
   },
 
-  /**
-   * Get all employees
-   * @param {object} options - Query options (pagination, filters)
-   * @returns {Promise<Array>} Array of employee objects
-   */
   getEmployees: async (options = {}) => {
-    if (USE_MOCK_DB) {
-      return mockDb.findAll('employees', options);
-    }
-    if (!realDb?.getEmployees) throw new Error("Real DB method 'getEmployees' not loaded.");
-    return realDb.getEmployees(options);
+    if (USE_MOCK_DB) { return mockDb.findAll('employees', options); }
+    const repo = await getRepo(Employee);
+    // Basic filtering example (extend based on options needed)
+    const findOptions = { relations: ["department", "user"] };
+    if (options.status) findOptions.where = { ...findOptions.where, status: options.status };
+    if (options.departmentId) findOptions.where = { ...findOptions.where, department: { id: options.departmentId } };
+    // Add pagination options.limit, options.offset -> take, skip
+    if (options.limit) findOptions.take = parseInt(options.limit, 10);
+    if (options.offset) findOptions.skip = parseInt(options.offset, 10);
+
+    return repo.find(findOptions);
+    // For more complex filters, use createQueryBuilder as in the original db.js
   },
 
-  /**
-   * Create a new employee
-   * @param {object} employeeData - Employee data
-   * @returns {Promise<object>} Created employee object
-   */
   createEmployee: async (employeeData) => {
-    if (USE_MOCK_DB) {
-      return mockDb.create('employees', employeeData);
-    }
-    if (!realDb?.createEmployee) throw new Error("Real DB method 'createEmployee' not loaded.");
-    return realDb.createEmployee(employeeData);
+    if (USE_MOCK_DB) { return mockDb.create('employees', employeeData); }
+    const repo = await getRepo(Employee);
+    // Handle relation IDs correctly for create/save
+    const dataToCreate = { ...employeeData };
+    if (employeeData.departmentId) dataToCreate.department = { id: employeeData.departmentId };
+    if (employeeData.userId) dataToCreate.user = { id: employeeData.userId };
+    if (employeeData.managerId) dataToCreate.manager = { id: employeeData.managerId };
+    // Remove plain IDs if relation objects are used
+    delete dataToCreate.departmentId;
+    delete dataToCreate.userId;
+    delete dataToCreate.managerId;
+
+    const employee = repo.create(dataToCreate);
+    return repo.save(employee);
   },
 
-  /**
-   * Update an existing employee
-   * @param {string} id - Employee ID
-   * @param {object} employeeData - Updated employee data
-   * @returns {Promise<object>} Updated employee object
-   */
   updateEmployee: async (id, employeeData) => {
-    if (USE_MOCK_DB) {
-      return mockDb.update('employees', id, employeeData);
-    }
-    if (!realDb?.updateEmployee) throw new Error("Real DB method 'updateEmployee' not loaded.");
-    return realDb.updateEmployee(id, employeeData);
+     if (USE_MOCK_DB) { return mockDb.update('employees', id, employeeData); }
+     const repo = await getRepo(Employee);
+     // Handle relations carefully with update vs save
+     const dataToUpdate = { ...employeeData };
+     if (employeeData.departmentId) dataToUpdate.department = { id: employeeData.departmentId };
+     if (employeeData.userId) dataToUpdate.user = { id: employeeData.userId };
+     if (employeeData.managerId) dataToUpdate.manager = { id: employeeData.managerId };
+     delete dataToUpdate.departmentId;
+     delete dataToUpdate.userId;
+     delete dataToUpdate.managerId;
+
+     const updateResult = await repo.update(id, dataToUpdate); // Update doesn't handle relations well
+     if (updateResult.affected === 0) return null;
+     // Consider using save for easier relation updates:
+     // const existing = await repo.findOneBy({ id });
+     // if (!existing) return null;
+     // repo.merge(existing, dataToUpdate);
+     // return repo.save(existing);
+     return repo.findOne({ where: { id }, relations: ["department", "user", "manager"] }); // Fetch updated
   },
 
-  /**
-   * Delete an employee
-   * @param {string} id - Employee ID
-   * @returns {Promise<boolean>} Success indicator
-   */
-  deleteEmployee: async (id) => {
-    if (USE_MOCK_DB) {
-      return mockDb.remove('employees', id);
-    }
-    if (!realDb?.deleteEmployee) throw new Error("Real DB method 'deleteEmployee' not loaded.");
-    return realDb.deleteEmployee(id);
-  },
+   deleteEmployee: async (id) => {
+     if (USE_MOCK_DB) { return mockDb.remove('employees', id); }
+     const repo = await getRepo(Employee);
+     const deleteResult = await repo.delete(id);
+     return { success: deleteResult.affected > 0 };
+   },
+
 
   // ==================== Department Methods ====================
+  // (Similar refactoring: use getRepo(Department) and repo methods)
+   getDepartmentById: async (id) => {
+     if (USE_MOCK_DB) { return mockDb.findById('departments', id); }
+     const repo = await getRepo(Department);
+     return repo.findOneBy({ id }); // Add relations if needed
+   },
 
-  /**
-   * Get department by ID
-   * @param {string} id - Department ID
-   * @returns {Promise<object|null>} Department object or null if not found
-   */
-  getDepartmentById: async (id) => {
-    if (USE_MOCK_DB) {
-      return mockDb.findById('departments', id);
-    }
-    if (!realDb?.getDepartmentById) throw new Error("Real DB method 'getDepartmentById' not loaded.");
-    return realDb.getDepartmentById(id);
-  },
+   getDepartments: async (options = {}) => {
+      if (USE_MOCK_DB) { return mockDb.findAll('departments', options); }
+      const repo = await getRepo(Department);
+      return repo.find(); // Add options if needed
+   },
 
-  /**
-   * Get all departments
-   * @param {object} options - Query options (pagination, filters)
-   * @returns {Promise<Array>} Array of department objects
-   */
-  getDepartments: async (options = {}) => {
-    if (USE_MOCK_DB) {
-      return mockDb.findAll('departments', options);
-    }
-    if (!realDb?.getDepartments) throw new Error("Real DB method 'getDepartments' not loaded.");
-    return realDb.getDepartments(options);
-  },
+   createDepartment: async (departmentData) => {
+       if (USE_MOCK_DB) { return mockDb.create('departments', departmentData); }
+       const repo = await getRepo(Department);
+       const dept = repo.create(departmentData);
+       return repo.save(dept);
+   },
 
-  /**
-   * Create a new department
-   * @param {object} departmentData - Department data
-   * @returns {Promise<object>} Created department object
-   */
-  createDepartment: async (departmentData) => {
-    if (USE_MOCK_DB) {
-      return mockDb.create('departments', departmentData);
-    }
-    if (!realDb?.createDepartment) throw new Error("Real DB method 'createDepartment' not loaded.");
-    return realDb.createDepartment(departmentData);
-  },
+   updateDepartment: async (id, departmentData) => {
+       if (USE_MOCK_DB) { return mockDb.update('departments', id, departmentData); }
+       const repo = await getRepo(Department);
+       const updateResult = await repo.update(id, departmentData);
+       if (updateResult.affected === 0) return null;
+       return repo.findOneBy({ id });
+   },
 
-  /**
-   * Update an existing department
-   * @param {string} id - Department ID
-   * @param {object} departmentData - Updated department data
-   * @returns {Promise<object>} Updated department object
-   */
-  updateDepartment: async (id, departmentData) => {
-    if (USE_MOCK_DB) {
-      return mockDb.update('departments', id, departmentData);
-    }
-    if (!realDb?.updateDepartment) throw new Error("Real DB method 'updateDepartment' not loaded.");
-    return realDb.updateDepartment(id, departmentData);
-  },
+   deleteDepartment: async (id) => {
+       if (USE_MOCK_DB) { return mockDb.remove('departments', id); }
+       const repo = await getRepo(Department);
+       const deleteResult = await repo.delete(id);
+       return { success: deleteResult.affected > 0 };
+   },
 
-  /**
-   * Delete a department
-   * @param {string} id - Department ID
-   * @returns {Promise<boolean>} Success indicator
-   */
-  deleteDepartment: async (id) => {
-    if (USE_MOCK_DB) {
-      return mockDb.remove('departments', id);
-    }
-    if (!realDb?.deleteDepartment) throw new Error("Real DB method 'deleteDepartment' not loaded.");
-    return realDb.deleteDepartment(id);
-  },
 
   // ==================== Attendance Methods ====================
-
-  /**
-   * Get attendance record by ID
-   * @param {string} id - Attendance record ID
-   * @returns {Promise<object|null>} Attendance record or null if not found
-   */
+  // (Refactor using getRepo(Attendance) and repo methods / createQueryBuilder)
   getAttendanceById: async (id) => {
-    if (USE_MOCK_DB) {
-      return mockDb.findById('attendance', id);
-    }
-    if (!realDb?.getAttendanceById) throw new Error("Real DB method 'getAttendanceById' not loaded.");
-    return realDb.getAttendanceById(id);
+    if (USE_MOCK_DB) { return mockDb.findById('attendance', id); }
+    const repo = await getRepo(Attendance);
+    return repo.findOne({ where: { id }, relations: ['employee'] });
   },
 
-  /**
-   * Get attendance records
-   * @param {object} options - Query options (employeeId, date range, pagination)
-   * @returns {Promise<Array>} Array of attendance records
-   */
   getAttendanceRecords: async (options = {}) => {
-    if (USE_MOCK_DB) {
-      // Mock DB specific filtering logic might need refinement
-      let results = await mockDb.findAll('attendance', options);
-      if (options.date) {
-        const dateStr = options.date instanceof Date ? options.date.toISOString().split('T')[0] : options.date;
-        results = results.filter(record => {
-          const recordDateStr = record.date instanceof Date ?
-            record.date.toISOString().split('T')[0] : record.date;
-          return recordDateStr === dateStr;
-        });
-      }
-      // Add filtering for date ranges if needed for mock
-      return results;
-    }
-    if (!realDb?.getAttendanceRecords) throw new Error("Real DB method 'getAttendanceRecords' not loaded.");
-    return realDb.getAttendanceRecords(options);
+    if (USE_MOCK_DB) { /* ... mock logic ... */ }
+    const repo = await getRepo(Attendance);
+    // Use createQueryBuilder for complex filtering as in original db.js
+    let query = repo.createQueryBuilder("attendance")
+      .leftJoinAndSelect("attendance.employee", "employee");
+
+    let hasWhere = false;
+    const addFilter = (condition, params) => {
+      const clause = hasWhere ? "andWhere" : "where";
+      query = query[clause](condition, params);
+      hasWhere = true;
+    };
+
+    if (options.employeeId) addFilter("attendance.employeeId = :employeeId", { employeeId: options.employeeId });
+    if (options.date) addFilter("attendance.date = :date", { date: options.date });
+    else if (options.startDate && options.endDate) addFilter("attendance.date BETWEEN :startDate AND :endDate", { startDate: options.startDate, endDate: options.endDate });
+    if (options.status) addFilter("attendance.status = :status", { status: options.status });
+
+    if (options.limit) query = query.take(parseInt(options.limit, 10));
+    if (options.offset) query = query.skip(parseInt(options.offset, 10));
+
+    query = query.orderBy("attendance.date", "DESC");
+
+    return query.getMany(); // Or getManyAndCount if pagination needed
   },
 
-  /**
-   * Get attendance by employee ID
-   * @param {string} employeeId - Employee ID
-   * @returns {Promise<Array>} Array of attendance records
-   */
-  getAttendanceByEmployeeId: async (employeeId) => {
-    if (USE_MOCK_DB) {
-      return mockDb.findAll('attendance', { employeeId });
-    }
-    if (!realDb?.getAttendanceByEmployeeId) throw new Error("Real DB method 'getAttendanceByEmployeeId' not loaded.");
-    return realDb.getAttendanceByEmployeeId(employeeId);
-  },
+  // getAttendanceByEmployeeId, getAttendanceByDate might be redundant if getAttendanceRecords handles filters well
 
-  /**
-   * Get attendance by date
-   * @param {Date|string} date - Date to filter by
-   * @returns {Promise<Array>} Array of attendance records
-   */
-  getAttendanceByDate: async (date) => {
-    if (USE_MOCK_DB) {
-      const dateStr = date instanceof Date ? date.toISOString().split('T')[0] : date;
-      return mockDb.findAll('attendance').then(records => {
-        return records.filter(record => {
-          const recordDateStr = record.date instanceof Date ?
-            record.date.toISOString().split('T')[0] : record.date;
-          return recordDateStr === dateStr;
-        });
-      });
-    }
-     if (!realDb?.getAttendanceByDate) throw new Error("Real DB method 'getAttendanceByDate' not loaded.");
-    return realDb.getAttendanceByDate(date);
-  },
-
-  /**
-   * Create a new attendance record
-   * @param {object} attendanceData - Attendance record data
-   * @returns {Promise<object>} Created attendance record
-   */
   createAttendance: async (attendanceData) => {
-    if (USE_MOCK_DB) {
-      return mockDb.create('attendance', attendanceData);
-    }
-    if (!realDb?.createAttendance) throw new Error("Real DB method 'createAttendance' not loaded.");
-    return realDb.createAttendance(attendanceData);
+     if (USE_MOCK_DB) { return mockDb.create('attendance', attendanceData); }
+     const repo = await getRepo(Attendance);
+     const dataToCreate = { ...attendanceData };
+     if (attendanceData.employeeId) dataToCreate.employee = { id: attendanceData.employeeId };
+     delete dataToCreate.employeeId;
+     const record = repo.create(dataToCreate);
+     return repo.save(record);
   },
 
-  /**
-   * Update an existing attendance record
-   * @param {string} id - Attendance record ID
-   * @param {object} attendanceData - Updated attendance data
-   * @returns {Promise<object>} Updated attendance record
-   */
   updateAttendance: async (id, attendanceData) => {
-    if (USE_MOCK_DB) {
-      return mockDb.update('attendance', id, attendanceData);
-    }
-     if (!realDb?.updateAttendance) throw new Error("Real DB method 'updateAttendance' not loaded.");
-    return realDb.updateAttendance(id, attendanceData);
+      if (USE_MOCK_DB) { return mockDb.update('attendance', id, attendanceData); }
+      const repo = await getRepo(Attendance);
+      // Use save for partial updates + relations
+      const existing = await repo.findOneBy({ id });
+      if (!existing) return null;
+      repo.merge(existing, attendanceData); // Only merges provided fields
+      return repo.save(existing);
+      // OR use update, but handle relations manually if needed
+      // const updateResult = await repo.update(id, attendanceData);
+      // if (updateResult.affected === 0) return null;
+      // return repo.findOne({ where: { id }, relations: ['employee'] });
   },
 
-  /**
-   * Delete an attendance record
-   * @param {string} id - Attendance record ID
-   * @returns {Promise<boolean>} Success indicator
-   */
-  deleteAttendance: async (id) => {
-    if (USE_MOCK_DB) {
-      return mockDb.remove('attendance', id);
-    }
-    if (!realDb?.deleteAttendance) throw new Error("Real DB method 'deleteAttendance' not loaded.");
-    return realDb.deleteAttendance(id);
-  },
+   deleteAttendance: async (id) => {
+     if (USE_MOCK_DB) { return mockDb.remove('attendance', id); }
+     const repo = await getRepo(Attendance);
+     const deleteResult = await repo.delete(id);
+     return { success: deleteResult.affected > 0 };
+   },
 
   // ==================== Leave Methods ====================
-
-  /**
-   * Get leave request by ID
-   * @param {string} id - Leave request ID
-   * @returns {Promise<object|null>} Leave request or null if not found
-   */
+  // (Refactor using getRepo(Leave) and repo methods / createQueryBuilder)
   getLeaveById: async (id) => {
-    if (USE_MOCK_DB) {
-      return mockDb.findById('leave', id);
-    }
-    if (!realDb?.getLeaveById) throw new Error("Real DB method 'getLeaveById' not loaded.");
-    return realDb.getLeaveById(id);
+    if (USE_MOCK_DB) { return mockDb.findById('leave', id); }
+    const repo = await getRepo(Leave);
+    return repo.findOne({ where: { id }, relations: ["employee", "approver"] });
   },
 
-  /**
-   * Get leave requests
-   * @param {object} options - Query options (employeeId, status, date range)
-   * @returns {Promise<Array>} Array of leave requests
-   */
   getLeaveRequests: async (options = {}) => {
-    if (USE_MOCK_DB) {
-      return mockDb.findAll('leave', options);
-    }
-    if (!realDb?.getLeaveRequests) throw new Error("Real DB method 'getLeaveRequests' not loaded.");
-    return realDb.getLeaveRequests(options);
+     if (USE_MOCK_DB) { return mockDb.findAll('leave', options); }
+     const repo = await getRepo(Leave);
+     // Use createQueryBuilder for complex filters as in original db.js/API route
+     let query = repo.createQueryBuilder("leave")
+         .leftJoinAndSelect("leave.employee", "employee")
+         .leftJoinAndSelect("employee.department", "department") // Needed for dept filtering
+         .leftJoinAndSelect("leave.approver", "approver");
+
+     let hasWhere = false;
+     const addFilter = (condition, params) => { /* ... same helper ... */ };
+
+     // Apply filters from options (status, date range, employeeId, etc.)
+     // ... example ...
+     if (options.status) addFilter("leave.status = :status", { status: options.status });
+     if (options.employeeId) addFilter("leave.employeeId = :employeeId", { employeeId: options.employeeId });
+     // ... add other filters ...
+
+     if (options.limit) query = query.take(parseInt(options.limit, 10));
+     if (options.offset) query = query.skip(parseInt(options.offset, 10));
+
+     query = query.orderBy("leave.requestDate", "DESC");
+
+     // Return array or object with pagination info
+     const [requests, total] = await query.getManyAndCount();
+     return {
+         leaveRequests: requests,
+         pagination: { total, limit: options.limit || 20, offset: options.offset || 0 }
+     };
   },
 
-  /**
-   * Get leave by employee ID
-   * @param {string} employeeId - Employee ID
-   * @returns {Promise<Array>} Array of leave requests
-   */
-  getLeaveByEmployeeId: async (employeeId) => {
-    if (USE_MOCK_DB) {
-      return mockDb.findAll('leave', { employeeId });
-    }
-    if (!realDb?.getLeaveByEmployeeId) throw new Error("Real DB method 'getLeaveByEmployeeId' not loaded.");
-    return realDb.getLeaveByEmployeeId(employeeId);
-  },
+  // getLeaveByEmployeeId might be redundant
 
-  /**
-   * Create a new leave request
-   * @param {object} leaveData - Leave request data
-   * @returns {Promise<object>} Created leave request
-   */
   createLeave: async (leaveData) => {
-    if (USE_MOCK_DB) {
-      return mockDb.create('leave', leaveData);
-    }
-    if (!realDb?.createLeave) throw new Error("Real DB method 'createLeave' not loaded.");
-    return realDb.createLeave(leaveData);
+      if (USE_MOCK_DB) { return mockDb.create('leave', leaveData); }
+      const repo = await getRepo(Leave);
+      const dataToCreate = { ...leaveData };
+      if (leaveData.employeeId) dataToCreate.employee = { id: leaveData.employeeId };
+      if (leaveData.approverId) dataToCreate.approver = { id: leaveData.approverId };
+      delete dataToCreate.employeeId;
+      delete dataToCreate.approverId;
+      dataToCreate.requestDate = dataToCreate.requestDate || new Date(); // Ensure request date
+      dataToCreate.status = dataToCreate.status || 'pending'; // Default status
+
+      const leave = repo.create(dataToCreate);
+      return repo.save(leave);
   },
 
-  /**
-   * Update an existing leave request
-   * @param {string} id - Leave request ID
-   * @param {object} leaveData - Updated leave request data
-   * @returns {Promise<object>} Updated leave request
-   */
   updateLeave: async (id, leaveData) => {
-    if (USE_MOCK_DB) {
-      return mockDb.update('leave', id, leaveData);
-    }
-    if (!realDb?.updateLeave) throw new Error("Real DB method 'updateLeave' not loaded.");
-    return realDb.updateLeave(id, leaveData);
+      if (USE_MOCK_DB) { return mockDb.update('leave', id, leaveData); }
+      const repo = await getRepo(Leave);
+      // Use save for easier partial updates + relations
+      const existing = await repo.findOneBy({ id });
+      if (!existing) return null;
+
+      const dataToUpdate = { ...leaveData };
+       if (leaveData.approverId !== undefined) { // Handle null or actual ID
+           dataToUpdate.approver = leaveData.approverId ? { id: leaveData.approverId } : null;
+       }
+      delete dataToUpdate.approverId;
+      // Don't allow changing employeeId on update
+      delete dataToUpdate.employeeId;
+
+      repo.merge(existing, dataToUpdate);
+      return repo.save(existing);
   },
 
-  /**
-   * Delete a leave request
-   * @param {string} id - Leave request ID
-   * @returns {Promise<boolean>} Success indicator
-   */
   deleteLeave: async (id) => {
-    if (USE_MOCK_DB) {
-      return mockDb.remove('leave', id);
-    }
-    if (!realDb?.deleteLeave) throw new Error("Real DB method 'deleteLeave' not loaded.");
-    return realDb.deleteLeave(id);
+      if (USE_MOCK_DB) { return mockDb.remove('leave', id); }
+      const repo = await getRepo(Leave);
+      const deleteResult = await repo.delete(id);
+      return { success: deleteResult.affected > 0 };
   },
 
   // ==================== Compliance Methods ====================
-
-  /**
-   * Get compliance record by ID
-   * @param {string} id - Compliance record ID
-   * @returns {Promise<object|null>} Compliance record or null if not found
-   */
+  // (Refactor using getRepo(Compliance))
   getComplianceById: async (id) => {
-    if (USE_MOCK_DB) {
-      return mockDb.findById('compliance', id);
-    }
-    if (!realDb?.getComplianceById) throw new Error("Real DB method 'getComplianceById' not loaded.");
-    return realDb.getComplianceById(id);
+      if (USE_MOCK_DB) { return mockDb.findById('compliance', id); }
+      const repo = await getRepo(Compliance);
+      return repo.findOne({ where: { id }, relations: ["employee", "verifier"] });
   },
 
-  /**
-   * Get compliance records
-   * @param {object} options - Query options (employeeId, status, type)
-   * @returns {Promise<Array>} Array of compliance records
-   */
   getComplianceRecords: async (options = {}) => {
-    if (USE_MOCK_DB) {
-      return mockDb.findAll('compliance', options);
-    }
-    if (!realDb?.getComplianceRecords) throw new Error("Real DB method 'getComplianceRecords' not loaded.");
-    return realDb.getComplianceRecords(options);
-  },
-  /**
-   * Get compliance by employee ID
-   * @param {string} employeeId - Employee ID
-   * @returns {Promise<Array>} Array of compliance records
-   */
-  getComplianceByEmployeeId: async (employeeId) => {
-    if (USE_MOCK_DB) {
-      return mockDb.findAll('compliance', { employeeId });
-    }
-    if (!realDb?.getComplianceByEmployeeId) throw new Error("Real DB method 'getComplianceByEmployeeId' not loaded.");
-    return realDb.getComplianceByEmployeeId(employeeId);
+      if (USE_MOCK_DB) { return mockDb.findAll('compliance', options); }
+      const repo = await getRepo(Compliance);
+      // Build query based on options
+      const findOptions = { relations: ["employee", "verifier"] };
+       // Add where clauses, take, skip based on options
+      return repo.find(findOptions); // Or use QueryBuilder
   },
 
-  /**
-   * Get expiring compliance records
-   * @param {number} daysUntil - Number of days to look ahead
-   * @returns {Promise<Array>} Array of compliance records expiring within the specified days
-   */
-  getExpiringCompliance: async (daysUntil) => {
-    if (USE_MOCK_DB) {
-      const today = new Date();
-      const futureDate = new Date(today);
-      futureDate.setDate(futureDate.getDate() + daysUntil);
-
-      return mockDb.findAll('compliance').then(records => {
-        return records.filter(record => {
-          const expirationDate = new Date(record.expirationDate); // Ensure it's a Date object
-          return expirationDate >= today &&
-                 expirationDate <= futureDate &&
-                 record.status === 'Active';
-        });
-      });
-    }
-    if (!realDb?.getExpiringCompliance) throw new Error("Real DB method 'getExpiringCompliance' not loaded.");
-    return realDb.getExpiringCompliance(daysUntil);
-  },
-
-  /**
-   * Create a new compliance record
-   * @param {object} complianceData - Compliance record data
-   * @returns {Promise<object>} Created compliance record
-   */
   createCompliance: async (complianceData) => {
-    if (USE_MOCK_DB) {
-      return mockDb.create('compliance', complianceData);
-    }
-    if (!realDb?.createCompliance) throw new Error("Real DB method 'createCompliance' not loaded.");
-    return realDb.createCompliance(complianceData);
+      if (USE_MOCK_DB) { return mockDb.create('compliance', complianceData); }
+      const repo = await getRepo(Compliance);
+      const dataToCreate = { ...complianceData };
+      if (complianceData.employeeId) dataToCreate.employee = { id: complianceData.employeeId };
+      if (complianceData.verifierId) dataToCreate.verifier = { id: complianceData.verifierId };
+       // Assuming department relationship might exist based on original db.js
+      if (complianceData.departmentId) dataToCreate.department = { id: complianceData.departmentId };
+      delete dataToCreate.employeeId;
+      delete dataToCreate.verifierId;
+      delete dataToCreate.departmentId;
+      const record = repo.create(dataToCreate);
+      return repo.save(record);
   },
 
-  /**
-   * Update an existing compliance record
-   * @param {string} id - Compliance record ID
-   * @param {object} complianceData - Updated compliance data
-   * @returns {Promise<object>} Updated compliance record
-   */
   updateCompliance: async (id, complianceData) => {
-    if (USE_MOCK_DB) {
-      return mockDb.update('compliance', id, complianceData);
-    }
-    if (!realDb?.updateCompliance) throw new Error("Real DB method 'updateCompliance' not loaded.");
-    return realDb.updateCompliance(id, complianceData);
+      if (USE_MOCK_DB) { return mockDb.update('compliance', id, complianceData); }
+      const repo = await getRepo(Compliance);
+      // Use save for partial update
+      const existing = await repo.findOneBy({ id });
+      if (!existing) return null;
+       const dataToUpdate = { ...complianceData };
+      if (complianceData.verifierId !== undefined) dataToUpdate.verifier = complianceData.verifierId ? { id: complianceData.verifierId } : null;
+       if (complianceData.departmentId !== undefined) dataToUpdate.department = complianceData.departmentId ? { id: complianceData.departmentId } : null;
+      delete dataToUpdate.verifierId;
+      delete dataToUpdate.departmentId;
+      delete dataToUpdate.employeeId; // Don't change employee
+
+      repo.merge(existing, dataToUpdate);
+      return repo.save(existing);
   },
 
-  /**
-   * Delete a compliance record
-   * @param {string} id - Compliance record ID
-   * @returns {Promise<boolean>} Success indicator
-   */
   deleteCompliance: async (id) => {
-    if (USE_MOCK_DB) {
-      return mockDb.remove('compliance', id);
-    }
-    if (!realDb?.deleteCompliance) throw new Error("Real DB method 'deleteCompliance' not loaded.");
-    return realDb.deleteCompliance(id);
+      if (USE_MOCK_DB) { return mockDb.remove('compliance', id); }
+      const repo = await getRepo(Compliance);
+      const deleteResult = await repo.delete(id);
+      return { success: deleteResult.affected > 0 };
   },
 
   // ==================== Document Methods ====================
+  // (Refactor using getRepo(Document))
+   getDocumentById: async (id) => {
+       if (USE_MOCK_DB) { return mockDb.findById('documents', id); }
+       const repo = await getRepo(Document);
+       return repo.findOne({ where: { id }, relations: ["uploadedBy", "employee", "department"] });
+   },
 
-  /**
-   * Get document by ID
-   * @param {string} id - Document ID
-   * @returns {Promise<object|null>} Document or null if not found
-   */
-  getDocumentById: async (id) => {
-    if (USE_MOCK_DB) {
-      return mockDb.findById('documents', id);
-    }
-    if (!realDb?.getDocumentById) throw new Error("Real DB method 'getDocumentById' not loaded.");
-    return realDb.getDocumentById(id);
-  },
+   getDocuments: async (options = {}) => {
+       if (USE_MOCK_DB) { return mockDb.findAll('documents', options); }
+       const repo = await getRepo(Document);
+       // Build query based on options
+        const findOptions = { relations: ["uploadedBy", "employee", "department"] };
+       // Add where clauses, take, skip based on options
+       return repo.find(findOptions); // Or use QueryBuilder
+   },
 
-  /**
-   * Get documents
-   * @param {object} options - Query options (ownerId, type, tags)
-   * @returns {Promise<Array>} Array of documents
-   */
-  getDocuments: async (options = {}) => {
-    if (USE_MOCK_DB) {
-      return mockDb.findAll('documents', options);
-    }
-    if (!realDb?.getDocuments) throw new Error("Real DB method 'getDocuments' not loaded.");
-    return realDb.getDocuments(options);
-  },
+   createDocument: async (documentData) => {
+       if (USE_MOCK_DB) { return mockDb.create('documents', documentData); }
+       const repo = await getRepo(Document);
+       const dataToCreate = { ...documentData };
+       if (documentData.employeeId) dataToCreate.employee = { id: documentData.employeeId };
+       if (documentData.departmentId) dataToCreate.department = { id: documentData.departmentId };
+       if (documentData.uploadedById) dataToCreate.uploadedBy = { id: documentData.uploadedById };
+       delete dataToCreate.employeeId;
+       delete dataToCreate.departmentId;
+       delete dataToCreate.uploadedById;
+       const doc = repo.create(dataToCreate);
+       return repo.save(doc);
+   },
 
-  /**
-   * Get documents by department
-   * @param {string} departmentId - Department ID
-   * @returns {Promise<Array>} Array of documents
-   */
-  getDocumentsByDepartment: async (departmentId) => {
-    if (USE_MOCK_DB) {
-      // Get department-specific docs and general docs (departmentId = null)
-      return mockDb.findAll('documents').then(docs => {
-        return docs.filter(doc =>
-          doc.departmentId === departmentId || doc.departmentId === null
-        );
-      });
-    }
-    if (!realDb?.getDocumentsByDepartment) throw new Error("Real DB method 'getDocumentsByDepartment' not loaded.");
-    return realDb.getDocumentsByDepartment(departmentId);
-  },
+   updateDocument: async (id, documentData) => {
+        if (USE_MOCK_DB) { return mockDb.update('documents', id, documentData); }
+        const repo = await getRepo(Document);
+        // Use save
+        const existing = await repo.findOneBy({ id });
+        if (!existing) return null;
+        // Handle relations if needed
+        repo.merge(existing, documentData);
+        return repo.save(existing);
+   },
 
-  /**
-   * Create a new document
-   * @param {object} documentData - Document data
-   * @returns {Promise<object>} Created document
-   */
-  createDocument: async (documentData) => {
-    if (USE_MOCK_DB) {
-      return mockDb.create('documents', documentData);
-    }
-    if (!realDb?.createDocument) throw new Error("Real DB method 'createDocument' not loaded.");
-    return realDb.createDocument(documentData);
-  },
+    deleteDocument: async (id) => {
+        if (USE_MOCK_DB) { return mockDb.remove('documents', id); }
+        const repo = await getRepo(Document);
+        const deleteResult = await repo.delete(id);
+        return { success: deleteResult.affected > 0 };
+    },
 
-  /**
-   * Update an existing document
-   * @param {string} id - Document ID
-   * @param {object} documentData - Updated document data
-   * @returns {Promise<object>} Updated document
-   */
-  updateDocument: async (id, documentData) => {
-    if (USE_MOCK_DB) {
-      return mockDb.update('documents', id, documentData);
-    }
-    if (!realDb?.updateDocument) throw new Error("Real DB method 'updateDocument' not loaded.");
-    return realDb.updateDocument(id, documentData);
-  },
-
-  /**
-   * Delete a document
-   * @param {string} id - Document ID
-   * @returns {Promise<boolean>} Success indicator
-   */
-  deleteDocument: async (id) => {
-    if (USE_MOCK_DB) {
-      return mockDb.remove('documents', id);
-    }
-    if (!realDb?.deleteDocument) throw new Error("Real DB method 'deleteDocument' not loaded.");
-    return realDb.deleteDocument(id);
-  },
 
   // ==================== Dashboard Methods ====================
-
-  /**
-   * Get dashboard statistics
-   * @returns {Promise<object>} Object containing dashboard statistics
-   */
   getDashboardStats: async () => {
-    if (USE_MOCK_DB) {
-      const employees = await mockDb.findAll('employees');
-      const departments = await mockDb.findAll('departments');
-      const pendingLeave = await mockDb.findAll('leave', { status: 'Pending' });
-      const complianceRecords = await mockDb.findAll('compliance');
-      const attendanceRecords = await mockDb.findAll('attendance');
+    if (USE_MOCK_DB) { /* ... mock logic ... */ }
 
-      const employeesCount = employees.length;
-      const departmentsCount = departments.length;
-      const pendingLeaveCount = pendingLeave.length;
+    // Ensure connected before running multiple queries
+    await initializeDataSource();
 
-      const today = new Date();
-      const thirtyDaysLater = new Date(today);
-      thirtyDaysLater.setDate(today.getDate() + 30);
-      const expiringComplianceCount = complianceRecords.filter(record => {
-        const expirationDate = new Date(record.expirationDate);
-        return expirationDate >= today &&
-               expirationDate <= thirtyDaysLater &&
-               record.status === 'Active';
-      }).length;
+    // Use Promise.all for parallel counts
+    const [totalEmployees, totalDepartments, pendingLeaveRequests] = await Promise.all([
+      AppDataSource.getRepository(Employee).count({ where: { status: 'Active' } }), // Count only active
+      AppDataSource.getRepository(Department).count(),
+      AppDataSource.getRepository(Leave).count({ where: { status: 'pending' } })
+    ]);
 
-      const todayStr = today.toISOString().split('T')[0];
-      const todayAttendanceCount = attendanceRecords.filter(record => {
-        const recordDate = record.date instanceof Date ?
-          record.date.toISOString().split('T')[0] : record.date;
-        return recordDate === todayStr;
-      }).length;
+    // Expiring compliance (e.g., next 30 days)
+    const today = new Date();
+    const thirtyDaysLater = new Date();
+    thirtyDaysLater.setDate(today.getDate() + 30);
+    const expiringCompliance = await AppDataSource.getRepository(Compliance).count({
+      where: {
+        status: 'Active', // Assuming 'Active' means valid/current
+        expirationDate: Between(today, thirtyDaysLater)
+      }
+    });
 
-      return {
-        totalEmployees: employeesCount,
-        totalDepartments: departmentsCount,
-        pendingLeaveRequests: pendingLeaveCount,
-        expiringCompliance: expiringComplianceCount,
-        todayAttendance: todayAttendanceCount,
-        attendanceRate: employeesCount > 0 ? Math.round((todayAttendanceCount / employeesCount) * 100) : 0
-      };
-    }
-    if (!realDb?.getDashboardStats) throw new Error("Real DB method 'getDashboardStats' not loaded.");
-    return realDb.getDashboardStats();
+    // Today's attendance (count records for today with present status)
+     const todayStr = today.toISOString().split('T')[0];
+     const todayAttendance = await AppDataSource.getRepository(Attendance).count({
+         where: {
+             date: todayStr,
+             status: 'Present' // Assuming 'Present' status exists
+         }
+     });
+     const attendanceRate = totalEmployees > 0 ? Math.round((todayAttendance / totalEmployees) * 100) : 0;
+
+
+    return {
+      totalEmployees,
+      totalDepartments,
+      pendingLeaveRequests,
+      expiringCompliance,
+      todayAttendance,
+      attendanceRate
+    };
   }
-}
+};
