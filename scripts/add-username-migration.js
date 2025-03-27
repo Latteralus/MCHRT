@@ -1,123 +1,110 @@
 // scripts/add-username-migration.js
-import { ensureDbConnected, AppDataSource } from "../utils/db";
-import { UserEntity } from "../entities/User";
+// Refactored to use dbService
+import { dbService } from '@/utils/dbService'; // Use path alias
+// NOTE: Removed imports for ensureDbConnected, AppDataSource, UserEntity
 
 /**
  * This script adds a username field to all existing users.
  * Usernames are generated as first initial + last name (e.g., jsmith for John Smith)
+ * IMPORTANT: This script assumes usernames should be unique.
+ * It's designed for a one-time run. Back up your data before executing.
  */
 async function addUsernamesMigration() {
   try {
-    // Initialize database connection
-    await ensureDbConnected();
-    console.log("Database connection established");
+    console.log(`Starting username migration... (Using ${dbService.isMockDb() ? 'Mock DB' : 'Real DB'})`);
 
-    // Get user repository
-    const userRepository = AppDataSource.getRepository(UserEntity);
-    
-    // First, check if we need to add the username column
-    try {
-      // Attempt to find a user with username to check if the column exists
-      await userRepository.findOneBy({ username: 'test' });
-      console.log("Username column already exists");
-    } catch (error) {
-      if (error.message.includes("column \"username\" does not exist")) {
-        console.log("Username column does not exist. Please run the database migration first.");
-        console.log("Example migration SQL: ALTER TABLE users ADD COLUMN username VARCHAR(255) UNIQUE;");
-        return;
-      }
-    }
+    // Get all users using dbService
+    const users = await dbService.getUsers();
+    console.log(`Found ${users.length} users to potentially update.`);
 
-    // Get all users
-    const users = await userRepository.find();
-    console.log(`Found ${users.length} users to update.`);
-
-    // Track usernames to avoid duplicates
+    // Track usernames to avoid duplicates during this run
     const usedUsernames = new Set();
+    const usersToUpdate = [];
 
-    // Process each user
+    // First pass: populate usedUsernames set with existing usernames
+    for (const user of users) {
+        if (user.username) {
+            usedUsernames.add(user.username.toLowerCase());
+        }
+    }
+    console.log(`Found ${usedUsernames.size} existing unique usernames.`);
+
+    // Second pass: generate usernames for users without one
     for (const user of users) {
       // Skip users who already have a username
       if (user.username) {
-        usedUsernames.add(user.username.toLowerCase());
-        console.log(`User ${user.id} already has username: ${user.username}`);
+        console.log(`User ${user.id} (${user.email}) already has username: ${user.username}`);
         continue;
       }
 
-      if (!user.firstName || !user.lastName) {
-        console.log(`User ${user.id} is missing first or last name, cannot generate username`);
-        continue;
+      // Generate username attempt
+      let baseUsername = '';
+      // Try generating from name first if possible (assuming name format 'First Last')
+      if (user.name) {
+          const nameParts = user.name.trim().split(/\s+/); // Split by spaces
+          const firstName = nameParts[0];
+          const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : ''; // Get last part as last name
+
+          if (firstName && lastName) {
+              const firstInitial = firstName.charAt(0).toLowerCase();
+              const lastNameClean = lastName.toLowerCase().replace(/[^a-z0-9]/g, '');
+              if (lastNameClean) {
+                 baseUsername = firstInitial + lastNameClean;
+              }
+          }
       }
 
-      // Generate username as first initial + last name
-      const firstInitial = user.firstName.charAt(0).toLowerCase();
-      const lastName = user.lastName.toLowerCase().replace(/[^a-z0-9]/g, '');
-      let username = firstInitial + lastName;
-      
-      // Ensure username is unique
-      let finalUsername = username;
+      // Fallback to email prefix if name-based generation failed
+      if (!baseUsername && user.email) {
+        baseUsername = user.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
+      }
+
+      // Fallback to user+id if other methods failed
+      if (!baseUsername) {
+        baseUsername = `user${user.id}`;
+      }
+
+      // Ensure username is unique for this run
+      let finalUsername = baseUsername;
       let counter = 1;
-      
       while (usedUsernames.has(finalUsername.toLowerCase())) {
-        finalUsername = `${username}${counter}`;
+        finalUsername = `${baseUsername}${counter}`;
         counter++;
       }
-      
+
+      // Add to set and prepare update payload
       usedUsernames.add(finalUsername.toLowerCase());
-      
-      // Update user with new username
-      user.username = finalUsername;
-      await userRepository.save(user);
-      
-      console.log(`Updated user ${user.id}: ${user.firstName} ${user.lastName} with username: ${finalUsername}`);
+      usersToUpdate.push({ id: user.id, username: finalUsername, name: user.name || user.email }); // Include name/email for logging
+
     }
 
-    // Find users without usernames and create default ones
-    const remainingUsers = await userRepository.find({
-      where: { username: null }
-    });
-
-    if (remainingUsers.length > 0) {
-      console.log(`${remainingUsers.length} users still have no username. Creating default usernames.`);
-      
-      for (const user of remainingUsers) {
-        // Use email prefix if available, otherwise use "user" + ID
-        let baseUsername;
-        if (user.email) {
-          baseUsername = user.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
-        } else {
-          baseUsername = `user${user.id}`;
+    // Perform updates using dbService
+    if (usersToUpdate.length > 0) {
+        console.log(`Attempting to update ${usersToUpdate.length} users with new usernames...`);
+        let updatedCount = 0;
+        for (const updateInfo of usersToUpdate) {
+            try {
+                await dbService.updateUser(updateInfo.id, { username: updateInfo.username });
+                console.log(`Updated user ${updateInfo.id} (${updateInfo.name}) with username: ${updateInfo.username}`);
+                updatedCount++;
+            } catch (updateError) {
+                console.error(`Failed to update user ${updateInfo.id} (${updateInfo.name}) with username ${updateInfo.username}:`, updateError);
+                // Decide if you want to stop or continue on error
+            }
         }
-        
-        // Ensure username is unique
-        let finalUsername = baseUsername;
-        let counter = 1;
-        
-        while (usedUsernames.has(finalUsername.toLowerCase())) {
-          finalUsername = `${baseUsername}${counter}`;
-          counter++;
-        }
-        
-        usedUsernames.add(finalUsername.toLowerCase());
-        
-        // Update user with new username
-        user.username = finalUsername;
-        await userRepository.save(user);
-        
-        console.log(`Created default username for user ${user.id}: ${finalUsername}`);
-      }
+        console.log(`Successfully updated ${updatedCount} users.`);
+    } else {
+        console.log("No users required username updates.");
     }
 
-    console.log("Migration completed successfully!");
+
+    console.log("Username migration script finished.");
 
   } catch (error) {
-    console.error("Error during migration:", error);
+    console.error("Error during username migration script:", error);
   } finally {
-    // Close database connection
-    if (AppDataSource.isInitialized) {
-      await AppDataSource.destroy();
-      console.log("Database connection closed");
-    }
+    // No explicit connection closing needed when using dbService abstraction
+    console.log("Migration process ended.");
   }
 }
 
