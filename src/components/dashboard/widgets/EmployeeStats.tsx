@@ -70,28 +70,27 @@ const EmployeeStats: React.FC = () => {
     const { total, trendPercent, trendDirection } = stats;
 
     return (
-        <Card className="h-full">
-            {/* Updated layout to match target screenshot */}
-            <div className="flex justify-between items-start p-4 h-full">
-                {/* Left side: Icon and Title */}
-                <div>
-                    <div className="p-2 bg-teal-100 rounded-full inline-block mb-1"> {/* Icon background */}
-                        <Icon iconName="fas fa-users" className="text-teal-600 text-lg" /> {/* Adjusted icon size/color */}
-                    </div>
-                    <div className="text-sm text-gray-600">
+        <> {/* Wrap content in a fragment */}
+            {/* Apply semantic classes based on global.css */}
+            {/* Assuming Card component provides the base .card style */}
+        <Card className="stat-card"> {/* Use stat-card class */}
+            {/* Apply flex layout within card-body */}
+            <div className="card-body">
+                {/* Left side content */}
+                <div className="stat-content-left">
+                    <div className="stat-label">
+                        <Icon iconName="fas fa-users" />
                         Total Employees
                     </div>
                 </div>
-                {/* Right side: Stat and Trend */}
-                <div className="text-right">
-                    <div className="text-3xl font-bold text-gray-900 mb-1">
+                {/* Right side content */}
+                <div className="stat-content-right" style={{textAlign: 'right'}}>
+                    <div className="stat-value">
                         {total}
                     </div>
-                    <div className="text-xs text-gray-600">
-                        <span className={`inline-flex items-center font-semibold px-1.5 py-0.5 rounded text-xs mr-1 ${
-                            trendDirection === 'up' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                            <Icon iconName={trendDirection === 'up' ? 'fas fa-arrow-up' : 'fas fa-arrow-down'} className="mr-1" />
+                    <div className="stat-description">
+                        <span className={`stat-trend ${trendDirection === 'up' ? 'trend-up' : 'trend-down'}`}>
+                            <Icon iconName={trendDirection === 'up' ? 'fas fa-arrow-up' : 'fas fa-arrow-down'} />
                             {trendPercent}%
                         </span>
                         from last month
@@ -99,6 +98,7 @@ const EmployeeStats: React.FC = () => {
                 </div>
             </div>
         </Card>
+        </> /* Close fragment */
     );
 };
 

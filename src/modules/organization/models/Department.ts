@@ -1,6 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { getSequelizeInstance } from '@/db/sequelize'; // Use runtime Sequelize instance
-
+import { getSequelizeInstance } from '../../../db/sequelize'; // Use relative path
 // Define the attributes for the Department model
 interface DepartmentAttributes {
   id: number;

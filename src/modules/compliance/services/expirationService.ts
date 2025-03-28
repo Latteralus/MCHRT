@@ -1,5 +1,5 @@
 // src/modules/compliance/services/expirationService.ts
-import { Compliance } from '@/db';
+import { Compliance } from '../../../db'; // Use relative path
 import { Op, literal } from 'sequelize';
 import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the getter function
 import { sendComplianceExpirationReminders } from '@/modules/notifications/services/reminderService'; // Import reminder service

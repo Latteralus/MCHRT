@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import axios from 'axios';
-import { GetServerSideProps } from 'next'; // Import GetServerSideProps
-import { getSession } from 'next-auth/react'; // Import getSession
-import MainLayout from '@/components/layouts/MainLayout'; // Assuming MainLayout is needed
-import Icon from '@/components/ui/Icon'; // Assuming Icon component exists
+import { GetServerSideProps } from 'next';
+import { getSession } from 'next-auth/react';
+// MainLayout is applied globally via _app.tsx
+import Icon from '@/components/ui/Icon';
+import Card from '@/components/ui/Card'; // Import Card
 
 // Define an interface for the Employee data structure
 interface EmployeeData {
@@ -50,87 +51,102 @@ const EmployeeListPage: React.FC<EmployeeListPageProps> = ({ userRole }) => {
   // Determine if the current user can export
   const canExport = userRole === 'Admin' || userRole === 'DepartmentHead';
 
-  // Basic table styling (consider moving to CSS)
-  const tableStyles: React.CSSProperties = { /* ... existing styles ... */ };
-  const thStyles: React.CSSProperties = { /* ... existing styles ... */ };
-  const tdStyles: React.CSSProperties = { /* ... existing styles ... */ };
-
   return (
-    // Apply MainLayout here if not done globally in _app.tsx
-    <> {/* Removed redundant MainLayout wrapper */}
+    <> {/* Single root fragment */}
       <Head>
         <title>Employees - Mountain Care HR</title>
       </Head>
-      <div className="p-8"> {/* Use consistent padding */}
-        <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold text-gray-900">Employee List</h1>
-            {/* Conditionally render Export Button */}
-            {canExport && ( // Corrected operator
+
+      {/* Header Section */}
+      <div className="header">
+          <div className="page-title">
+              <h1>Employee List</h1>
+              {/* <div className="page-subtitle">Manage employee information</div> */}
+          </div>
+          <div className="header-actions">
+            {/* Export Button using semantic classes */}
+            {canExport && (
                  <a
                     href="/api/employees/export"
-                    download // Optional: Suggests filename, but API header takes precedence
-                    className="btn btn-outline bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-gray-100 transition-colors flex items-center gap-2"
+                    download
+                    className="btn btn-outline" // Use semantic classes
                  >
-                    <Icon iconName="fas fa-download" /> {/* Assuming Font Awesome */}
+                    <Icon iconName="fas fa-download" />
                     Export CSV
                  </a>
             )}
-        </div>
+            {/* TODO: Add "New Employee" button if needed */}
+            {/* <Link href="/employees/new" className="btn btn-primary">
+                <Icon iconName="fas fa-plus" /> New Employee
+            </Link> */}
+          </div>
+      </div>
 
+      {/* TODO: Refactor Filtering Controls with semantic classes if needed */}
+      <div className="filter-controls" style={{ marginBottom: '1rem', display: 'flex', gap: '1rem' }}> {/* Basic layout */}
+        {/* Use form-input class potentially */}
+        <input type="text" placeholder="Filter by name..." disabled title="Filter by name" className="form-input" style={{maxWidth: '250px'}} />
+        <select disabled title="Filter by department" className="form-input" style={{maxWidth: '250px'}}>
+          <option value="">Filter by department...</option>
+          {/* Populate departments dynamically later */}
+        </select>
+      </div>
 
-        {/* TODO: Add Filtering Controls */}
-        <div className="mb-4 flex gap-4">
-          <input type="text" placeholder="Filter by name..." disabled className="border p-2 rounded text-sm" title="Filter by name" /> {/* Added title */}
-          <select disabled className="border p-2 rounded text-sm bg-white" title="Filter by department"> {/* Added title */}
-            <option value="">Filter by department...</option>
-            {/* Populate departments dynamically later */}
-          </select>
-        </div>
+      {/* Loading/Error States (Keep utility classes for now, or create specific components/classes) */}
+      {loading && <p className="text-gray-500">Loading employees...</p>}
+      {error && <p className="text-red-600">Error: {error}</p>}
 
-        {loading && <p className="text-gray-500">Loading employees...</p>}
-        {error && <p className="text-red-600">Error: {error}</p>}
-
-        {!loading && !error && ( // Corrected operators
-          <div className="overflow-x-auto bg-white shadow rounded-lg"> {/* Added container for better styling */}
-            <table className="min-w-full divide-y divide-gray-200"> {/* Use Tailwind for table */}
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">First Name</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Name</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Position</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hire Date</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {employees.length > 0 ? (
-                  employees.map((emp) => (
-                    <tr key={emp.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{emp.id}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{emp.firstName}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{emp.lastName}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{emp.position || 'N/A'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{emp.hireDate ? new Date(emp.hireDate).toLocaleDateString() : 'N/A'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        {/* TODO: Add View/Edit/Delete links/buttons */}
-                        <button disabled className="text-indigo-600 hover:text-indigo-900 disabled:opacity-50">View</button>
+      {/* Table Section */}
+      {!loading && !error && (
+        // Wrap table in a card for consistent styling
+        <div className="card"> {/* Using card for consistency */}
+          <div className="card-body" style={{ padding: 0 }}> {/* Remove padding for full-width table */}
+            <div className="table-container" style={{ overflowX: 'auto' }}>
+              {/* Apply a base class for potential global table styling */}
+              <table className="data-table" style={{ width: '100%' }}> {/* Ensure table takes width */}
+                <thead>
+                  <tr>
+                    {/* Add specific classes if needed for th styling */}
+                    <th>ID</th>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Position</th>
+                    <th>Hire Date</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {employees.length > 0 ? (
+                    employees.map((emp) => (
+                      <tr key={emp.id}>
+                        {/* Add specific classes if needed for td styling */}
+                        <td>{emp.id}</td>
+                        <td>{emp.firstName}</td>
+                        <td>{emp.lastName}</td>
+                        <td>{emp.position || 'N/A'}</td>
+                        <td>{emp.hireDate ? new Date(emp.hireDate).toLocaleDateString() : 'N/A'}</td>
+                        <td>
+                          {/* TODO: Add View/Edit/Delete links/buttons */}
+                          {/* Use standard button or semantic class */}
+                          <button disabled className="btn btn-sm btn-outline">View</button> {/* Example */}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      {/* Apply text align via CSS class if available, else inline */}
+                      <td colSpan={6} style={{ textAlign: 'center', padding: '1rem' }}>
+                        No employees found.
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
-                      No employees found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        )}
-      </div>
-    </> // Moved parenthesis and semicolon after fragment
+        </div>
+      )}
+    </>
   );
 };
 

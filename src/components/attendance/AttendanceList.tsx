@@ -1,13 +1,9 @@
 // src/components/attendance/AttendanceList.tsx
 import React, { useState, useEffect } from 'react';
-// Placeholder: Import necessary UI components (Table, Pagination, LoadingSpinner, ErrorMessage)
-// import { Table, Pagination, LoadingSpinner, ErrorMessage } from '@/components/common';
 import { fetchAttendanceRecords } from '@/lib/api/attendance'; // Import the API function
-// Placeholder: Import Attendance type
-// import { Attendance } from '@/db';
+import Card from '@/components/ui/Card'; // Import Card
 
 // Define the shape of an attendance record returned by the API
-// Adjust based on the actual API response structure (includes nested employee)
 interface ApiAttendanceRecord {
   id: number;
   date: string;
@@ -24,14 +20,13 @@ interface ApiAttendanceRecord {
 
 
 interface AttendanceListProps {
-  // Props for filtering (e.g., date range, employeeId) could be added here
   employeeId?: number;
   startDate?: string;
   endDate?: string;
 }
 
 const AttendanceList: React.FC<AttendanceListProps> = ({ employeeId, startDate, endDate }) => {
-  const [attendanceRecords, setAttendanceRecords] = useState<ApiAttendanceRecord[]>([]); // Use API type
+  const [attendanceRecords, setAttendanceRecords] = useState<ApiAttendanceRecord[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -43,7 +38,6 @@ const AttendanceList: React.FC<AttendanceListProps> = ({ employeeId, startDate, 
       setIsLoading(true);
       setError(null);
       try {
-        // Call the API function with filters and pagination
         const data = await fetchAttendanceRecords({
             employeeId,
             startDate,
@@ -53,7 +47,6 @@ const AttendanceList: React.FC<AttendanceListProps> = ({ employeeId, startDate, 
         });
         setAttendanceRecords(data.records);
         setTotalPages(data.totalPages);
-        // Ensure currentPage doesn't exceed totalPages after filtering/deletion etc.
         if (currentPage > data.totalPages) {
             setCurrentPage(Math.max(1, data.totalPages));
         }
@@ -67,7 +60,7 @@ const AttendanceList: React.FC<AttendanceListProps> = ({ employeeId, startDate, 
     };
 
     loadAttendance();
-  }, [employeeId, startDate, endDate, currentPage, limit]); // Re-fetch when filters or page change
+  }, [employeeId, startDate, endDate, currentPage, limit]);
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
@@ -77,71 +70,80 @@ const AttendanceList: React.FC<AttendanceListProps> = ({ employeeId, startDate, 
 
 
   if (isLoading) {
-    // Placeholder: Replace with LoadingSpinner component
+    // TODO: Refactor loading state styling
     return <div className="text-center p-4">Loading attendance records...</div>;
   }
 
   if (error) {
-    // Placeholder: Replace with ErrorMessage component
+    // TODO: Refactor error state styling
     return <div className="text-center p-4 text-red-500 bg-red-100 border border-red-400 rounded">{error}</div>;
   }
 
-  if (attendanceRecords.length === 0) {
-    // Placeholder: Replace with EmptyState component
-    return <div className="text-center p-4 text-gray-500">No attendance records found matching the criteria.</div>;
-  }
-
-  // Placeholder: Replace with actual Table component
+  // Use Card for consistency
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time In</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time Out</th>
-            {/* Add more columns as needed */}
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {attendanceRecords.map((record) => (
-            <tr key={record.id}>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                {record.employee ? `${record.employee.lastName}, ${record.employee.firstName}` : 'N/A'}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.date}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.timeIn ?? 'N/A'}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.timeOut ?? 'N/A'}</td>
-              {/* TODO: Add action buttons (Edit/Delete) if needed, with RBAC */}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {/* Placeholder: Replace with actual Pagination component */}
-      <div className="mt-4 flex justify-center">
-         {totalPages > 1 && (
-            <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage <= 1}
-                className="mx-1 px-3 py-1 border rounded disabled:opacity-50"
-            >
-                Previous
-            </button>
-         )}
-         <span className="mx-2 self-center">Page {currentPage} of {totalPages}</span>
-          {totalPages > 1 && (
-            <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage >= totalPages}
-                className="mx-1 px-3 py-1 border rounded disabled:opacity-50"
-            >
-                Next
-            </button>
-          )}
-      </div>
-      {/* <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} /> */}
-    </div>
+    <Card>
+        {/* Remove padding for full-width table */}
+        <div className="card-body" style={{padding: 0}}>
+            <div className="table-container" style={{ overflowX: 'auto' }}>
+              {/* Use semantic data-table class */}
+              <table className="data-table" style={{width: '100%'}}>
+                <thead>
+                  <tr>
+                    {/* Use default th styling */}
+                    <th>Employee</th>
+                    <th>Date</th>
+                    <th>Time In</th>
+                    <th>Time Out</th>
+                    {/* Add more columns as needed */}
+                  </tr>
+                </thead>
+                <tbody>
+                  {attendanceRecords.length === 0 ? (
+                     <tr>
+                        <td colSpan={4} style={{ textAlign: 'center', padding: '1rem' }}>
+                            No attendance records found matching the criteria.
+                        </td>
+                     </tr>
+                  ) : (
+                    attendanceRecords.map((record) => (
+                      <tr key={record.id}>
+                        {/* Use default td styling */}
+                        <td>
+                            {record.employee ? `${record.employee.lastName}, ${record.employee.firstName}` : 'N/A'}
+                        </td>
+                        <td>{record.date}</td>
+                        <td>{record.timeIn ?? 'N/A'}</td>
+                        <td>{record.timeOut ?? 'N/A'}</td>
+                        {/* TODO: Add action buttons (Edit/Delete) if needed */}
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+        </div>
+        {/* Pagination with semantic classes */}
+        {totalPages > 1 && (
+            <div className="card-footer pagination-container"> {/* Added card-footer */}
+                <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage <= 1}
+                    className="pagination-button btn btn-outline" /* Added btn classes */
+                >
+                    Previous
+                </button>
+                <span className="pagination-info">Page {currentPage} of {totalPages}</span>
+                <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage >= totalPages}
+                    className="pagination-button btn btn-outline" /* Added btn classes */
+                >
+                    Next
+                </button>
+            </div>
+        )}
+        {/* <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} /> */}
+    </Card>
   );
 };
 

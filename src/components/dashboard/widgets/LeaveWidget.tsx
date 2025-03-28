@@ -22,7 +22,7 @@ const LeaveWidget: React.FC = () => {
             try {
                 const response = await axios.get('/api/dashboard/metrics');
                 // Extract leaveStats from the response
-                if (response.data && response.data.leaveStats) { // Corrected operator
+                if (response.data && response.data.leaveStats) {
                     setStats(response.data.leaveStats);
                 } else {
                     throw new Error('Invalid data structure received for leave stats');
@@ -38,7 +38,7 @@ const LeaveWidget: React.FC = () => {
         fetchStats();
     }, []);
 
-    // Loading State
+    // Loading State (Kept original utility classes for now)
     if (loading) {
         return (
             <Card className="h-full">
@@ -49,7 +49,7 @@ const LeaveWidget: React.FC = () => {
         );
     }
 
-    // Error State
+    // Error State (Kept original utility classes for now)
     if (error || !stats) {
         return (
             <Card className="h-full border-red-200 bg-red-50">
@@ -64,32 +64,29 @@ const LeaveWidget: React.FC = () => {
         );
     }
 
-    // Success State
+    // Success State - Refactored with Semantic CSS
     const { pendingRequests, trendPercent, trendDirection } = stats;
 
     return (
-        <Card className="h-full">
-            {/* Updated layout to match target screenshot */}
-            <div className="flex justify-between items-start p-4 h-full">
-                {/* Left side: Icon and Title */}
-                <div>
-                    <div className="p-2 bg-teal-100 rounded-full inline-block mb-1"> {/* Icon background */}
-                        <Icon iconName="fas fa-hourglass-half" className="text-teal-600 text-lg" /> {/* Adjusted icon size/color */}
-                    </div>
-                    <div className="text-sm text-gray-600">
+        // Apply semantic classes based on global.css
+        <Card className="stat-card"> {/* Use stat-card class */}
+            {/* Apply flex layout within card-body */}
+            <div className="card-body">
+                 {/* Left side content */}
+                 <div className="stat-content-left">
+                    <div className="stat-label">
+                        <Icon iconName="fas fa-hourglass-half" />
                         Leave Requests
                     </div>
                 </div>
-                {/* Right side: Stat and Trend */}
-                <div className="text-right">
-                    <div className="text-3xl font-bold text-gray-900 mb-1">
+                {/* Right side content */}
+                <div className="stat-content-right" style={{textAlign: 'right'}}>
+                    <div className="stat-value">
                         {pendingRequests}
                     </div>
-                    <div className="text-xs text-gray-600">
-                        <span className={`inline-flex items-center font-semibold px-1.5 py-0.5 rounded text-xs mr-1 ${
-                            trendDirection === 'up' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                            <Icon iconName={trendDirection === 'up' ? 'fas fa-arrow-up' : 'fas fa-arrow-down'} className="mr-1" />
+                    <div className="stat-description">
+                        <span className={`stat-trend ${trendDirection === 'up' ? 'trend-up' : 'trend-down'}`}>
+                            <Icon iconName={trendDirection === 'up' ? 'fas fa-arrow-up' : 'fas fa-arrow-down'} />
                             {trendPercent}%
                         </span>
                         from last month

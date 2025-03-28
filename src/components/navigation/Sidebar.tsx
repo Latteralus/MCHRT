@@ -34,7 +34,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     <aside className="sidebar">
       <div className="sidebar-logo">
         {/* Replace with actual logo */}
-        <Image src="/images/logo.png" alt="Mountain Care Logo" width={40} height={40} />
+        {/* <Image src="/images/logo.png" alt="Mountain Care Logo" width={40} height={40} /> */} {/* Commented out due to missing image */}
         {/* <Image src={logo} alt="Mountain Care Logo" height={40} /> */}
         <span>Mountain Care</span>
       </div>
@@ -49,7 +49,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         ))}
       </nav>
       <div className="sidebar-footer">
-        <Image src={userAvatarUrl} alt="User avatar" width={36} height={36} className="rounded-full" /> {/* Added rounded-full for styling */}
+        {/* <Image src={userAvatarUrl} alt="User avatar" width={36} height={36} className="rounded-full" /> */} {/* Commented out due to missing image */}
         <div className="user-info">
           <div className="user-name">{userName}</div>
           <div className="user-role">{userRole}</div>

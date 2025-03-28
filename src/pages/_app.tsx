@@ -29,6 +29,7 @@ export default function App({ Component, pageProps: { session, ...pageProps } }:
       {/* Head can be here or within the layout */}
       <Head>
         <title>Mountain Care HR</title> {/* Default title */}
+        {/* Font/Icon links moved to _document.tsx */}
       </Head>
       {/* Apply the determined layout */}
       {getLayout(<Component {...pageProps} />)}

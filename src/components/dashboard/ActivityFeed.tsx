@@ -1,21 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import Card from '@/components/ui/Card';
-import Icon from '@/components/ui/Icon';
+import Icon from '@/components/ui/Icon'; // Assuming Icon component exists and can be used for badges
 import Link from 'next/link';
 import axios from 'axios'; // Import axios
 
 // Define the structure for an activity item (matching the API response)
-interface ActivityItem {
+interface ActivityItemData { // Renamed for clarity
     id: number | string;
     time: string;
     description: string;
     user: string;
-    icon: string;
-    color: string;
+    // icon and color might not be needed if using semantic CSS structure
 }
 
 const ActivityFeed: React.FC = () => {
-    const [activities, setActivities] = useState<ActivityItem[]>([]);
+    const [activities, setActivities] = useState<ActivityItemData[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -26,10 +25,15 @@ const ActivityFeed: React.FC = () => {
             try {
                 // Fetch data from the activity endpoint (e.g., limit to 5 items)
                 const response = await axios.get('/api/dashboard/activity?limit=5');
+                // Assuming API returns array of {id, time, description, user}
                 if (Array.isArray(response.data)) {
                     setActivities(response.data);
                 } else {
-                    throw new Error('Invalid data structure received for activities');
+                    // Handle potential structure mismatch if API changes
+                    console.warn('Received unexpected data structure for activities:', response.data);
+                    setActivities([]); // Set empty to avoid errors
+                    // Optionally throw error if data is critical
+                    // throw new Error('Invalid data structure received for activities');
                 }
             } catch (err: any) {
                 console.error('Error fetching activity feed:', err);
@@ -42,51 +46,59 @@ const ActivityFeed: React.FC = () => {
         fetchActivities();
     }, []);
 
+    // Loading State (Kept original utility classes for now)
+    if (loading) {
+        return (
+            <Card className="h-full">
+                <div className="flex flex-col justify-center items-center h-full p-4">
+                    <p className="text-gray-500">Loading activity...</p>
+                </div>
+            </Card>
+        );
+    }
+
+    // Error State (Kept original utility classes for now)
+    if (error) {
+        return (
+            <Card className="h-full border-red-200 bg-red-50">
+                <div className="flex flex-col h-full p-4">
+                     <div className="flex items-center text-sm text-red-600 mb-2">
+                        <Icon iconName="fas fa-exclamation-triangle" className="mr-2" />
+                        Error Loading Activity
+                    </div>
+                    <p className="text-xs text-red-700">{error}</p>
+                </div>
+            </Card>
+        );
+    }
+
+    // Success State - Refactored with Semantic CSS
     return (
-        // Using Card component with flex column layout
-        <Card className="h-full flex flex-col">
-            {/* Card Header */}
-            <div className="flex justify-between items-center p-4 border-b border-gray-200">
-                <h3 className="text-md font-semibold text-gray-800">Recent Activity</h3>
-                <Link href="/activity" className="text-sm font-medium text-teal-600 hover:text-teal-800">
-                    View all <Icon iconName="fas fa-arrow-right" className="ml-1 text-xs" />
+        <Card className="h-full">
+            {/* Use semantic CardHeader */}
+            <div className="card-header">
+                <h3 className="card-title">Recent Activity</h3>
+                <Link href="/activity" className="action-link">
+                    View all <i className="fas fa-chevron-right"></i>
                 </Link>
             </div>
-            {/* Card Body */}
-            <div className="p-4 flex-grow">
-                {/* Loading State */}
-                {loading && <p className="text-sm text-gray-500">Loading activity...</p>}
-
-                {/* Error State */}
-                {error && <p className="text-sm text-red-600">{error}</p>}
-
-                {/* Success State */}
-                {!loading && !error && (
-                    <>
-                        {activities.length === 0 ? (
-                             <p className="text-sm text-gray-500">No recent activity.</p>
-                        ) : (
-                            // Updated List Format
-                            <div className="space-y-4">
-                                {activities.map((activity) => (
-                                    <div key={activity.id} className="flex items-start space-x-3">
-                                        {/* Icon with background */}
-                                        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${activity.color.replace('text-', 'bg-').replace('-500', '-100')}`}>
-                                            <Icon iconName={activity.icon} className={`h-4 w-4 ${activity.color}`} />
-                                        </div>
-                                        {/* Text Content */}
-                                        <div className="flex-grow">
-                                            <p className="text-sm text-gray-700">
-                                                <span className="font-semibold text-gray-900">{activity.user}</span> {activity.description}
-                                            </p>
-                                            <p className="text-xs text-gray-500 mt-0.5">{activity.time}</p>
-                                        </div>
-                                    </div>
-                                ))}
+            {/* Use semantic CardBody */}
+            <div className="card-body">
+                {activities.length === 0 ? (
+                     <p>No recent activity.</p>
+                ) : (
+                    // Use semantic activity item structure
+                    <div> {/* Wrapper div for activity items */}
+                        {activities.map((activity) => (
+                            <div key={activity.id} className="activity-item">
+                                <div className="activity-badge"></div> {/* Badge styled by CSS */}
+                                <div className="activity-time">{activity.time}</div>
+                                <div className="activity-description">
+                                    <span className="activity-user">{activity.user}</span> {activity.description}
+                                </div>
                             </div>
-                        )}
-                        {/* View All link moved to header */}
-                    </>
+                        ))}
+                    </div>
                 )}
             </div>
         </Card>

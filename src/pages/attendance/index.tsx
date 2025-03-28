@@ -2,90 +2,103 @@
 import React, { useState } from 'react';
 import { GetServerSideProps } from 'next';
 import { getSession } from 'next-auth/react';
+import { Session } from 'next-auth'; // Import Session type from next-auth
+import Head from 'next/head';
 import AttendanceList from '@/components/attendance/AttendanceList';
-import MainLayout from '@/components/layouts/MainLayout'; // Assuming a main layout exists
+// MainLayout is applied globally via _app.tsx
+
 // Placeholder: Import function to fetch employees for filter dropdown
 // import { fetchEmployeesForSelect } from '@/lib/api/employees'; // Adjust path
-// Placeholder: Import UI components (Input, Select, Button)
 
 interface AttendanceIndexPageProps {
   employees: { id: number; name: string }[]; // For filter dropdown
+  session: Session | null; // Add session prop type
 }
 
-const AttendanceIndexPage: React.FC<AttendanceIndexPageProps> = ({ employees }) => {
+const AttendanceIndexPage: React.FC<AttendanceIndexPageProps> = ({ employees, session }) => {
   // State for filters
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
 
-  // TODO: Add logic to handle filter changes and potentially re-fetch data
-  // or pass filters down to AttendanceList which fetches based on props.
-  // The current AttendanceList fetches internally based on props.
+  // Filter state is passed down to AttendanceList.
 
   return (
-    <> {/* Removed redundant MainLayout wrapper */}
-      <div className="container mx-auto p-4">
-        <h1 className="text-2xl font-semibold mb-4">Attendance Records</h1>
+    <>
+      <Head>
+        <title>Attendance Records - Mountain Care HR</title>
+      </Head>
 
-        {/* Filter Section - Placeholder */}
-        <div className="mb-4 p-4 border rounded shadow-sm bg-gray-50 flex flex-wrap gap-4 items-end">
-          {/* Employee Filter */}
-          <div>
-            <label htmlFor="employeeFilter" className="block text-sm font-medium text-gray-700">Employee</label>
-            <select
-              id="employeeFilter"
-              value={selectedEmployeeId}
-              onChange={(e) => setSelectedEmployeeId(e.target.value)}
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            >
-              <option value="">All Employees</option>
-              {employees.map(emp => (
-                <option key={emp.id} value={emp.id}>{emp.name}</option>
-              ))}
-            </select>
+      {/* Header Section */}
+      <div className="header">
+          <div className="page-title">
+              <h1>Attendance Records</h1>
           </div>
-
-          {/* Start Date Filter */}
-          <div>
-            <label htmlFor="startDateFilter" className="block text-sm font-medium text-gray-700">Start Date</label>
-            <input
-              type="date"
-              id="startDateFilter"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            />
-          </div>
-
-          {/* End Date Filter */}
-          <div>
-            <label htmlFor="endDateFilter" className="block text-sm font-medium text-gray-700">End Date</label>
-            <input
-              type="date"
-              id="endDateFilter"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            />
-          </div>
-
-          {/* Apply Filters Button (optional, could filter on change) */}
-          {/* <button
-            // onClick={handleApplyFilters}
-            className="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            Apply Filters
-          </button> */}
-        </div>
-
-        {/* Attendance List */}
-        <AttendanceList
-          employeeId={selectedEmployeeId ? parseInt(selectedEmployeeId, 10) : undefined}
-          startDate={startDate || undefined}
-          endDate={endDate || undefined}
-        />
+          {/* Add header actions if needed */}
+          {/* <div className="header-actions">...</div> */}
       </div>
-    </> // Moved parenthesis and semicolon after fragment
+
+      {/* Filter Section */}
+      {/* Using a div with card class instead of Card component */}
+      <div className="filter-container card filter-card">
+          <div className="card-body filter-card-body">
+            {/* Employee Filter */}
+            <div className="filter-group"> {/* Wrap label/input */}
+              <label htmlFor="employeeFilter" className="form-label">Employee</label>
+              <select
+                id="employeeFilter"
+                value={selectedEmployeeId}
+                onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                className="form-input employee-select" /* Use form-input or define form-select */
+                /* style={{minWidth: '200px'}} Example width - Replaced by CSS */
+              >
+                <option value="">All Employees</option>
+                {employees.map(emp => (
+                  <option key={emp.id} value={emp.id}>{emp.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Start Date Filter */}
+            <div className="filter-group">
+              <label htmlFor="startDateFilter" className="form-label">Start Date</label>
+              <input
+                type="date"
+                id="startDateFilter"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="form-input"
+              />
+            </div>
+
+            {/* End Date Filter */}
+            <div className="filter-group">
+              <label htmlFor="endDateFilter" className="form-label">End Date</label>
+              <input
+                type="date"
+                id="endDateFilter"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="form-input"
+              />
+            </div>
+
+            {/* Apply Filters Button (optional) */}
+            {/* <div className="filter-group">
+                 <button className="btn btn-primary">Apply</button>
+               </div> */}
+          </div> {/* Close card-body */}
+      </div> {/* Close filter-container */}
+
+      {/* Attendance List */}
+      {/* Attendance List */}
+      <AttendanceList
+        employeeId={selectedEmployeeId ? parseInt(selectedEmployeeId, 10) : undefined}
+        startDate={startDate || undefined}
+        endDate={endDate || undefined}
+        // Pass session down if AttendanceList needs it: session={session}
+      />
+    </>
   );
 };
 
@@ -100,13 +113,14 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     };
   }
 
-  // TODO: Add role-based access control if needed (e.g., Employees can only see their own)
+  // TODO: Add role-based access control (RBAC) if needed
+  // Example: if (session.user.role !== 'admin' && session.user.role !== 'hr') { return { notFound: true }; }
 
   let employees: { id: number; name: string }[] = [];
   try {
     // Placeholder: Fetch employees
     console.log('SSR: Fetching employees for attendance filter...');
-    // employees = await fetchEmployeesForSelect();
+    // employees = await fetchEmployeesForSelect(); // TODO: Implement actual fetch
     employees = [ // Placeholder data
       { id: 1, name: 'Doe, John' },
       { id: 2, name: 'Smith, Jane' },
@@ -114,12 +128,13 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     ];
   } catch (error) {
     console.error('SSR Error fetching employees for filter:', error);
+    // Handle error appropriately, maybe return an error prop
   }
 
   return {
     props: {
       employees,
-      session,
+      session, // Session object is passed as a prop
     },
   };
 };

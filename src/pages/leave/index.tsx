@@ -5,6 +5,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import LeaveRequestList from '@/components/leave/LeaveRequestList';
 import Icon from '@/components/ui/Icon'; // Assuming Icon component exists
+import Card from '@/components/ui/Card'; // Assuming Card component exists
 
 // Placeholder: Import function to fetch employees for filter dropdown
 // import { fetchEmployeesForSelect } from '@/lib/api/employees'; // Adjust path
@@ -45,72 +46,78 @@ const LeaveIndexPage: React.FC<LeaveIndexPageProps> = ({ currentUserRole, stats 
       <Head>
         <title>Leave Management - Mountain Care HR</title>
       </Head>
-      <div className="p-8"> {/* Use consistent padding */}
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Leave Management</h1>
-          {/* TODO: Link to actual request page */}
-          <Link href="/leave/request" className="btn btn-primary bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2">
-            Request Leave
-          </Link>
-        </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          {/* Available Balance Card */}
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h4 className="text-sm text-gray-500 mb-1">AVAILABLE BALANCE</h4>
-            <p className="text-3xl font-bold text-blue-600">{stats.available} days</p>
+      {/* Header Section */}
+      <div className="header">
+          <div className="page-title">
+              <h1>Leave Management</h1>
           </div>
-          {/* Pending Requests Card */}
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h4 className="text-sm text-gray-500 mb-1">PENDING REQUESTS</h4>
-            <p className="text-3xl font-bold text-yellow-600">{stats.pending}</p>
+          <div className="header-actions">
+              {/* Use semantic button classes */}
+              <Link href="/leave/request" className="btn btn-primary">
+                  {/* <Icon iconName="fas fa-plus" /> */}
+                  Request Leave
+              </Link>
           </div>
-          {/* Approved Card */}
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h4 className="text-sm text-gray-500 mb-1">APPROVED</h4>
-            <p className="text-3xl font-bold text-green-600">{stats.approved}</p>
-          </div>
-          {/* Used This Year Card */}
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h4 className="text-sm text-gray-500 mb-1">USED THIS YEAR</h4>
-            <p className="text-3xl font-bold text-gray-700">{stats.usedThisYear} days</p>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="dashboard-grid leave-stats-grid" style={{marginBottom: '1.5rem'}}>
+        {/* Available Balance Card */}
+        <div className="card simple-stat-card">
+          <div className="card-body">
+              <h4 className="simple-stat-title">AVAILABLE BALANCE</h4>
+              <p className="simple-stat-value">{stats.available} days</p>
           </div>
         </div>
-
-        {/* Tabs */}
-        <div className="border-b border-gray-200 mb-4">
-          <nav className="-mb-px flex space-x-6" aria-label="Tabs">
-            {leaveStatuses.map((status) => (
-              <button
-                key={status}
-                onClick={() => setActiveStatus(status)}
-                className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${
-                  activeStatus === status
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                {status}
-              </button>
-            ))}
-          </nav>
+        {/* Pending Requests Card */}
+        <div className="card simple-stat-card">
+          <div className="card-body">
+              <h4 className="simple-stat-title">PENDING REQUESTS</h4>
+              <p className="simple-stat-value">{stats.pending}</p>
+          </div>
         </div>
+        {/* Approved Card */}
+        <div className="card simple-stat-card">
+          <div className="card-body">
+              <h4 className="simple-stat-title">APPROVED</h4>
+              <p className="simple-stat-value">{stats.approved}</p>
+          </div>
+        </div>
+        {/* Used This Year Card */}
+        <div className="card simple-stat-card">
+          <div className="card-body">
+              <h4 className="simple-stat-title">USED THIS YEAR</h4>
+              <p className="simple-stat-value">{stats.usedThisYear} days</p>
+          </div>
+        </div>
+      </div>
 
-        {/* Leave Request List */}
-        <LeaveRequestList
-          // Pass filter based on active tab
-          status={getStatusForList(activeStatus)}
-          canManage={canManage}
-          // Add other necessary props like employeeId if filtering non-managers
-        />
+      {/* Tabs */}
+      <div className="tab-nav-container" style={{marginBottom: '1rem'}}>
+        <nav className="tab-nav" aria-label="Tabs">
+          {leaveStatuses.map((status) => (
+            <button
+              key={status}
+              onClick={() => setActiveStatus(status)}
+              className={`tab-item ${activeStatus === status ? 'active' : ''}`}
+            >
+              {status}
+            </button>
+          ))}
+        </nav>
+      </div>
 
-        {/* Placeholder message from screenshot */}
-         <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-md text-sm text-blue-700">
-             This is a placeholder page. In the full implementation, you would be able to request leave, approve/deny requests, and view leave history.
-         </div>
+      {/* Leave Request List */}
+      <LeaveRequestList
+        status={getStatusForList(activeStatus)}
+        canManage={canManage}
+        // Add other necessary props like employeeId if filtering non-managers
+      />
 
+      {/* Placeholder message styling */}
+      <div className="info-message" style={{marginTop: '1.5rem'}}>
+        This is a placeholder page. In the full implementation, you would be able to request leave, approve/deny requests, and view leave history.
       </div>
     </>
   );

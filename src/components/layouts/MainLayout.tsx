@@ -1,20 +1,20 @@
 import React, { ReactNode } from 'react';
-import Sidebar from '@/components/navigation/Sidebar'; // Using path alias defined in tsconfig.json
-// We might need to get user info and active path from session/context later
-// import { useSession } from 'next-auth/react';
-// import { useRouter } from 'next/router';
+import Sidebar from '@/components/navigation/Sidebar';
+import { useRouter } from 'next/router'; // Import useRouter
+// import { useSession } from 'next-auth/react'; // Keep if needed for user info
 
 interface MainLayoutProps {
   children: ReactNode;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
-  // Example: Fetch user data and active path if needed
+  const router = useRouter(); // Get router object
+  const activePath = router.pathname; // Get current path
+
+  // Example: Fetch user data if needed
   // const { data: session } = useSession();
-  // const router = useRouter();
-  // const activePath = router.pathname;
   // const userName = session?.user?.name ?? 'Guest';
-  // const userRole = session?.user?.role ?? 'Employee'; // Assuming role is part of session
+  // const userRole = session?.user?.role ?? 'Employee';
 
   return (
     <div className="container">
@@ -22,10 +22,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         // Pass relevant props if needed, using placeholders for now
         // userName={userName}
         // userRole={userRole}
-        // activePath={activePath}
+        activePath={activePath} // Pass the current path
       />
       {/* Added background color and padding for consistency */}
-      <main className="main-content flex-1 bg-gray-100 p-8 overflow-y-auto">
+      {/* Removed redundant utility classes (flex-1, bg-gray-100, p-8) - rely on main-content class */}
+      <main className="main-content overflow-y-auto">
         {/* TopBar would go here if we had one */}
         {children}
       </main>

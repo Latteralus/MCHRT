@@ -1,0 +1,27 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2020", // Override target for potentially better class compilation
+    "noEmit": false, // Allow emitting JS files
+    "outDir": "./dist-seed", // Output directory for compiled JS
+    "module": "CommonJS", // Ensure output is CommonJS for Node execution
+    "moduleResolution": "Node", // Override moduleResolution for CommonJS compatibility
+    "isolatedModules": false, // Allow compiling non-module files if needed by dependencies
+    "skipLibCheck": true // Speed up compilation slightly
+  },
+  "include": [
+    "src/db/seed.ts", // Compile the seed script
+    "src/db/sequelize.ts", // Include its direct TS dependencies
+    "src/modules/**/*.ts" // Include all models and potentially other dependencies
+    // Add other necessary TS files if dependencies are missed
+  ],
+  "exclude": [
+    "node_modules",
+    "tests",
+    ".next",
+    "dist-seed", // Exclude the output directory itself
+    "src/pages", // Exclude frontend pages
+    "src/components" // Exclude frontend components
+    // Add other exclusions if necessary
+  ]
+}

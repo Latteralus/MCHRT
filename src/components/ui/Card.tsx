@@ -16,18 +16,24 @@ const Card: React.FC<CardProps> = ({
   footerContent,
 }) => {
   return (
-    <div className={`bg-white rounded-lg shadow overflow-hidden ${className}`}>
+    // Use semantic class "card" and merge incoming className
+    <div className={`card ${className}`}>
       {(title || headerActions) && (
-        <div className="px-5 py-4 border-b border-gray-200 flex justify-between items-center"> {/* Adjusted padding slightly */}
-          {title && <h3 className="text-lg font-semibold text-gray-900">{title}</h3>}
+        // Use semantic class "card-header"
+        <div className="card-header">
+          {/* Use semantic class "card-title" */}
+          {title && <h3 className="card-title">{title}</h3>}
+          {/* Render header actions directly */}
           {headerActions && <div>{headerActions}</div>}
         </div>
       )}
-      <div className="p-6"> {/* Adjusted padding slightly */}
+      {/* Use semantic class "card-body" */}
+      <div className="card-body">
         {children}
       </div>
       {footerContent && (
-        <div className="bg-gray-50 px-5 py-4 border-t border-gray-200"> {/* Adjusted padding slightly */}
+        // Use semantic class "card-footer"
+        <div className="card-footer">
           {footerContent}
         </div>
       )}

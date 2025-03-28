@@ -1,13 +1,17 @@
 import { Sequelize } from 'sequelize';
 import path from 'path';
-import * as dbConfig from '@/config/config.js'; // Use import * for CommonJS config
+// Config will be loaded dynamically below using an absolute path
 
 // Determine the environment
 const env = process.env.NODE_ENV || 'development';
 
 // Get the configuration for the current environment
 // Type assertion needed as dbConfig is imported from JS
-const config = (dbConfig as any)[env];
+// Type assertion needed as dbConfig is imported from JS
+// Load config dynamically using require and an absolute path relative to project root
+const configPath = path.resolve(process.cwd(), 'src/config/config.js');
+const dbConfig = require(configPath);
+const config = dbConfig[env];
 
 if (!config) {
   throw new Error(`Database configuration for environment '${env}' not found.`);

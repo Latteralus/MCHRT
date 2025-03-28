@@ -56,7 +56,7 @@ export const sendComplianceExpirationReminders = async (daysUntilExpiry: number)
         for (const item of expiringItems) {
             const employee = item.employee;
             const user = employee?.user;
-            const recipientEmail = user?.username; // Assuming username is the email
+            const recipientEmail = user?.getDataValue('username'); // Use getDataValue, assuming username is email
             const employeeName = `${employee?.firstName || ''} ${employee?.lastName || ''}`.trim();
 
             if (!recipientEmail) {

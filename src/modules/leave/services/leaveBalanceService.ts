@@ -1,5 +1,5 @@
 // src/modules/leave/services/leaveBalanceService.ts
-import { LeaveBalance } from '@/db'; // Import the LeaveBalance model
+import { LeaveBalance } from '../../../db'; // Use relative path
 
 /**
  * Fetches the current leave balance for a specific employee and leave type.

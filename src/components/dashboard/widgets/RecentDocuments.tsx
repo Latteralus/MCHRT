@@ -19,26 +19,41 @@ const getFileIconClass = (fileType?: string): string => {
     return 'fas fa-file-alt';
 };
 
+// Define a simple list item style class (can be styled globally)
+const documentItemClass = "document-item"; // Example class name
+const documentItemIconClass = "document-item-icon";
+const documentItemInfoClass = "document-item-info";
+const documentItemTitleClass = "document-item-title";
+const documentItemMetaClass = "document-item-meta";
+
 const RecentDocuments: React.FC = () => {
     const documents = mockDocuments; // Use mock data
 
     return (
         <Card>
-            <div className="p-4">
-                <h3 className="text-md font-semibold text-gray-800 mb-3">Recent Documents</h3>
+            {/* Use card-body for padding */}
+            <div className="card-body">
+                {/* Use card-title */}
+                <h3 className="card-title" style={{ marginBottom: '1rem' }}>Recent Documents</h3>
                 {documents.length === 0 ? (
-                    <p className="text-sm text-gray-500">No recent documents found.</p>
+                    // Rely on default paragraph styling
+                    <p>No recent documents found.</p>
                 ) : (
-                    <ul className="space-y-3">
+                    // Use standard ul/li structure
+                    <ul>
                         {documents.map(doc => (
-                            <li key={doc.id} className="flex items-center space-x-3">
-                                <Icon iconName={getFileIconClass(doc.fileType)} className="text-gray-400 text-lg w-5 text-center" />
-                                <div className="flex-1 min-w-0">
-                                    {/* Placeholder: Link to actual document view/download */}
-                                    <p className="text-sm font-medium text-gray-900 truncate hover:text-teal-600 cursor-pointer">
+                            // Apply a consistent class for list items
+                            <li key={doc.id} className={documentItemClass} style={{ display: 'flex', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                <div className={documentItemIconClass} style={{ marginRight: '0.75rem', width: '20px', textAlign: 'center' }}>
+                                    {/* Pass className to Icon, not style */}
+                                    <Icon iconName={getFileIconClass(doc.fileType)} className="text-gray-500" />
+                                </div>
+                                <div className={documentItemInfoClass} style={{ flex: 1, minWidth: 0 }}>
+                                    {/* Add Link if needed */}
+                                    <p className={documentItemTitleClass} style={{ fontWeight: '500', cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                         {doc.title}
                                     </p>
-                                    <p className="text-xs text-gray-500">{doc.updatedAt}</p>
+                                    <p className={documentItemMetaClass} style={{ fontSize: '0.75rem', color: 'var(--gray-600)' }}>{doc.updatedAt}</p>
                                 </div>
                                 {/* Optional: Add download/view button */}
                             </li>
@@ -46,9 +61,10 @@ const RecentDocuments: React.FC = () => {
                     </ul>
                 )}
                  {/* Link to view all documents */}
-                 <div className="mt-4 text-right">
-                     <Link href="/documents" className="text-sm font-medium text-teal-600 hover:text-teal-800">
-                         View all <Icon iconName="fas fa-arrow-right" className="ml-1 text-xs" />
+                 {/* Use action-link styling */}
+                 <div style={{ marginTop: '1rem', textAlign: 'right' }}>
+                     <Link href="/documents" className="action-link">
+                         View all <Icon iconName="fas fa-arrow-right" />
                      </Link>
                  </div>
             </div>

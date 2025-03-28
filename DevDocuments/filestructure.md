@@ -1,0 +1,268 @@
+# Project File Structure
+
+```
+.
+├── .env.local
+├── .eslintrc.json
+├── .gitattributes
+├── .gitignore
+├── .sequelizerc
+├── babel.config.js
+├── global-setup.ts
+├── global-teardown.ts
+├── jest.config.js
+├── jest.setup.ts
+├── next-env.d.ts
+├── next.config.js
+├── package-lock.json
+├── package.json
+├── prettier.config.js
+├── tsconfig.json
+├── tsconfig.seed.json
+├── vercel.json
+├── DevDocuments/
+│   ├── AI.md
+│   ├── definitions.md
+│   ├── example.md
+│   ├── filestructure.md
+│   ├── PLAN_Phase1.md
+│   ├── PLAN_Phase8_JestFix.md
+│   ├── Project.md
+│   ├── TechnicalDocument.md
+│   └── UI_Update_Plan.md
+├── docs/                 # (Directory exists, contents not listed)
+├── e2e/                  # (Directory exists, contents not listed)
+├── migrations/
+│   ├── 001-create-departments.js
+│   ├── 002-create-users.js
+│   ├── 003-create-employees.js
+│   ├── 004-create-attendance.js
+│   ├── 005-create-leaves.js
+│   ├── 006-create-compliance-items.js
+│   ├── 007-create-documents.js
+│   ├── 20250328011956-add-userId-to-employees.js
+│   └── 20250328021601-create-leave-balances.js
+├── public/
+│   ├── avatar.png
+│   ├── favicon.ico
+│   └── logo.png
+├── src/
+│   ├── components/
+│   │   ├── attendance/
+│   │   │   ├── AttendanceForm.tsx
+│   │   │   └── AttendanceList.tsx
+│   │   ├── common/
+│   │   │   └── DepartmentSelect.tsx
+│   │   ├── compliance/
+│   │   │   ├── ComplianceForm.tsx
+│   │   │   └── ComplianceList.tsx
+│   │   ├── dashboard/
+│   │   │   ├── ActivityFeed.tsx
+│   │   │   └── widgets/
+│   │   │       ├── AttendanceWidget.tsx
+│   │   │       ├── ComplianceStatsWidget.tsx
+│   │   │       ├── EmployeeStats.tsx
+│   │   │       ├── ExpiringComplianceWidget.tsx
+│   │   │       ├── LeaveWidget.tsx
+│   │   │       └── RecentDocuments.tsx
+│   │   ├── documents/
+│   │   │   ├── DocumentList.tsx
+│   │   │   └── UploadForm.tsx
+│   │   ├── layouts/
+│   │   │   └── MainLayout.tsx
+│   │   ├── leave/
+│   │   │   ├── LeaveBalance.tsx
+│   │   │   ├── LeaveRequestForm.tsx
+│   │   │   └── LeaveRequestList.tsx
+│   │   ├── navigation/
+│   │   │   └── Sidebar.tsx
+│   │   ├── offboarding/
+│   │   │   ├── OffboardingList.tsx
+│   │   │   └── OffboardingTaskList.tsx
+│   │   ├── onboarding/
+│   │   │   ├── OnboardingList.tsx
+│   │   │   └── OnboardingTaskList.tsx
+│   │   ├── reports/
+│   │   │   └── AttendanceSummaryReport.tsx
+│   │   ├── tasks/
+│   │   │   ├── TaskForm.tsx
+│   │   │   └── TaskList.tsx
+│   │   └── ui/
+│   │       ├── Alert.tsx
+│   │       ├── Avatar.tsx
+│   │       ├── Badge.tsx
+│   │       ├── Button.tsx
+│   │       ├── Card.tsx
+│   │       ├── Icon.tsx
+│   │       ├── Input.tsx
+│   │       ├── Modal.tsx
+│   │       ├── ProgressBar.tsx
+│   │       ├── Select.tsx
+│   │       ├── StatCardSimple.tsx
+│   │       ├── StatusBadge.tsx
+│   │       └── Textarea.tsx
+│   ├── config/
+│   │   ├── config.js
+│   │   └── config.ts
+│   ├── db/
+│   │   ├── associations.ts
+│   │   ├── config.ts
+│   │   ├── index.ts
+│   │   ├── mockDbSetup.ts
+│   │   ├── seed.ts
+│   │   ├── sequelize.ts
+│   │   └── seeders/
+│   │       ├── 001-admin-user.js
+│   │       └── 002-fake-data.js
+│   ├── lib/
+│   │   ├── api/
+│   │   │   ├── attendance.ts
+│   │   │   ├── compliance.ts
+│   │   │   ├── departments.ts
+│   │   │   ├── documents.ts
+│   │   │   ├── employees.ts
+│   │   │   ├── leave.ts
+│   │   │   └── withErrorHandling.ts
+│   │   ├── dates/
+│   │   │   └── durationUtil.ts
+│   │   ├── email/
+│   │   │   └── sendEmail.ts
+│   │   └── middleware/
+│   │       ├── withAuth.ts
+│   │       ├── withEmployeeAccess.ts
+│   │       └── withRole.ts
+│   ├── modules/
+│   │   ├── attendance/
+│   │   │   └── models/
+│   │   │       └── Attendance.ts
+│   │   ├── auth/
+│   │   │   └── models/
+│   │   │       └── User.ts
+│   │   ├── compliance/
+│   │   │   ├── models/
+│   │   │   │   └── Compliance.ts
+│   │   │   └── services/
+│   │   │       └── expirationService.ts
+│   │   ├── documents/
+│   │   │   └── models/
+│   │   │       └── Document.ts
+│   │   ├── employees/
+│   │   │   └── models/
+│   │   │       └── Employee.ts
+│   │   ├── leave/
+│   │   │   ├── models/
+│   │   │   │   ├── Leave.ts
+│   │   │   │   └── LeaveBalance.ts
+│   │   │   └── services/
+│   │   │       ├── leaveAccrualService.ts
+│   │   │       └── leaveBalanceService.ts
+│   │   ├── notifications/
+│   │   │   └── services/
+│   │   │       └── reminderService.ts
+│   │   ├── offboarding/
+│   │   │   └── data/
+│   │   │       └── processTemplates.ts
+│   │   ├── onboarding/
+│   │   │   └── data/
+│   │   │       └── checklistTemplates.ts
+│   │   ├── organization/
+│   │   │   └── models/
+│   │   │       └── Department.ts
+│   │   └── tasks/
+│   │       ├── models/
+│   │       │   └── Task.ts
+│   │       └── services/
+│   │           └── taskService.ts
+│   ├── pages/
+│   │   ├── _app.tsx
+│   │   ├── _document.tsx
+│   │   ├── index.tsx
+│   │   ├── login.tsx
+│   │   ├── profile.tsx
+│   │   ├── api/
+│   │   │   ├── attendance/
+│   │   │   │   ├── [id].ts
+│   │   │   │   └── index.ts
+│   │   │   ├── auth/
+│   │   │   │   └── [...nextauth].ts
+│   │   │   ├── compliance/
+│   │   │   │   ├── [id].ts
+│   │   │   │   └── index.ts
+│   │   │   ├── cron/
+│   │   │   │   ├── trigger-compliance-check.ts
+│   │   │   │   └── trigger-leave-accrual.ts
+│   │   │   ├── dashboard/
+│   │   │   │   ├── activity.ts
+│   │   │   │   └── metrics.ts
+│   │   │   ├── departments/
+│   │   │   │   ├── [id].ts
+│   │   │   │   └── index.ts
+│   │   │   ├── documents/
+│   │   │   │   ├── [id].ts
+│   │   │   │   ├── index.ts
+│   │   │   │   ├── upload.ts
+│   │   │   │   ├── [id]/       # (Directory exists, contents not listed)
+│   │   │   │   └── download/   # (Directory exists, contents not listed)
+│   │   │   ├── employees/
+│   │   │   │   ├── [id].ts
+│   │   │   │   ├── export.ts
+│   │   │   │   ├── index.ts
+│   │   │   │   └── [id]/       # (Directory exists, contents not listed)
+│   │   │   ├── leave/
+│   │   │   │   ├── [id].ts
+│   │   │   │   ├── index.ts
+│   │   │   │   └── [id]/       # (Directory exists, contents not listed)
+│   │   │   ├── reports/
+│   │   │   │   └── department/ # (Directory exists, contents not listed)
+│   │   │   ├── tasks/
+│   │   │   │   └── index.ts
+│   │   │   └── users/          # (Directory exists, contents not listed)
+│   │   ├── attendance/
+│   │   │   ├── index.tsx
+│   │   │   └── record.tsx
+│   │   ├── compliance/
+│   │   │   └── index.tsx
+│   │   ├── documents/
+│   │   │   └── index.tsx
+│   │   ├── employees/
+│   │   │   ├── [id].tsx
+│   │   │   ├── index.tsx
+│   │   │   ├── new.tsx
+│   │   │   └── [id]/           # (Directory exists, contents not listed)
+│   │   ├── leave/
+│   │   │   ├── index.tsx
+│   │   │   └── request.tsx
+│   │   ├── offboarding/
+│   │   │   └── index.tsx
+│   │   ├── onboarding/
+│   │   │   └── index.tsx
+│   │   ├── reports/
+│   │   │   ├── attendance.tsx
+│   │   │   ├── departments.tsx
+│   │   │   └── index.tsx
+│   │   └── tasks/
+│   │       └── index.tsx
+│   ├── styles/
+│   │   └── global.css
+│   └── types/
+│       ├── next-auth.d.ts
+│       └── roles.ts
+└── tests/
+    ├── db-setup.ts
+    ├── api/
+    │   ├── attendance.test.ts
+    │   ├── compliance.test.ts
+    │   ├── documents.test.ts
+    │   ├── employees.test.ts
+    │   └── leave.test.ts
+    ├── fixtures/
+    │   ├── attendanceFixtures.ts
+    │   ├── complianceFixtures.ts
+    │   ├── departmentFixtures.ts
+    │   ├── documentFixtures.ts
+    │   ├── employeeFixtures.ts
+    │   ├── leaveFixtures.ts
+    │   └── userFixtures.ts
+    └── unit/
+        └── services/
+            └── leaveBalanceService.test.ts
