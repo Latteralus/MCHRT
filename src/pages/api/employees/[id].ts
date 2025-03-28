@@ -1,10 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import Employee from '@/modules/employees/models/Employee';
-import { withRole } from '@/lib/middleware/withRole'; // Import withRole
+import { Employee } from '@/db'; // Import Employee from the central DB index
+import { withEmployeeAccess } from '@/lib/middleware/withEmployeeAccess'; // Import the new middleware
 import { AuthenticatedNextApiHandler } from '@/lib/middleware/withAuth'; // Import handler type
-// import { defineAssociations } from '@/db/associations';
+// import { defineAssociations } from '@/db/associations'; // No longer needed here
 
-// TODO: Add more granular authorization (e.g., Dept Head for own dept, Employee for self)
+// TODO: Implement database lookups within withEmployeeAccess middleware
 // TODO: Add proper error handling and validation
 // TODO: Implement SSN encryption/decryption logic
 
@@ -111,6 +111,5 @@ const handler: AuthenticatedNextApiHandler = async (req, res, session) => {
   }
 };
 
-// Wrap the handler with the RBAC middleware, allowing Admins and Department Heads
-// TODO: Add more specific checks inside the handler (e.g., Dept Head only for own dept, Employee for self)
-export default withRole(['Admin', 'DepartmentHead'], handler);
+// Wrap the handler with the granular employee access middleware
+export default withEmployeeAccess(handler);

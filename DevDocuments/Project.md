@@ -27,12 +27,12 @@
 - [ ] Add RBAC middleware for API routes (Middleware created, partially applied)
 
 ## Phase 3: Employee Management Module
-- [/] Build employee list page with filtering (Basic page created)
-- [/] Create employee detail page (Basic page created)
+- [x] Build employee list page with filtering (Basic page created)
+- [x] Create employee detail page (Basic page created)
 - [x] Implement employee CRUD forms (Basic new/edit pages created)
 - [x] Add department assignment functionality (Dropdown added to forms)
 - [x] Create profile page for self-service (Basic page structure created)
-- [ ] Implement RBAC for employee data access
+- [x] Implement RBAC for employee data access (Backend API route secured)
 
 ## Phase 4: Attendance & Leave Management
 - [ ] Create attendance entry form
@@ -552,26 +552,31 @@ MCHRT/
 
 ---
 
-## Current Status & Next Steps (As of 2025-03-27 ~7:07 PM MDT)
+## Current Status & Next Steps (As of 2025-03-27 ~8:02 PM MDT)
 
-**Current Focus:** Phase 3 - Employee Management Module
+**Current Focus:** Phase 4 - Attendance & Leave Management
 
 **Completed:**
 - Phase 1: All items completed.
-- Phase 2: All items completed (Basic API routes implemented, RBAC middleware created and applied as initial wrappers).
-- Phase 3:
-  - Basic Employee List page created (`src/pages/employees/index.tsx`).
-  - Basic Employee Detail page created (`src/pages/employees/[id]/index.tsx` or similar).
-  - Implemented basic employee CRUD forms (`src/pages/employees/new.tsx`, `src/pages/employees/[id]/edit.tsx`).
-  - Added department assignment dropdown to CRUD forms.
-  - Created basic profile page structure (`src/pages/profile.tsx`).
+- Phase 2: All items completed.
+- Phase 3: All items completed.
+  - [x] Employee List page (Basic)
+  - [x] Employee Detail page (Basic)
+  - [x] Employee CRUD forms (Basic)
+  - [x] Department assignment in forms
+  - [x] Profile page structure (Basic)
+  - [x] RBAC for employee data access (Backend API route `/api/employees/[id]` secured via `withEmployeeAccess` middleware; `userId` added to Employee model and DB).
 
 **Where We Left Off:**
-- Completed the basic structure and department dropdowns for employee CRUD forms and the initial profile page.
+- Completed Phase 3 by implementing backend RBAC for individual employee API access.
 
 **Next Steps:**
-1.  Implement RBAC for employee data access (Step 35). This involves:
-    *   Refining API route middleware (`src/lib/middleware/`) to check roles and potentially department access for employee endpoints.
-    *   Ensuring front-end components conditionally render actions (like edit/delete buttons) based on user permissions.
-2.  Refine RBAC checks within API handlers for more granular permissions (e.g., department scope, self-access) as noted in TODO comments (Relates to Step 27 & 35).
-3.  Continue with subsequent phases (Phase 4 onwards).
+1.  Begin **Phase 4: Attendance & Leave Management**. Tasks include:
+    *   Create attendance entry form.
+    *   Build attendance list view.
+    *   Implement attendance filtering and reporting.
+    *   Create leave request form.
+    *   Build leave request list view.
+    *   Implement basic approval workflow.
+    *   Add leave balance tracking.
+2.  **Note:** Frontend components still need RBAC checks to conditionally render UI elements (e.g., edit/delete buttons). This can be addressed as part of frontend refinement or during specific feature implementation.

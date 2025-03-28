@@ -28,6 +28,18 @@ export const defineAssociations = () => {
   // Optional: A User could manage a Department (inverse of above)
   // User.hasOne(Department, { foreignKey: 'managerId', as: 'managedDepartment' });
 
+  // User <-> Employee Association (for linking login to employee record)
+  // A User might be linked to one Employee record
+  User.hasOne(Employee, {
+    foreignKey: 'userId',
+    as: 'employeeProfile', // Allows User.getEmployeeProfile()
+  });
+  // An Employee belongs to one User account
+  Employee.belongsTo(User, {
+    foreignKey: 'userId',
+    as: 'userAccount', // Allows Employee.getUserAccount()
+  });
+
   // Employee <-> Department Associations
   // An Employee belongs to one Department
   Employee.belongsTo(Department, {

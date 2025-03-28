@@ -7,7 +7,8 @@ interface EmployeeAttributes {
   firstName: string;
   lastName: string;
   ssnEncrypted?: string; // Store encrypted SSN - Requires encryption logic implementation
-  departmentId?: number; // Foreign key
+  departmentId?: number; // Foreign key to Departments table
+  userId?: number; // Foreign key to Users table (for linking login user to employee record)
   position?: string;
   hireDate?: Date;
   // Add other relevant fields like dateOfBirth, contactInfo, address, etc. later
@@ -26,6 +27,7 @@ class Employee extends Model<EmployeeAttributes, EmployeeCreationAttributes> imp
   public lastName!: string;
   public ssnEncrypted?: string; // Actual storage field
   public departmentId?: number;
+  public userId?: number; // Foreign key to User
   public position?: string;
   public hireDate?: Date;
 
@@ -83,6 +85,16 @@ Employee.init(
       },
       onUpdate: 'CASCADE',
       onDelete: 'SET NULL', // Or 'RESTRICT' / 'CASCADE' based on requirements
+    },
+    userId: { // Link to the User model (for login/employee association)
+      type: DataTypes.INTEGER,
+      allowNull: true, // Or false if every employee must be linked to a user account
+      references: {
+        model: 'Users', // Assumes a 'Users' table exists
+        key: 'id',
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'SET NULL', // Or 'RESTRICT' if a User shouldn't be deleted if linked to an Employee
     },
     position: {
       type: DataTypes.STRING,
