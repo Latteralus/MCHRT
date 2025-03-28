@@ -103,4 +103,8 @@ const handler: AuthenticatedNextApiHandler = async (req, res, session) => {
       res.setHeader('Allow', ['GET', 'PUT', 'DELETE']);
       res.status(405).end(`Method ${method} Not Allowed`);
   }
-}
+};
+
+// Wrap the handler with the RBAC middleware, allowing Admins and Department Heads
+// TODO: Add more specific checks inside the handler (e.g., Dept Head only for own dept)
+export default withRole(['Admin', 'DepartmentHead'], handler);

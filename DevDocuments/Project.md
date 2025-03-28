@@ -27,8 +27,8 @@
 - [ ] Add RBAC middleware for API routes (Middleware created, partially applied)
 
 ## Phase 3: Employee Management Module
-- [ ] Build employee list page with filtering
-- [ ] Create employee detail page
+- [/] Build employee list page with filtering (Basic page created)
+- [/] Create employee detail page (Basic page created)
 - [ ] Implement employee CRUD forms
 - [ ] Add department assignment functionality
 - [ ] Create profile page for self-service
@@ -549,25 +549,24 @@ MCHRT/
 
 ---
 
-## Current Status & Next Steps (As of 2025-03-27 ~5:30 PM MDT)
+## Current Status & Next Steps (As of 2025-03-27 ~5:52 PM MDT)
 
-**Current Focus:** Phase 2 - Database Models & Core API Routes
+**Current Focus:** Phase 3 - Employee Management Module
 
 **Completed:**
-- Phase 1: All items completed (Project setup, core infrastructure, layout, auth).
-- Phase 2:
-  - Defined all core Sequelize models (User, Department, Employee, Attendance, Leave, Compliance, Document).
-  - Created model associations file (`src/db/associations.ts`).
-  - Created database migration files for all core models (`migrations/`).
-  - Created seed files for core models (Departments, Users, Employees) (`seeders/`).
-  - Implemented basic CRUD API routes for all core models (`src/pages/api/...`).
-  - Created basic RBAC middleware (`withAuth`, `withRole`).
+- Phase 1: All items completed.
+- Phase 2: All items completed (Basic API routes implemented, RBAC middleware created and applied as initial wrappers).
+- Phase 3:
+  - Basic Employee List page created (`src/pages/employees/index.tsx`).
+  - Basic Employee Detail page created (`src/pages/employees/[id].tsx`).
 
 **Where We Left Off:**
-- Interrupted while applying the `withRole` middleware to the `src/pages/api/compliance/[id].ts` route (imports were updated, but the final export wrap was not applied due to interruption).
+- Completed the creation of the basic Employee Detail page.
 
 **Next Steps:**
-1.  Complete applying the `withRole` middleware wrapper to `src/pages/api/compliance/[id].ts`.
-2.  Apply `withRole` middleware to the `documents` API routes (`index.ts` and `[id].ts`).
-3.  Refine RBAC checks within API handlers for more granular permissions (e.g., department scope, self-access) as noted in TODO comments.
-4.  Proceed to Phase 3: Employee Management Module.
+1.  Implement employee CRUD forms (Step 32).
+2.  Add department assignment functionality (Step 33).
+3.  Create profile page for self-service (Step 34).
+4.  Implement RBAC for employee data access (Step 35).
+5.  Refine RBAC checks within API handlers for more granular permissions (e.g., department scope, self-access) as noted in TODO comments (Relates to Step 27 & 35).
+6.  Continue with subsequent phases (Phase 4 onwards).

@@ -1,20 +1,20 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import Document from '@/modules/documents/models/Document';
+import { withRole } from '@/lib/middleware/withRole'; // Import withRole
+import { AuthenticatedNextApiHandler } from '@/lib/middleware/withAuth'; // Import handler type
 // import fs from 'fs/promises'; // Needed for actual file deletion
 // import path from 'path'; // Needed for constructing file paths
 // import { defineAssociations } from '@/db/associations';
 
-// TODO: Add authentication and authorization checks (RBAC for documents)
+// TODO: Add more granular authorization (RBAC for documents based on context/ownership)
 // TODO: Add proper error handling and validation
 // TODO: Implement actual file deletion on DELETE request
 
 // Ensure associations are defined
 // defineAssociations();
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+// Define the core handler logic expecting authentication and session
+const handler: AuthenticatedNextApiHandler = async (req, res, session) => {
   const { method } = req;
   const { id } = req.query; // Get the document ID from the URL path
 
@@ -117,4 +117,8 @@ export default async function handler(
       res.setHeader('Allow', ['GET', 'PUT', 'DELETE']);
       res.status(405).end(`Method ${method} Not Allowed`);
   }
-}
+};
+
+// Wrap the handler with the RBAC middleware, allowing all authenticated users for now
+// More specific checks (e.g., based on document ownership/department) should be inside the handler
+export default withRole(['Admin', 'DepartmentHead', 'Employee'], handler);
