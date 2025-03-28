@@ -12,7 +12,7 @@ interface DepartmentOverrides {
 export const generateDepartmentData = (overrides: DepartmentOverrides = {}): Partial<Department> => {
   return {
     name: overrides.name ?? faker.commerce.department() + ` ${faker.string.uuid().substring(0, 4)}`, // Add suffix for uniqueness
-    managerId: overrides.managerId, // Use provided value (can be number, null, or undefined)
+    managerId: overrides.managerId ?? undefined, // Convert null to undefined
     ...overrides, // Apply any specific overrides (name will be overwritten if provided)
   };
 };
