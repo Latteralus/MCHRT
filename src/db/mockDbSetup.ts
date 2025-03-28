@@ -34,5 +34,4 @@ export const testConnection = async () => {
   }
 };
 
-// Export the getter and setter
-export { setSequelizeInstance, getSequelizeInstance, testConnection };
+// Exports are handled inline above
