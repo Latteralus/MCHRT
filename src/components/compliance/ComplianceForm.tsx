@@ -103,7 +103,7 @@ const ComplianceForm: React.FC<ComplianceFormProps> = ({ itemId, onSuccess, onCa
         return () => { isMounted = false; }; // Cleanup function
     }, [itemId]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => { // Added HTMLTextAreaElement
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
