@@ -5,7 +5,7 @@ import { withRole, AuthenticatedNextApiHandler, UserRole } from '@/lib/middlewar
 
 // Define an interface that includes the associated employee
 interface ComplianceWithEmployee extends Compliance {
-  employee?: Employee | null; // Define the included association
+  employee?: Employee; // Define the included association
 }
 
 // Discriminated union for the access check result
