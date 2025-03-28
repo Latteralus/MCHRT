@@ -55,11 +55,11 @@
 - [/] Set up document metadata management (API route created, UI pending)
 
 ## Phase 6: Dashboard & Reporting
-- [ ] Create main dashboard matching design
-- [ ] Implement key metrics cards
-- [ ] Build activity feed component
-- [ ] Add department-based views
-- [ ] Create basic data export functionality
+- [/] Create main dashboard matching design (Basic layout with placeholders)
+- [/] Implement key metrics cards (Placeholder widgets created)
+- [/] Build activity feed component (Placeholder component created)
+- [/] Add department-based views (Placeholder report page created)
+- [/] Create basic data export functionality (Employee CSV export API created)
 
 ## Phase 7: Onboarding & Offboarding
 - [ ] Build basic onboarding checklist templates

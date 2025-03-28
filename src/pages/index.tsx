@@ -7,13 +7,11 @@ import Head from 'next/head';
 // Import Existing Widgets
 import ComplianceStatsWidget from '@/components/dashboard/widgets/ComplianceStatsWidget';
 import ExpiringComplianceWidget from '@/components/dashboard/widgets/ExpiringComplianceWidget';
-
-// Comment out missing widgets for now
-// import EmployeeStats from '@/components/dashboard/widgets/EmployeeStats';
-// import AttendanceWidget from '@/components/dashboard/widgets/AttendanceWidget';
-// import LeaveWidget from '@/components/dashboard/widgets/LeaveWidget';
-// import RecentDocuments from '@/components/dashboard/widgets/RecentDocuments';
-// import ActivityFeed from '@/components/dashboard/ActivityFeed';
+import EmployeeStats from '@/components/dashboard/widgets/EmployeeStats'; // Uncommented
+import AttendanceWidget from '@/components/dashboard/widgets/AttendanceWidget'; // Uncommented
+import LeaveWidget from '@/components/dashboard/widgets/LeaveWidget'; // Uncommented
+import RecentDocuments from '@/components/dashboard/widgets/RecentDocuments'; // Uncommented
+import ActivityFeed from '@/components/dashboard/ActivityFeed'; // Uncommented
 
 // Placeholder: Import API functions to fetch data for widgets if needed server-side
 
@@ -39,38 +37,38 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ userName }) => {
                 {/* Dashboard Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {/* Stats Cards/Widgets */}
-                    {/* <div className="lg:col-span-1">
-                        <EmployeeStats />
+                    <div className="lg:col-span-1">
+                        <EmployeeStats /> {/* Uncommented */}
                     </div>
                     <div className="lg:col-span-1">
-                        <AttendanceWidget />
+                        <AttendanceWidget /> {/* Uncommented */}
                     </div>
                      <div className="lg:col-span-1">
-                        <LeaveWidget />
-                    </div> */}
+                        <LeaveWidget /> {/* Uncommented */}
+                    </div>
                      <div className="lg:col-span-1">
                         {/* Compliance Stats Widget */}
-                        <ComplianceStatsWidget /> {/* Assumes this fetches its own data or uses context */}
+                        <ComplianceStatsWidget />
                     </div>
 
                     {/* Main Content Area */}
                     <div className="lg:col-span-3">
                          {/* Expiring Compliance Widget */}
                          <div className="mb-6">
-                             <ExpiringComplianceWidget /> {/* Assumes this fetches its own data or uses context */}
+                             <ExpiringComplianceWidget />
                          </div>
                          {/* Activity Feed */}
-                         {/* <div className="mb-6">
-                             <ActivityFeed />
-                         </div> */}
+                         <div className="mb-6">
+                             <ActivityFeed /> {/* Uncommented */}
+                         </div>
                     </div>
 
                     {/* Sidebar Area (Right) */}
                     <div className="lg:col-span-1">
                          {/* Recent Documents */}
-                         {/* <div className="mb-6">
-                             <RecentDocuments />
-                         </div> */}
+                         <div className="mb-6">
+                             <RecentDocuments /> {/* Uncommented */}
+                         </div>
                          {/* Add other widgets here if needed */}
                     </div>
                 </div>
