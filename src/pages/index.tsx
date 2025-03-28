@@ -1,7 +1,7 @@
 import React from 'react';
 import { GetServerSideProps } from 'next';
 import { getSession } from 'next-auth/react';
-import MainLayout from '@/components/layouts/MainLayout';
+import MainLayout from '@/components/layouts/MainLayout'; // Keep import for type checking if needed, but layout applied via _app
 import Head from 'next/head';
 import Link from 'next/link'; // Import Link for navigation
 
@@ -21,21 +21,19 @@ interface DashboardPageProps {
     userName?: string | null;
 }
 
-// Placeholder Quick Access Card Component
-const QuickAccessCard: React.FC<{ title: string; description: string; link: string; iconClass: string }> = ({ title, description, link, iconClass }) => (
-    <div className="card module-card bg-white shadow rounded-lg overflow-hidden transition-transform duration-200 ease-in-out hover:-translate-y-1 hover:shadow-md">
-        <div className="module-card-body p-6 flex flex-col items-center text-center">
-            <div className="module-icon w-16 h-16 rounded-full bg-teal-50 flex items-center justify-center mb-4">
-                {/* Placeholder for Icon component or <i> tag */}
-                <i className={`${iconClass} text-teal-600 text-2xl`}></i>
+// Updated Quick Access Card Component to match target screenshot
+const QuickAccessCard: React.FC<{ title: string; link: string; iconClass: string }> = ({ title, link, iconClass }) => (
+    <Link href={link} className="block card module-card bg-white shadow rounded-lg overflow-hidden transition-transform duration-200 ease-in-out hover:-translate-y-1 hover:shadow-md">
+        <div className="module-card-body p-4 flex flex-col items-center text-center"> {/* Adjusted padding */}
+            {/* Adjusted icon size/colors */}
+            <div className="module-icon w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-3">
+                <i className={`${iconClass} text-blue-600 text-xl`}></i> {/* Using blue theme */}
             </div>
-            <h4 className="module-title text-lg font-semibold mb-2">{title}</h4>
-            <p className="module-description text-sm text-gray-600 mb-4">{description}</p>
-            <Link href={link} className="action-link text-teal-600 font-semibold text-sm hover:text-teal-800 hover:underline">
-                Go <i className="fas fa-chevron-right text-xs ml-1"></i> {/* Assuming Font Awesome */}
-            </Link>
+            {/* Adjusted title size */}
+            <h4 className="module-title text-base font-semibold text-gray-800">{title}</h4>
+            {/* Removed description and explicit link */}
         </div>
-    </div>
+    </Link>
 );
 
 
@@ -43,7 +41,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ userName }) => {
     // TODO: Fetch widget data client-side using hooks (e.g., SWR or React Query)
 
     return (
-        <MainLayout>
+        <> {/* Added React Fragment */}
             <Head>
                 <title>Dashboard - Mountain Care HR</title>
                 {/* Include Font Awesome if needed and not globally available */}
@@ -55,28 +53,32 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ userName }) => {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
                     <div className="page-title mb-4 md:mb-0">
                         <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-                        <div className="page-subtitle text-gray-600 mt-1">Welcome back{userName ? `, ${userName}` : ''}! Here&apos;s what&apos;s happening today.</div>
+                        {/* Adjusted subtitle size */}
+                        <div className="page-subtitle text-sm text-gray-600 mt-1">Welcome back{userName ? `, ${userName}` : ''}! Here&apos;s what&apos;s happening today.</div>
                     </div>
                     <div className="header-actions flex items-center gap-4 w-full md:w-auto">
                         {/* Search Box - Placeholder */}
                         <div className="search-box relative hidden md:block">
                              <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i> {/* Assuming Font Awesome */}
+                             {/* Adjusted search border */}
                              <input
                                 type="text"
                                 placeholder="Search..."
-                                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                              />
                         </div>
                         {/* Notification Badge - Placeholder */}
                         <div className="notification-badge relative cursor-pointer">
-                            <button className="w-10 h-10 flex items-center justify-center bg-white border border-gray-300 rounded-full text-gray-700 hover:bg-gray-100 transition-colors">
+                            {/* Adjusted notification button style */}
+                            <button className="w-10 h-10 flex items-center justify-center bg-white rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
                                 <i className="fas fa-bell"></i> {/* Assuming Font Awesome */}
                             </button>
                             {/* Example badge count */}
                             <span className="badge absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">3</span>
                         </div>
                         {/* New Employee Button */}
-                         <Link href="/employees/new" className="btn btn-primary bg-teal-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-teal-700 transition-colors flex items-center gap-2">
+                         {/* Adjusted New Employee button color */}
+                         <Link href="/employees/new" className="btn btn-primary bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2">
                              <i className="fas fa-plus"></i> {/* Assuming Font Awesome */}
                              New Employee
                          </Link>
@@ -121,31 +123,26 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ userName }) => {
                              {/* Replicate QuickAccessCard for each module */}
                              <QuickAccessCard
                                 title="Onboarding"
-                                description="Add new employees"
                                 link="/onboarding" // Adjust link as needed
                                 iconClass="fas fa-user-plus" // Assuming Font Awesome
                              />
                              <QuickAccessCard
                                 title="Compliance"
-                                description="Track licenses"
                                 link="/compliance" // Adjust link as needed
                                 iconClass="fas fa-clipboard-check" // Assuming Font Awesome
                              />
                              <QuickAccessCard
                                 title="Time Off"
-                                description="Manage leave requests"
                                 link="/leave" // Adjust link as needed
                                 iconClass="fas fa-clock" // Assuming Font Awesome
                              />
                              <QuickAccessCard
                                 title="Documents"
-                                description="Upload and manage files"
                                 link="/documents" // Adjust link as needed
                                 iconClass="fas fa-file-upload" // Assuming Font Awesome
                              />
                              <QuickAccessCard
                                 title="Reports"
-                                description="Generate HR analytics"
                                 link="/reports" // Adjust link as needed
                                 iconClass="fas fa-chart-line" // Assuming Font Awesome
                              />
@@ -153,7 +150,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ userName }) => {
                     </div>
                 </div>
             </div>
-        </MainLayout>
+        </> // Moved parenthesis and semicolon after fragment
     );
 };
 

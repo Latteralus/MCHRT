@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the getter function
+import { getSequelizeInstance } from '@/db/sequelize'; // Use runtime Sequelize instance
 import type Employee from '@/modules/employees/models/Employee'; // Import Employee type
 import type User from '@/modules/auth/models/User'; // Import User type
 
@@ -29,7 +29,7 @@ export interface LeaveCreationAttributes extends Optional<LeaveAttributes, 'id' 
 }
 
 // Define the Leave model class
-class Leave extends Model<LeaveAttributes, LeaveCreationAttributes> implements LeaveAttributes {
+class Leave extends Model<LeaveAttributes, LeaveCreationAttributes> { // Removed 'implements LeaveAttributes'
   public id!: number;
   public employeeId!: number;
   public startDate!: Date;

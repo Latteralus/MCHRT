@@ -20,7 +20,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ userRole }) => {
     const canCreateTasks = userRole === 'Admin' || userRole === 'Manager' || userRole === 'DepartmentHead';
 
     return (
-        <MainLayout>
+        <> {/* Removed redundant MainLayout wrapper */}
             <Head>
                 <title>Tasks - Mountain Care HR</title>
             </Head>
@@ -50,7 +50,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ userRole }) => {
                 {/* {showCreateForm &amp;&amp; <TaskForm onClose={() => setShowCreateForm(false)} />} */}
 
             </div>
-        </MainLayout>
+        </> // Moved parenthesis and semicolon after fragment
     );
 };
 

@@ -1,6 +1,6 @@
 // src/modules/leave/models/LeaveBalance.ts
 import { DataTypes, Model, Optional } from 'sequelize';
-import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the getter function
+import { getSequelizeInstance } from '@/db/sequelize'; // Use runtime Sequelize instance
 import type Employee from '@/modules/employees/models/Employee'; // Import Employee type
 
 // Define the attributes for the LeaveBalance model
@@ -20,7 +20,7 @@ interface LeaveBalanceAttributes {
 interface LeaveBalanceCreationAttributes extends Optional<LeaveBalanceAttributes, 'id' | 'createdAt' | 'updatedAt' | 'accruedYTD' | 'usedYTD' | 'lastUpdated'> {}
 
 // Define the LeaveBalance model class
-class LeaveBalance extends Model<LeaveBalanceAttributes, LeaveBalanceCreationAttributes> implements LeaveBalanceAttributes {
+class LeaveBalance extends Model<LeaveBalanceAttributes, LeaveBalanceCreationAttributes> { // Removed 'implements LeaveBalanceAttributes'
   public id!: number;
   public employeeId!: number;
   public leaveType!: string;

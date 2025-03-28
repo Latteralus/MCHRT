@@ -59,14 +59,15 @@ const ExpiringComplianceWidget: React.FC = () => {
 
     // Placeholder: Replace with actual Card component structure from example.md
     return (
-        <div className="card h-full"> {/* Assuming card class exists */}
-             <div className="card-header flex justify-between items-center">
-                 <h3 className="card-title">Expiring Soon</h3>
+        // Assuming base card provides bg-white, rounded-lg, shadow
+        <div className="card h-full flex flex-col">
+             <div className="card-header flex justify-between items-center p-4 border-b border-gray-200"> {/* Added padding and border */}
+                 <h3 className="card-title font-semibold text-gray-800">License Operations</h3> {/* Changed title */}
                  <Link href="/compliance" className="action-link text-sm">
                      View all <i className="fas fa-chevron-right text-xs"></i>
                  </Link>
              </div>
-             <div className="card-body">
+             <div className="card-body p-4 flex-grow"> {/* Added padding */}
                 {isLoading && <div className="text-gray-500">Loading...</div>}
                 {error && <div className="text-red-500">{error}</div>}
                 {!isLoading && !error && items.length === 0 && (
@@ -77,13 +78,12 @@ const ExpiringComplianceWidget: React.FC = () => {
                         {items.map((item) => (
                             // Mimic structure from example.md license-item
                             <div key={item.id} className="flex items-center">
-                                {/* Placeholder Avatar/Initials */}
-                                <div className="license-item-avatar mr-3 flex-shrink-0">
-                                    {item.employeeName.split(',')[0]?.[0] || '?'}
-                                    {item.employeeName.split(',')[1]?.trim()[0] || ''}
+                                {/* Styled Avatar/Initials */}
+                                <div className="license-item-avatar mr-3 flex-shrink-0 w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-semibold text-gray-600">
+                                    {(item.employeeName.split(',')[0]?.[0] || '?') + (item.employeeName.split(',')[1]?.trim()[0] || '')}
                                 </div>
                                 <div className="license-item-info flex-grow min-w-0">
-                                     <div className="license-item-name font-medium truncate">{item.employeeName}</div>
+                                     <div className="license-item-name font-semibold text-gray-800 truncate">{item.employeeName}</div> {/* Adjusted font weight/color */}
                                      <div className="license-item-detail text-sm text-gray-500 truncate">{item.itemName}</div>
                                 </div>
                                 <div className={`license-status ml-2 flex-shrink-0 px-2 py-0.5 rounded text-xs font-semibold ${getStatusColor(item.daysUntilExpiry)}`}>

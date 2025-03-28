@@ -1,6 +1,6 @@
 // src/modules/tasks/models/Task.ts
 import { DataTypes, Model, Optional } from 'sequelize';
-import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the getter function
+import { getSequelizeInstance } from '@/db/sequelize'; // Use runtime Sequelize instance
 import Employee from '@/modules/employees/models/Employee'; // For assignee
 import User from '@/modules/auth/models/User'; // For creator
 
@@ -30,7 +30,7 @@ interface TaskAttributes {
 interface TaskCreationAttributes extends Optional<TaskAttributes, 'id' | 'createdAt' | 'updatedAt' | 'description' | 'dueDate' | 'assignedToId' | 'createdById' | 'relatedEntityType' | 'relatedEntityId' | 'status'> {}
 
 // Define the Task model class
-class Task extends Model<TaskAttributes, TaskCreationAttributes> implements TaskAttributes {
+class Task extends Model<TaskAttributes, TaskCreationAttributes> { // Removed 'implements TaskAttributes'
     public id!: number;
     public title!: string;
     public description?: string;

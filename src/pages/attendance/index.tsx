@@ -23,7 +23,7 @@ const AttendanceIndexPage: React.FC<AttendanceIndexPageProps> = ({ employees }) 
   // The current AttendanceList fetches internally based on props.
 
   return (
-    <MainLayout>
+    <> {/* Removed redundant MainLayout wrapper */}
       <div className="container mx-auto p-4">
         <h1 className="text-2xl font-semibold mb-4">Attendance Records</h1>
 
@@ -85,7 +85,7 @@ const AttendanceIndexPage: React.FC<AttendanceIndexPageProps> = ({ employees }) 
           endDate={endDate || undefined}
         />
       </div>
-    </MainLayout>
+    </> // Moved parenthesis and semicolon after fragment
   );
 };
 

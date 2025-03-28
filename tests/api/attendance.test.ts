@@ -65,12 +65,12 @@ describe('Attendance API Routes', () => {
       // 1. Seed database
       const adminUser = await createTestUser({ role: Role.ADMIN });
       const employee = await createTestEmployee({});
-      const att1 = await createTestAttendance({ employeeId: employee.id });
-      const att2 = await createTestAttendance({ employeeId: employee.id });
+      const att1 = await createTestAttendance({ employeeId: employee.get('id') as number });
+      const att2 = await createTestAttendance({ employeeId: employee.get('id') as number });
 
       // 2. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, role: adminUser.role },
+        user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
         expires: faker.date.future().toISOString(),
       });
 
@@ -90,9 +90,9 @@ describe('Attendance API Routes', () => {
       expect(responseData.records).toHaveLength(2);
       // Check if the returned data looks like attendance records
       // Access items within the 'records' array
-      expect(responseData.records[0]).toHaveProperty('id', att1.id);
-      expect(responseData.records[0]).toHaveProperty('employeeId', employee.id);
-      expect(responseData.records[1]).toHaveProperty('id', att2.id);
+      expect(responseData.records[0]).toHaveProperty('id', att1.get('id') as number);
+      expect(responseData.records[0]).toHaveProperty('employeeId', employee.get('id') as number);
+      expect(responseData.records[1]).toHaveProperty('id', att2.get('id') as number);
       expect(responseData.records[1]).toHaveProperty('date'); // Check if date exists
     });
 
@@ -114,7 +114,7 @@ describe('Attendance API Routes', () => {
 
       // 2. Prepare request data
       const attendancePayload = {
-        employeeId: employee.id,
+        employeeId: employee.get('id') as number,
         date: '2024-03-28', // Use a specific date string
         // Send time in HH:MM:SS format as expected by the API validation
         timeIn: '08:00:00',
@@ -123,7 +123,7 @@ describe('Attendance API Routes', () => {
 
       // 3. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, role: adminUser.role },
+        user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
         expires: faker.date.future().toISOString(),
       });
 
@@ -152,18 +152,18 @@ describe('Attendance API Routes', () => {
       // 7. Verify record created in DB
       const createdRecord = await Attendance.findByPk(responseData.id);
       expect(createdRecord).not.toBeNull();
-      expect(createdRecord?.employeeId).toBe(attendancePayload.employeeId);
-      expect(createdRecord?.date).toBe(attendancePayload.date);
+      expect(createdRecord?.get('employeeId')).toBe(attendancePayload.employeeId);
+      expect(createdRecord?.get('date')).toBe(attendancePayload.date);
       // Check times in DB (compare ISO strings as DB stores Date objects)
       const expectedTimeInISO_DB = new Date(`${attendancePayload.date}T${attendancePayload.timeIn}Z`).toISOString();
       const expectedTimeOutISO_DB = new Date(`${attendancePayload.date}T${attendancePayload.timeOut}Z`).toISOString();
-      expect(createdRecord?.timeIn?.toISOString()).toBe(expectedTimeInISO_DB);
-      expect(createdRecord?.timeOut?.toISOString()).toBe(expectedTimeOutISO_DB);
+      expect((createdRecord?.get('timeIn') as Date | undefined)?.toISOString()).toBe(expectedTimeInISO_DB);
+      expect((createdRecord?.get('timeOut') as Date | undefined)?.toISOString()).toBe(expectedTimeOutISO_DB);
     });
 
     it('should return 401 if user is not authenticated', async () => {
         const employee = await createTestEmployee({});
-        const attendancePayload = { employeeId: employee.id, date: '2024-03-28' };
+        const attendancePayload = { employeeId: employee.get('id') as number, date: '2024-03-28' };
         mockGetSession.mockResolvedValue(null);
         const { req, res } = createMocks<NextApiRequest, NextApiResponse>({ method: 'POST', body: attendancePayload });
         await handler(req, res);
@@ -178,11 +178,11 @@ describe('Attendance API Routes', () => {
       // 1. Seed database
       const adminUser = await createTestUser({ role: Role.ADMIN });
       const employee = await createTestEmployee({});
-      const attendance = await createTestAttendance({ employeeId: employee.id });
+      const attendance = await createTestAttendance({ employeeId: employee.get('id') as number });
 
       // 2. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, role: adminUser.role },
+        user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
         expires: faker.date.future().toISOString(),
       });
 
@@ -190,7 +190,7 @@ describe('Attendance API Routes', () => {
       const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
         method: 'GET',
         query: {
-          id: attendance.id.toString(),
+          id: (attendance.get('id') as number).toString(),
         },
       });
 
@@ -200,15 +200,17 @@ describe('Attendance API Routes', () => {
       // 5. Assert response status and data
       expect(res._getStatusCode()).toBe(200);
       const responseData = res._getJSONData();
-      expect(responseData).toHaveProperty('id', attendance.id);
-      expect(responseData).toHaveProperty('employeeId', attendance.employeeId);
-      expect(responseData).toHaveProperty('date', attendance.date); // Date should be YYYY-MM-DD string
+      expect(responseData).toHaveProperty('id', attendance.get('id') as number);
+      expect(responseData).toHaveProperty('employeeId', attendance.get('employeeId') as number);
+      expect(responseData).toHaveProperty('date', attendance.get('date') as unknown as string); // Date should be YYYY-MM-DD string
       // Compare times by converting potentially returned strings back to Date objects or comparing ISO strings
-      if (attendance.timeIn) {
-        expect(new Date(responseData.timeIn).toISOString()).toBe(attendance.timeIn.toISOString());
+      const timeIn = attendance.get('timeIn') as Date | undefined;
+      if (timeIn) {
+        expect(new Date(responseData.timeIn).toISOString()).toBe(timeIn.toISOString());
       }
-      if (attendance.timeOut) {
-        expect(new Date(responseData.timeOut).toISOString()).toBe(attendance.timeOut.toISOString());
+      const timeOut = attendance.get('timeOut') as Date | undefined;
+      if (timeOut) {
+        expect(new Date(responseData.timeOut).toISOString()).toBe(timeOut.toISOString());
       }
     });
 
@@ -216,7 +218,7 @@ describe('Attendance API Routes', () => {
         const adminUser = await createTestUser({ role: Role.ADMIN });
         const nonExistentId = 99999;
         mockGetSession.mockResolvedValue({
-          user: { id: adminUser.id, role: adminUser.role },
+          user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
           expires: faker.date.future().toISOString(),
         });
         const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
@@ -229,11 +231,11 @@ describe('Attendance API Routes', () => {
 
      it('should return 401 if user is not authenticated', async () => {
         const employee = await createTestEmployee({});
-        const attendance = await createTestAttendance({ employeeId: employee.id });
+        const attendance = await createTestAttendance({ employeeId: employee.get('id') as number });
         mockGetSession.mockResolvedValue(null);
         const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
           method: 'GET',
-          query: { id: attendance.id.toString() },
+          query: { id: (attendance.get('id') as number).toString() },
         });
         await attendanceIdHandler(req, res);
         expect(res._getStatusCode()).toBe(401);
@@ -248,7 +250,7 @@ describe('Attendance API Routes', () => {
       const adminUser = await createTestUser({ role: Role.ADMIN });
       const employee = await createTestEmployee({});
       const attendance = await createTestAttendance({
-        employeeId: employee.id,
+        employeeId: employee.get('id') as number,
         date: '2024-03-28',
         timeIn: new Date('2024-03-28T08:00:00Z'),
       });
@@ -262,14 +264,14 @@ describe('Attendance API Routes', () => {
 
       // 3. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, role: adminUser.role },
+        user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
         expires: faker.date.future().toISOString(),
       });
 
       // 4. Mock request/response objects
       const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
         method: 'PUT',
-        query: { id: attendance.id.toString() },
+        query: { id: (attendance.get('id') as number).toString() },
         body: updatePayload,
       });
 
@@ -279,22 +281,23 @@ describe('Attendance API Routes', () => {
       // 6. Assert response status and data
       expect(res._getStatusCode()).toBe(200);
       const responseData = res._getJSONData();
-      expect(responseData).toHaveProperty('id', attendance.id);
-      expect(responseData).toHaveProperty('employeeId', attendance.employeeId);
-      expect(responseData).toHaveProperty('date', attendance.date); // Assuming date wasn't updated
+      expect(responseData).toHaveProperty('id', attendance.get('id') as number);
+      expect(responseData).toHaveProperty('employeeId', attendance.get('employeeId') as number);
+      expect(responseData).toHaveProperty('date', attendance.get('date') as unknown as string); // Assuming date wasn't updated
       // Check updated timeOut
       // Expect API to return ISO string after saving Date object
-      const expectedTimeOutISO = new Date(`${attendance.date}T${updatePayload.timeOut}Z`).toISOString();
+      const expectedTimeOutISO = new Date(`${attendance.get('date') as unknown as string}T${updatePayload.timeOut}Z`).toISOString();
       expect(responseData.timeOut).toBe(expectedTimeOutISO);
       // Check timeIn remained the same (or was updated if included in payload)
-      expect(new Date(responseData.timeIn).toISOString()).toBe(attendance.timeIn?.toISOString());
+      const timeIn = attendance.get('timeIn') as Date | undefined;
+      expect(new Date(responseData.timeIn).toISOString()).toBe(timeIn?.toISOString());
 
 
       // 7. Verify update in DB
       await attendance.reload();
       // Check DB value (should be Date object, compare ISO strings)
-      const expectedTimeOutISO_DB = new Date(`${attendance.date}T${updatePayload.timeOut}Z`).toISOString();
-      expect(attendance.timeOut?.toISOString()).toBe(expectedTimeOutISO_DB);
+      const expectedTimeOutISO_DB = new Date(`${attendance.get('date') as unknown as string}T${updatePayload.timeOut}Z`).toISOString();
+      expect((attendance.get('timeOut') as Date | undefined)?.toISOString()).toBe(expectedTimeOutISO_DB);
     });
 
     it('should return 404 if attendance record to update is not found', async () => {
@@ -302,7 +305,7 @@ describe('Attendance API Routes', () => {
         const nonExistentId = 99999;
         const updatePayload = { timeOut: new Date().toISOString() };
         mockGetSession.mockResolvedValue({
-          user: { id: adminUser.id, role: adminUser.role },
+          user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
           expires: faker.date.future().toISOString(),
         });
         const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
@@ -316,12 +319,12 @@ describe('Attendance API Routes', () => {
 
      it('should return 401 if user is not authenticated', async () => {
         const employee = await createTestEmployee({});
-        const attendance = await createTestAttendance({ employeeId: employee.id });
+        const attendance = await createTestAttendance({ employeeId: employee.get('id') as number });
         const updatePayload = { timeOut: new Date().toISOString() };
         mockGetSession.mockResolvedValue(null);
         const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
           method: 'PUT',
-          query: { id: attendance.id.toString() },
+          query: { id: (attendance.get('id') as number).toString() },
           body: updatePayload,
         });
         await attendanceIdHandler(req, res);
@@ -336,12 +339,12 @@ describe('Attendance API Routes', () => {
       // 1. Seed database
       const adminUser = await createTestUser({ role: Role.ADMIN });
       const employee = await createTestEmployee({});
-      const attendance = await createTestAttendance({ employeeId: employee.id });
-      const attendanceId = attendance.id; // Store ID before deletion
+      const attendance = await createTestAttendance({ employeeId: employee.get('id') as number });
+      const attendanceId = attendance.get('id') as number; // Store ID before deletion
 
       // 2. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, role: adminUser.role },
+        user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
         expires: faker.date.future().toISOString(),
       });
 
@@ -366,7 +369,7 @@ describe('Attendance API Routes', () => {
         const adminUser = await createTestUser({ role: Role.ADMIN });
         const nonExistentId = 99999;
         mockGetSession.mockResolvedValue({
-          user: { id: adminUser.id, role: adminUser.role },
+          user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
           expires: faker.date.future().toISOString(),
         });
         const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
@@ -379,11 +382,11 @@ describe('Attendance API Routes', () => {
 
      it('should return 401 if user is not authenticated', async () => {
         const employee = await createTestEmployee({});
-        const attendance = await createTestAttendance({ employeeId: employee.id });
+        const attendance = await createTestAttendance({ employeeId: employee.get('id') as number });
         mockGetSession.mockResolvedValue(null);
         const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
           method: 'DELETE',
-          query: { id: attendance.id.toString() },
+          query: { id: (attendance.get('id') as number).toString() },
         });
         await attendanceIdHandler(req, res);
         expect(res._getStatusCode()).toBe(401);

@@ -26,14 +26,21 @@ export const authOptions: NextAuthOptions = {
         try {
           const user = await User.findOne({ where: { username: credentials.username } });
 
-          if (user && await bcrypt.compare(credentials.password, user.passwordHash)) {
+          // Add logging for the retrieved hash using .get() with type assertion
+          const passwordHash = user?.get('passwordHash') as string | undefined;
+          console.log(`Retrieved hash for user '${credentials.username}': ${passwordHash}`);
+
+          // Use .get() for accessing attributes with type assertion for bcrypt
+          if (user && passwordHash && await bcrypt.compare(credentials.password, passwordHash)) {
             console.log(`User '${credentials.username}' authorized successfully.`);
             // Return user object required by NextAuth, excluding sensitive data
+            // Use .get() with type assertions when returning user object
+            // Ensure this matches the expected 'User' type for NextAuth callbacks
             return {
-              id: user.id,
-              name: user.username, // Use username as name for now, or fetch from Employee if linked
-              role: user.role,
-              departmentId: user.departmentId, // Include departmentId if available and needed
+              id: user.get('id') as number,
+              name: user.get('username') as string, // Use username as name for now
+              role: user.get('role') as string,
+              departmentId: user.get('departmentId') as number | undefined, // Include departmentId if available and needed
               // Add other non-sensitive user properties needed in the session
             };
           } else {

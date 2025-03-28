@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the getter function
+import { getSequelizeInstance } from '@/db/sequelize'; // Use runtime Sequelize instance
 
 // Define the attributes for the User model
 interface UserAttributes {
@@ -13,19 +13,17 @@ interface UserAttributes {
 }
 
 // Define creation attributes (optional fields for creation)
-interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'createdAt' | 'updatedAt' | 'departmentId'> {}
+export interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'createdAt' | 'updatedAt' | 'departmentId'> {} // Added export
 
 // Define the User model class
-class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
-  public id!: number;
-  public username!: string;
-  public passwordHash!: string;
-  public role!: string;
-  public departmentId?: number;
+class User extends Model<UserAttributes, UserCreationAttributes> { // Removed 'implements UserAttributes'
+  // Attributes are defined and typed by UserAttributes and UserCreationAttributes
+  // Public class fields are removed to avoid shadowing Sequelize's getters/setters
+  // See: https://sequelize.org/main/manual/model-basics.html#caveat-with-public-class-fields
 
-  // Timestamps
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+  // Timestamps are managed by Sequelize based on model options and DB schema
+  // public readonly createdAt!: Date; // Removed
+  // public readonly updatedAt!: Date; // Removed
 
   // Define associations here later if needed
   // public static associate(models: any) {

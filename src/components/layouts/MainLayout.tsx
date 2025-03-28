@@ -24,7 +24,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         // userRole={userRole}
         // activePath={activePath}
       />
-      <main className="main-content">
+      {/* Added background color and padding for consistency */}
+      <main className="main-content flex-1 bg-gray-100 p-8 overflow-y-auto">
         {/* TopBar would go here if we had one */}
         {children}
       </main>

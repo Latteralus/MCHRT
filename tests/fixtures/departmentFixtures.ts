@@ -1,6 +1,6 @@
 // tests/fixtures/departmentFixtures.ts
 import { faker } from '@faker-js/faker';
-import Department from '@/modules/organization/models/Department'; // Adjust path if needed
+import Department, { DepartmentCreationAttributes } from '@/modules/organization/models/Department'; // Import model and creation attributes
 import { createTestUser } from './userFixtures'; // Import user fixture
 
 // Interface for overrides, allowing optional managerId
@@ -10,7 +10,7 @@ interface DepartmentOverrides {
 }
 
 // Function to generate raw department data
-export const generateDepartmentData = (overrides: DepartmentOverrides = {}): Partial<Department> => {
+export const generateDepartmentData = (overrides: DepartmentOverrides = {}): Partial<DepartmentCreationAttributes> => { // Use CreationAttributes
   const defaultName = faker.commerce.department() + ` ${faker.string.uuid().substring(0, 4)}`;
   return {
     ...overrides, // Apply any specific overrides (name will be overwritten if provided)
@@ -27,7 +27,7 @@ export const createTestDepartment = async (overrides: DepartmentOverrides = {}):
       // If no managerId override, create a default manager user for this department
       // Ensure the user has a role that can be a manager (e.g., DepartmentHead or Admin)
       const managerUser = await createTestUser({ role: 'DepartmentHead' }); // Adjust role if needed
-      finalManagerId = managerUser.id;
+      finalManagerId = managerUser.get('id') as number; // Use .get()
   } else if (finalManagerId !== null) {
       // If a managerId IS provided, we assume it should exist.
       // Optionally, add a check here to find the user and throw if not found,
@@ -41,7 +41,8 @@ export const createTestDepartment = async (overrides: DepartmentOverrides = {}):
   });
   try {
     // Use Department.create to ensure model hooks are triggered
-    const department = await Department.create(departmentData as Department); // Cast needed
+    // Cast to DepartmentCreationAttributes, Sequelize handles internal type mapping
+    const department = await Department.create(departmentData as DepartmentCreationAttributes);
     return department;
   } catch (error) {
     console.error("Error creating test department:", error);

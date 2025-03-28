@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the getter function
+import { getSequelizeInstance } from '@/db/sequelize'; // Use runtime Sequelize instance
 
 // Define the attributes for the Department model
 interface DepartmentAttributes {
@@ -11,10 +11,10 @@ interface DepartmentAttributes {
 }
 
 // Define creation attributes (optional fields for creation)
-interface DepartmentCreationAttributes extends Optional<DepartmentAttributes, 'id' | 'createdAt' | 'updatedAt' | 'managerId'> {}
+export interface DepartmentCreationAttributes extends Optional<DepartmentAttributes, 'id' | 'createdAt' | 'updatedAt' | 'managerId'> {} // Added export
 
 // Define the Department model class
-class Department extends Model<DepartmentAttributes, DepartmentCreationAttributes> implements DepartmentAttributes {
+class Department extends Model<DepartmentAttributes, DepartmentCreationAttributes> { // Removed 'implements DepartmentAttributes'
   public id!: number;
   public name!: string;
   public managerId?: number;

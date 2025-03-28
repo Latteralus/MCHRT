@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the getter function
+import { getSequelizeInstance } from '@/db/sequelize'; // Use runtime Sequelize instance
 import Employee from '@/modules/employees/models/Employee'; // Import Employee model for association typing
 
 // Define possible compliance item statuses (consider using enums)
@@ -30,7 +30,7 @@ export interface ComplianceCreationAttributes extends Optional<ComplianceAttribu
 }
 
 // Define the Compliance model class
-class Compliance extends Model<ComplianceAttributes, ComplianceCreationAttributes> implements ComplianceAttributes {
+class Compliance extends Model<ComplianceAttributes, ComplianceCreationAttributes> { // Removed 'implements ComplianceAttributes'
   public id!: number;
   public employeeId!: number;
   public itemType!: string;

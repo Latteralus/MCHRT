@@ -3,7 +3,7 @@
 
 import { teardownTestDb } from './tests/db-setup'; // Adjust path as necessary
 
-export default async () => {
+const globalTeardown = async () => {
   console.log('\nRunning Jest Global Teardown...');
   try {
     await teardownTestDb();
@@ -13,3 +13,5 @@ export default async () => {
     // Don't necessarily exit here, as tests might have already run
   }
 };
+
+export default globalTeardown;

@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the getter function
+import { getSequelizeInstance } from '@/db/sequelize'; // Use runtime Sequelize instance
 
 // Define the attributes for the Attendance model
 export interface AttendanceAttributes { // Add export keyword
@@ -17,7 +17,7 @@ export interface AttendanceAttributes { // Add export keyword
 export interface AttendanceCreationAttributes extends Optional<AttendanceAttributes, 'id' | 'createdAt' | 'updatedAt' | 'timeIn' | 'timeOut'> {}
 
 // Define the Attendance model class
-class Attendance extends Model<AttendanceAttributes, AttendanceCreationAttributes> implements AttendanceAttributes {
+class Attendance extends Model<AttendanceAttributes, AttendanceCreationAttributes> { // Removed 'implements AttendanceAttributes'
   public id!: number;
   public employeeId!: number;
   public date!: Date;

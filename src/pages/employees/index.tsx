@@ -57,7 +57,7 @@ const EmployeeListPage: React.FC<EmployeeListPageProps> = ({ userRole }) => {
 
   return (
     // Apply MainLayout here if not done globally in _app.tsx
-    <MainLayout>
+    <> {/* Removed redundant MainLayout wrapper */}
       <Head>
         <title>Employees - Mountain Care HR</title>
       </Head>
@@ -130,7 +130,7 @@ const EmployeeListPage: React.FC<EmployeeListPageProps> = ({ userRole }) => {
           </div>
         )}
       </div>
-    </MainLayout>
+    </> // Moved parenthesis and semicolon after fragment
   );
 };
 

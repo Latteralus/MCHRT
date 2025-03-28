@@ -70,12 +70,12 @@ describe('Employee API Routes', () => {
       // 1. Seed database
       const adminUser = await createTestUser({ role: Role.ADMIN });
       const dept = await createTestDepartment();
-      const emp1 = await createTestEmployee({ departmentId: dept.id });
-      const emp2 = await createTestEmployee({ departmentId: dept.id });
+      const emp1 = await createTestEmployee({ departmentId: dept.get('id') as number });
+      const emp2 = await createTestEmployee({ departmentId: dept.get('id') as number });
 
       // 2. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, role: adminUser.role },
+        user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
         expires: faker.date.future().toISOString(),
       });
 
@@ -93,10 +93,10 @@ describe('Employee API Routes', () => {
       expect(Array.isArray(responseData)).toBe(true);
       expect(responseData).toHaveLength(2);
       // Check if the returned data looks like employees (e.g., check properties of the first one)
-      expect(responseData[0]).toHaveProperty('id', emp1.id);
-      expect(responseData[0]).toHaveProperty('firstName', emp1.firstName);
-      expect(responseData[1]).toHaveProperty('id', emp2.id);
-      expect(responseData[1]).toHaveProperty('lastName', emp2.lastName);
+      expect(responseData[0]).toHaveProperty('id', emp1.get('id') as number);
+      expect(responseData[0]).toHaveProperty('firstName', emp1.get('firstName') as string);
+      expect(responseData[1]).toHaveProperty('id', emp2.get('id') as number);
+      expect(responseData[1]).toHaveProperty('lastName', emp2.get('lastName') as string);
       // Ensure sensitive data is not returned by default
       expect(responseData[0]).not.toHaveProperty('ssnEncrypted');
     });
@@ -126,7 +126,7 @@ describe('Employee API Routes', () => {
       const adminUser = await createTestUser({ role: Role.ADMIN });
       const dept = await createTestDepartment();
       // Use generateEmployeeData to get potential data
-      const generatedData = generateEmployeeData({ departmentId: dept.id });
+      const generatedData = generateEmployeeData({ departmentId: dept.get('id') as number });
 
       // Construct the actual request body with only allowed fields for creation
       const requestBody = {
@@ -142,7 +142,7 @@ describe('Employee API Routes', () => {
 
       // 2. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, role: adminUser.role },
+        user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
         expires: faker.date.future().toISOString(),
       });
 
@@ -168,15 +168,15 @@ describe('Employee API Routes', () => {
       // 6. Verify employee created in DB
       const createdEmployee = await Employee.findByPk(responseData.id);
       expect(createdEmployee).not.toBeNull();
-      expect(createdEmployee?.firstName).toBe(requestBody.firstName);
-      expect(createdEmployee?.departmentId).toBe(requestBody.departmentId);
+      expect(createdEmployee?.get('firstName')).toBe(requestBody.firstName);
+      expect(createdEmployee?.get('departmentId')).toBe(requestBody.departmentId);
     });
 
     it('should return 403 if user is not an admin', async () => {
         // 1. Prepare data
         const nonAdminUser = await createTestUser({ role: Role.EMPLOYEE }); // Or MANAGER
         const dept = await createTestDepartment();
-        const generatedData = generateEmployeeData({ departmentId: dept.id });
+        const generatedData = generateEmployeeData({ departmentId: dept.get('id') as number });
 
         // Construct the actual request body
         const requestBody = {
@@ -188,7 +188,7 @@ describe('Employee API Routes', () => {
 
         // 2. Mock session
         mockGetSession.mockResolvedValue({
-          user: { id: nonAdminUser.id, role: nonAdminUser.role },
+          user: { id: nonAdminUser.get('id') as number, role: nonAdminUser.get('role') as string },
           expires: faker.date.future().toISOString(),
         });
 
@@ -213,11 +213,11 @@ describe('Employee API Routes', () => {
       // 1. Seed database
       const adminUser = await createTestUser({ role: Role.ADMIN });
       const dept = await createTestDepartment();
-      const employee = await createTestEmployee({ departmentId: dept.id });
+      const employee = await createTestEmployee({ departmentId: dept.get('id') as number });
 
       // 2. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, role: adminUser.role },
+        user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
         expires: faker.date.future().toISOString(),
       });
 
@@ -225,7 +225,7 @@ describe('Employee API Routes', () => {
       const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
         method: 'GET',
         query: {
-          id: employee.id.toString(), // ID must be a string in query
+          id: (employee.get('id') as number).toString(), // ID must be a string in query
         },
       });
 
@@ -235,10 +235,10 @@ describe('Employee API Routes', () => {
       // 5. Assert response status and data
       expect(res._getStatusCode()).toBe(200);
       const responseData = res._getJSONData();
-      expect(responseData).toHaveProperty('id', employee.id);
-      expect(responseData).toHaveProperty('firstName', employee.firstName);
-      expect(responseData).toHaveProperty('lastName', employee.lastName);
-      expect(responseData).toHaveProperty('departmentId', employee.departmentId);
+      expect(responseData).toHaveProperty('id', employee.get('id') as number);
+      expect(responseData).toHaveProperty('firstName', employee.get('firstName') as string);
+      expect(responseData).toHaveProperty('lastName', employee.get('lastName') as string);
+      expect(responseData).toHaveProperty('departmentId', employee.get('departmentId') as number);
       // Ensure sensitive data is not returned
       expect(responseData).not.toHaveProperty('ssnEncrypted');
     });
@@ -250,7 +250,7 @@ describe('Employee API Routes', () => {
 
         // 2. Mock session
         mockGetSession.mockResolvedValue({
-          user: { id: adminUser.id, role: adminUser.role },
+          user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
           expires: faker.date.future().toISOString(),
         });
 
@@ -272,7 +272,7 @@ describe('Employee API Routes', () => {
     it('should return 401 if user is not authenticated', async () => {
         // 1. Seed employee (needed for ID)
         const dept = await createTestDepartment();
-        const employee = await createTestEmployee({ departmentId: dept.id });
+        const employee = await createTestEmployee({ departmentId: dept.get('id') as number });
 
         // 2. Mock session (no user)
         mockGetSession.mockResolvedValue(null);
@@ -281,7 +281,7 @@ describe('Employee API Routes', () => {
         const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
           method: 'GET',
           query: {
-            id: employee.id.toString(),
+            id: (employee.get('id') as number).toString(),
           },
         });
 
@@ -301,19 +301,19 @@ describe('Employee API Routes', () => {
       const adminUser = await createTestUser({ role: Role.ADMIN });
       const dept1 = await createTestDepartment({ name: 'Old Department' });
       const dept2 = await createTestDepartment({ name: 'New Department' });
-      const employee = await createTestEmployee({ departmentId: dept1.id, firstName: 'InitialName' });
+      const employee = await createTestEmployee({ departmentId: dept1.get('id') as number, firstName: 'InitialName' });
 
       // 2. Prepare update data
       const updateData = {
         firstName: 'UpdatedName',
-        lastName: employee.lastName, // Keep last name the same
-        departmentId: dept2.id, // Change department
+        lastName: employee.get('lastName') as string, // Keep last name the same
+        departmentId: dept2.get('id') as number, // Change department
         position: 'Senior Developer', // Add position
       };
 
       // 3. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, role: adminUser.role },
+        user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
         expires: faker.date.future().toISOString(),
       });
 
@@ -321,7 +321,7 @@ describe('Employee API Routes', () => {
       const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
         method: 'PUT',
         query: {
-          id: employee.id.toString(),
+          id: (employee.get('id') as number).toString(),
         },
         body: updateData,
       });
@@ -332,7 +332,7 @@ describe('Employee API Routes', () => {
       // 6. Assert response status and data
       expect(res._getStatusCode()).toBe(200);
       const responseData = res._getJSONData();
-      expect(responseData).toHaveProperty('id', employee.id);
+      expect(responseData).toHaveProperty('id', employee.get('id') as number);
       expect(responseData).toHaveProperty('firstName', updateData.firstName);
       expect(responseData).toHaveProperty('lastName', updateData.lastName);
       expect(responseData).toHaveProperty('departmentId', updateData.departmentId);
@@ -341,28 +341,28 @@ describe('Employee API Routes', () => {
 
       // 7. Verify employee updated in DB
       await employee.reload(); // Reload instance from DB
-      expect(employee.firstName).toBe(updateData.firstName);
-      expect(employee.departmentId).toBe(updateData.departmentId);
-      expect(employee.position).toBe(updateData.position);
+      expect(employee.get('firstName')).toBe(updateData.firstName);
+      expect(employee.get('departmentId')).toBe(updateData.departmentId);
+      expect(employee.get('position')).toBe(updateData.position);
     });
 
     it('should return 403 if user is not an admin', async () => {
         // 1. Seed data
         const nonAdminUser = await createTestUser({ role: Role.EMPLOYEE });
         const dept = await createTestDepartment();
-        const employee = await createTestEmployee({ departmentId: dept.id });
+        const employee = await createTestEmployee({ departmentId: dept.get('id') as number });
         const updateData = { firstName: 'AttemptedUpdate' };
 
         // 2. Mock session
         mockGetSession.mockResolvedValue({
-          user: { id: nonAdminUser.id, role: nonAdminUser.role },
+          user: { id: nonAdminUser.get('id') as number, role: nonAdminUser.get('role') as string },
           expires: faker.date.future().toISOString(),
         });
 
         // 3. Mock request/response objects
         const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
           method: 'PUT',
-          query: { id: employee.id.toString() },
+          query: { id: (employee.get('id') as number).toString() },
           body: updateData,
         });
 
@@ -381,7 +381,7 @@ describe('Employee API Routes', () => {
 
         // 2. Mock session
         mockGetSession.mockResolvedValue({
-          user: { id: adminUser.id, role: adminUser.role },
+          user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
           expires: faker.date.future().toISOString(),
         });
 
@@ -407,12 +407,12 @@ describe('Employee API Routes', () => {
       // 1. Seed database
       const adminUser = await createTestUser({ role: Role.ADMIN });
       const dept = await createTestDepartment();
-      const employee = await createTestEmployee({ departmentId: dept.id });
-      const employeeId = employee.id; // Store ID before deletion
+      const employee = await createTestEmployee({ departmentId: dept.get('id') as number });
+      const employeeId = employee.get('id') as number; // Store ID before deletion
 
       // 2. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, role: adminUser.role },
+        user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
         expires: faker.date.future().toISOString(),
       });
 
@@ -439,18 +439,18 @@ describe('Employee API Routes', () => {
         // 1. Seed data
         const nonAdminUser = await createTestUser({ role: Role.EMPLOYEE });
         const dept = await createTestDepartment();
-        const employee = await createTestEmployee({ departmentId: dept.id });
+        const employee = await createTestEmployee({ departmentId: dept.get('id') as number });
 
         // 2. Mock session
         mockGetSession.mockResolvedValue({
-          user: { id: nonAdminUser.id, role: nonAdminUser.role },
+          user: { id: nonAdminUser.get('id') as number, role: nonAdminUser.get('role') as string },
           expires: faker.date.future().toISOString(),
         });
 
         // 3. Mock request/response objects
         const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
           method: 'DELETE',
-          query: { id: employee.id.toString() },
+          query: { id: (employee.get('id') as number).toString() },
         });
 
         // 4. Call the handler
@@ -467,7 +467,7 @@ describe('Employee API Routes', () => {
 
         // 2. Mock session
         mockGetSession.mockResolvedValue({
-          user: { id: adminUser.id, role: adminUser.role },
+          user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
           expires: faker.date.future().toISOString(),
         });
 

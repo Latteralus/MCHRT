@@ -1,6 +1,6 @@
 // tests/fixtures/employeeFixtures.ts
 import { faker } from '@faker-js/faker';
-import Employee, { EmployeeCreationAttributes } from '@/modules/employees/models/Employee'; // Adjust path if needed
+import Employee, { EmployeeCreationAttributes } from '@/modules/employees/models/Employee'; // Import model and creation attributes
 // Import necessary fixtures to ensure dependencies exist
 import { createTestDepartment } from './departmentFixtures';
 import { createTestUser } from './userFixtures';
@@ -17,7 +17,7 @@ interface EmployeeOverrides {
 }
 
 // Function to generate raw employee data
-export const generateEmployeeData = (overrides: EmployeeOverrides = {}): Partial<Employee> => {
+export const generateEmployeeData = (overrides: EmployeeOverrides = {}): Partial<EmployeeCreationAttributes> => { // Use CreationAttributes
   const firstName = overrides.firstName ?? faker.person.firstName();
   const lastName = overrides.lastName ?? faker.person.lastName();
 
@@ -51,14 +51,14 @@ export const createTestEmployee = async (overrides: EmployeeOverrides = {}): Pro
   if (finalUserId === undefined) {
     // If no userId override, create a default user for this employee
     const user = await createTestUser({});
-    finalUserId = user.id;
+    finalUserId = user.get('id') as number; // Use .get()
   }
 
   let finalDepartmentId = overrides.departmentId;
   if (finalDepartmentId === undefined) {
     // If no departmentId override, create a default department
     const dept = await createTestDepartment({});
-    finalDepartmentId = dept.id;
+    finalDepartmentId = dept.get('id') as number; // Use .get()
   }
 
   // Generate data, ensuring the required IDs are now set

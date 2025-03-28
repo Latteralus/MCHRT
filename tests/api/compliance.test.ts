@@ -66,12 +66,12 @@ describe('Compliance API Routes', () => {
       // 1. Seed database
       const adminUser = await createTestUser({ role: Role.ADMIN });
       const employee = await createTestEmployee({});
-      const item1 = await createTestCompliance({ employeeId: employee.id, itemType: 'License' });
-      const item2 = await createTestCompliance({ employeeId: employee.id, itemType: 'Training' });
+      const item1 = await createTestCompliance({ employeeId: employee.get('id') as number, itemType: 'License' });
+      const item2 = await createTestCompliance({ employeeId: employee.get('id') as number, itemType: 'Training' });
 
       // 2. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, role: adminUser.role },
+        user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
         expires: faker.date.future().toISOString(),
       });
 
@@ -91,10 +91,10 @@ describe('Compliance API Routes', () => {
       expect(responseData.items).toHaveLength(2);
       // Check if the returned data looks like compliance items
       // Access items within the 'items' array
-      expect(responseData.items[0]).toHaveProperty('id', item1.id);
-      expect(responseData.items[0]).toHaveProperty('employeeId', employee.id);
+      expect(responseData.items[0]).toHaveProperty('id', item1.get('id') as number);
+      expect(responseData.items[0]).toHaveProperty('employeeId', employee.get('id') as number);
       expect(responseData.items[0]).toHaveProperty('itemType', 'License');
-      expect(responseData.items[1]).toHaveProperty('id', item2.id);
+      expect(responseData.items[1]).toHaveProperty('id', item2.get('id') as number);
       expect(responseData.items[1]).toHaveProperty('itemType', 'Training');
     });
 
@@ -116,7 +116,7 @@ describe('Compliance API Routes', () => {
 
       // 2. Prepare request data
       const compliancePayload = {
-        employeeId: employee.id,
+        employeeId: employee.get('id') as number,
         itemType: 'Certification',
         itemName: 'Advanced CPR',
         authority: 'Red Cross',
@@ -128,7 +128,7 @@ describe('Compliance API Routes', () => {
 
       // 3. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, role: adminUser.role },
+        user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
         expires: faker.date.future().toISOString(),
       });
 
@@ -154,17 +154,17 @@ describe('Compliance API Routes', () => {
       // 7. Verify record created in DB
       const createdRecord = await Compliance.findByPk(responseData.id);
       expect(createdRecord).not.toBeNull();
-      expect(createdRecord?.employeeId).toBe(compliancePayload.employeeId);
-      expect(createdRecord?.itemName).toBe(compliancePayload.itemName);
-      expect(createdRecord?.status).toBe(compliancePayload.status);
+      expect(createdRecord?.get('employeeId')).toBe(compliancePayload.employeeId);
+      expect(createdRecord?.get('itemName')).toBe(compliancePayload.itemName);
+      expect(createdRecord?.get('status')).toBe(compliancePayload.status);
     });
 
     it('should return 403 if user is not an admin', async () => {
         const user = await createTestUser({ role: Role.EMPLOYEE });
-        const employee = await createTestEmployee({ userId: user.id });
-        const compliancePayload = { employeeId: employee.id, itemType: 'Test', itemName: 'Test Item' };
+        const employee = await createTestEmployee({ userId: user.get('id') as number });
+        const compliancePayload = { employeeId: employee.get('id') as number, itemType: 'Test', itemName: 'Test Item' };
         mockGetSession.mockResolvedValue({
-          user: { id: user.id, role: user.role },
+          user: { id: user.get('id') as number, role: user.get('role') as string },
           expires: faker.date.future().toISOString(),
         });
         const { req, res } = createMocks<NextApiRequest, NextApiResponse>({ method: 'POST', body: compliancePayload });
@@ -180,18 +180,18 @@ describe('Compliance API Routes', () => {
       // 1. Seed database
       const adminUser = await createTestUser({ role: Role.ADMIN });
       const employee = await createTestEmployee({});
-      const item = await createTestCompliance({ employeeId: employee.id });
+      const item = await createTestCompliance({ employeeId: employee.get('id') as number });
 
       // 2. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, role: adminUser.role },
+        user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
         expires: faker.date.future().toISOString(),
       });
 
       // 3. Mock request/response objects
       const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
         method: 'GET',
-        query: { id: item.id.toString() },
+        query: { id: (item.get('id') as number).toString() },
       });
 
       // 4. Call the handler
@@ -200,17 +200,17 @@ describe('Compliance API Routes', () => {
       // 5. Assert response status and data
       expect(res._getStatusCode()).toBe(200);
       const responseData = res._getJSONData();
-      expect(responseData).toHaveProperty('id', item.id);
-      expect(responseData).toHaveProperty('employeeId', item.employeeId);
-      expect(responseData).toHaveProperty('itemName', item.itemName);
-      expect(responseData).toHaveProperty('status', item.status);
+      expect(responseData).toHaveProperty('id', item.get('id') as number);
+      expect(responseData).toHaveProperty('employeeId', item.get('employeeId') as number);
+      expect(responseData).toHaveProperty('itemName', item.get('itemName') as string);
+      expect(responseData).toHaveProperty('status', item.get('status') as string);
     });
 
     it('should return 404 if compliance item is not found', async () => {
         const adminUser = await createTestUser({ role: Role.ADMIN });
         const nonExistentId = 99999;
         mockGetSession.mockResolvedValue({
-          user: { id: adminUser.id, role: adminUser.role },
+          user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
           expires: faker.date.future().toISOString(),
         });
         const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
@@ -223,11 +223,11 @@ describe('Compliance API Routes', () => {
 
      it('should return 401 if user is not authenticated', async () => {
         const employee = await createTestEmployee({});
-        const item = await createTestCompliance({ employeeId: employee.id });
+        const item = await createTestCompliance({ employeeId: employee.get('id') as number });
         mockGetSession.mockResolvedValue(null);
         const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
           method: 'GET',
-          query: { id: item.id.toString() },
+          query: { id: (item.get('id') as number).toString() },
         });
         await complianceIdHandler(req, res);
         expect(res._getStatusCode()).toBe(401);
@@ -242,7 +242,7 @@ describe('Compliance API Routes', () => {
       const adminUser = await createTestUser({ role: Role.ADMIN });
       const employee = await createTestEmployee({});
       const item = await createTestCompliance({
-        employeeId: employee.id,
+        employeeId: employee.get('id') as number,
         itemName: 'Initial Training',
         status: 'PendingReview',
       });
@@ -256,14 +256,14 @@ describe('Compliance API Routes', () => {
 
       // 3. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, role: adminUser.role },
+        user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
         expires: faker.date.future().toISOString(),
       });
 
       // 4. Mock request/response objects
       const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
         method: 'PUT',
-        query: { id: item.id.toString() },
+        query: { id: (item.get('id') as number).toString() },
         body: updatePayload,
       });
 
@@ -273,30 +273,30 @@ describe('Compliance API Routes', () => {
       // 6. Assert response status and data
       expect(res._getStatusCode()).toBe(200);
       const responseData = res._getJSONData();
-      expect(responseData).toHaveProperty('id', item.id);
+      expect(responseData).toHaveProperty('id', item.get('id') as number);
       expect(responseData).toHaveProperty('itemName', updatePayload.itemName);
       expect(responseData).toHaveProperty('status', updatePayload.status);
       expect(responseData).toHaveProperty('issueDate', updatePayload.issueDate);
 
       // 7. Verify update in DB
       await item.reload();
-      expect(item.itemName).toBe(updatePayload.itemName);
-      expect(item.status).toBe(updatePayload.status);
-      expect(item.issueDate).toBe(updatePayload.issueDate);
+      expect(item.get('itemName')).toBe(updatePayload.itemName);
+      expect(item.get('status')).toBe(updatePayload.status);
+      expect(item.get('issueDate')).toBe(updatePayload.issueDate);
     });
 
     it('should return 403 if user is not an admin', async () => {
         const user = await createTestUser({ role: Role.EMPLOYEE });
-        const employee = await createTestEmployee({ userId: user.id });
-        const item = await createTestCompliance({ employeeId: employee.id });
+        const employee = await createTestEmployee({ userId: user.get('id') as number });
+        const item = await createTestCompliance({ employeeId: employee.get('id') as number });
         const updatePayload = { status: 'Active' };
         mockGetSession.mockResolvedValue({
-          user: { id: user.id, role: user.role },
+          user: { id: user.get('id') as number, role: user.get('role') as string },
           expires: faker.date.future().toISOString(),
         });
         const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
           method: 'PUT',
-          query: { id: item.id.toString() },
+          query: { id: (item.get('id') as number).toString() },
           body: updatePayload,
         });
         await complianceIdHandler(req, res);
@@ -311,12 +311,12 @@ describe('Compliance API Routes', () => {
       // 1. Seed database
       const adminUser = await createTestUser({ role: Role.ADMIN });
       const employee = await createTestEmployee({});
-      const item = await createTestCompliance({ employeeId: employee.id });
-      const itemId = item.id; // Store ID
+      const item = await createTestCompliance({ employeeId: employee.get('id') as number });
+      const itemId = item.get('id') as number; // Store ID
 
       // 2. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, role: adminUser.role },
+        user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
         expires: faker.date.future().toISOString(),
       });
 
@@ -339,15 +339,15 @@ describe('Compliance API Routes', () => {
 
     it('should return 403 if user is not an admin', async () => {
         const user = await createTestUser({ role: Role.EMPLOYEE });
-        const employee = await createTestEmployee({ userId: user.id });
-        const item = await createTestCompliance({ employeeId: employee.id });
+        const employee = await createTestEmployee({ userId: user.get('id') as number });
+        const item = await createTestCompliance({ employeeId: employee.get('id') as number });
         mockGetSession.mockResolvedValue({
-          user: { id: user.id, role: user.role },
+          user: { id: user.get('id') as number, role: user.get('role') as string },
           expires: faker.date.future().toISOString(),
         });
         const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
           method: 'DELETE',
-          query: { id: item.id.toString() },
+          query: { id: (item.get('id') as number).toString() },
         });
         await complianceIdHandler(req, res);
         expect(res._getStatusCode()).toBe(403); // Assuming only admin can delete

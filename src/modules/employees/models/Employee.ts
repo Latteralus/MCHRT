@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the getter function
+import { getSequelizeInstance } from '@/db/sequelize'; // Use runtime Sequelize instance
 
 // Define the attributes for the Employee model
 interface EmployeeAttributes {
@@ -21,7 +21,7 @@ interface EmployeeAttributes {
 export interface EmployeeCreationAttributes extends Optional<EmployeeAttributes, 'id' | 'createdAt' | 'updatedAt' | 'departmentId' | 'position' | 'hireDate' | 'ssnEncrypted'> {}
 
 // Define the Employee model class
-class Employee extends Model<EmployeeAttributes, EmployeeCreationAttributes> implements EmployeeAttributes {
+class Employee extends Model<EmployeeAttributes, EmployeeCreationAttributes> { // Removed 'implements EmployeeAttributes'
   public id!: number;
   public firstName!: string;
   public lastName!: string;

@@ -75,12 +75,12 @@ describe('Leave API Routes', () => {
       // 1. Seed database
       const adminUser = await createTestUser({ role: Role.ADMIN });
       const employee = await createTestEmployee({});
-      const leave1 = await createTestLeave({ employeeId: employee.id, status: 'Pending' });
-      const leave2 = await createTestLeave({ employeeId: employee.id, status: 'Approved' });
+      const leave1 = await createTestLeave({ employeeId: employee.get('id') as number, status: 'Pending' });
+      const leave2 = await createTestLeave({ employeeId: employee.get('id') as number, status: 'Approved' });
 
       // 2. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, role: adminUser.role },
+        user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
         expires: faker.date.future().toISOString(),
       });
 
@@ -98,10 +98,10 @@ describe('Leave API Routes', () => {
       expect(Array.isArray(responseData)).toBe(true);
       expect(responseData).toHaveLength(2);
       // Check if the returned data looks like leave requests
-      expect(responseData[0]).toHaveProperty('id', leave1.id);
-      expect(responseData[0]).toHaveProperty('employeeId', employee.id);
+      expect(responseData[0]).toHaveProperty('id', leave1.get('id') as number);
+      expect(responseData[0]).toHaveProperty('employeeId', employee.get('id') as number);
       expect(responseData[0]).toHaveProperty('status', 'Pending');
-      expect(responseData[1]).toHaveProperty('id', leave2.id);
+      expect(responseData[1]).toHaveProperty('id', leave2.get('id') as number);
       expect(responseData[1]).toHaveProperty('status', 'Approved');
     });
 
@@ -120,12 +120,12 @@ describe('Leave API Routes', () => {
       // 1. Seed database
       // Create a user and link it to an employee
       const user = await createTestUser({ role: Role.EMPLOYEE });
-      const employee = await createTestEmployee({ userId: user.id });
+      const employee = await createTestEmployee({ userId: user.get('id') as number });
 
       // 2. Prepare request data
       const leavePayload = {
         // employeeId should likely be inferred from session, not passed in body
-        // employeeId: employee.id,
+        // employeeId: employee.get('id') as number,
         startDate: '2024-04-10',
         endDate: '2024-04-12',
         leaveType: 'Vacation',
@@ -134,7 +134,7 @@ describe('Leave API Routes', () => {
 
       // 3. Mock session (assuming employee is logged in)
       mockGetSession.mockResolvedValue({
-        user: { id: user.id, role: user.role, employeeId: employee.id }, // Include employeeId in session user
+        user: { id: user.get('id') as number, role: user.get('role') as string, employeeId: employee.get('id') as number }, // Include employeeId in session user
         expires: faker.date.future().toISOString(),
       });
 
@@ -151,7 +151,7 @@ describe('Leave API Routes', () => {
       expect(res._getStatusCode()).toBe(201);
       const responseData = res._getJSONData();
       expect(responseData).toHaveProperty('id');
-      expect(responseData).toHaveProperty('employeeId', employee.id); // Verify it's assigned correctly
+      expect(responseData).toHaveProperty('employeeId', employee.get('id') as number); // Verify it's assigned correctly
       expect(responseData).toHaveProperty('startDate', leavePayload.startDate);
       expect(responseData).toHaveProperty('endDate', leavePayload.endDate);
       expect(responseData).toHaveProperty('leaveType', leavePayload.leaveType);
@@ -161,9 +161,9 @@ describe('Leave API Routes', () => {
       // 7. Verify record created in DB
       const createdRecord = await Leave.findByPk(responseData.id);
       expect(createdRecord).not.toBeNull();
-      expect(createdRecord?.employeeId).toBe(employee.id);
-      expect(createdRecord?.startDate).toBe(leavePayload.startDate);
-      expect(createdRecord?.status).toBe('Pending');
+      expect(createdRecord?.get('employeeId')).toBe(employee.get('id') as number);
+      expect(createdRecord?.get('startDate')).toBe(leavePayload.startDate);
+      expect(createdRecord?.get('status')).toBe('Pending');
     });
 
     it('should return 401 if user is not authenticated', async () => {
@@ -182,18 +182,18 @@ describe('Leave API Routes', () => {
       // 1. Seed database
       const adminUser = await createTestUser({ role: Role.ADMIN });
       const employee = await createTestEmployee({});
-      const leave = await createTestLeave({ employeeId: employee.id });
+      const leave = await createTestLeave({ employeeId: employee.get('id') as number });
 
       // 2. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, role: adminUser.role },
+        user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
         expires: faker.date.future().toISOString(),
       });
 
       // 3. Mock request/response objects
       const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
         method: 'GET',
-        query: { id: leave.id.toString() },
+        query: { id: (leave.get('id') as number).toString() },
       });
 
       // 4. Call the handler
@@ -202,18 +202,18 @@ describe('Leave API Routes', () => {
       // 5. Assert response status and data
       expect(res._getStatusCode()).toBe(200);
       const responseData = res._getJSONData();
-      expect(responseData).toHaveProperty('id', leave.id);
-      expect(responseData).toHaveProperty('employeeId', leave.employeeId);
-      expect(responseData).toHaveProperty('startDate', leave.startDate);
-      expect(responseData).toHaveProperty('endDate', leave.endDate);
-      expect(responseData).toHaveProperty('status', leave.status);
+      expect(responseData).toHaveProperty('id', leave.get('id') as number);
+      expect(responseData).toHaveProperty('employeeId', leave.get('employeeId') as number);
+      expect(responseData).toHaveProperty('startDate', leave.get('startDate') as unknown as string);
+      expect(responseData).toHaveProperty('endDate', leave.get('endDate') as unknown as string);
+      expect(responseData).toHaveProperty('status', leave.get('status') as string);
     });
 
     it('should return 404 if leave request is not found', async () => {
         const adminUser = await createTestUser({ role: Role.ADMIN });
         const nonExistentId = 99999;
         mockGetSession.mockResolvedValue({
-          user: { id: adminUser.id, role: adminUser.role },
+          user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
           expires: faker.date.future().toISOString(),
         });
         const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
@@ -226,11 +226,11 @@ describe('Leave API Routes', () => {
 
      it('should return 401 if user is not authenticated', async () => {
         const employee = await createTestEmployee({});
-        const leave = await createTestLeave({ employeeId: employee.id });
+        const leave = await createTestLeave({ employeeId: employee.get('id') as number });
         mockGetSession.mockResolvedValue(null);
         const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
           method: 'GET',
-          query: { id: leave.id.toString() },
+          query: { id: (leave.get('id') as number).toString() },
         });
         await leaveIdHandler(req, res);
         expect(res._getStatusCode()).toBe(401);
@@ -243,8 +243,8 @@ describe('Leave API Routes', () => {
     it('should allow an employee to cancel their own pending leave request', async () => {
       // 1. Seed database
       const user = await createTestUser({ role: Role.EMPLOYEE });
-      const employee = await createTestEmployee({ userId: user.id });
-      const leave = await createTestLeave({ employeeId: employee.id, status: 'Pending' });
+      const employee = await createTestEmployee({ userId: user.get('id') as number });
+      const leave = await createTestLeave({ employeeId: employee.get('id') as number, status: 'Pending' });
 
       // 2. Prepare update data
       const updatePayload = {
@@ -253,14 +253,14 @@ describe('Leave API Routes', () => {
 
       // 3. Mock session (employee logged in)
       mockGetSession.mockResolvedValue({
-        user: { id: user.id, role: user.role, employeeId: employee.id },
+        user: { id: user.get('id') as number, role: user.get('role') as string, employeeId: employee.get('id') as number },
         expires: faker.date.future().toISOString(),
       });
 
       // 4. Mock request/response objects
       const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
         method: 'PUT',
-        query: { id: leave.id.toString() },
+        query: { id: (leave.get('id') as number).toString() },
         body: updatePayload,
       });
 
@@ -270,35 +270,35 @@ describe('Leave API Routes', () => {
       // 6. Assert response status and data
       expect(res._getStatusCode()).toBe(200);
       const responseData = res._getJSONData();
-      expect(responseData).toHaveProperty('id', leave.id);
+      expect(responseData).toHaveProperty('id', leave.get('id') as number);
       expect(responseData).toHaveProperty('status', 'Cancelled');
 
       // 7. Verify update in DB
       await leave.reload();
-      expect(leave.status).toBe('Cancelled');
+      expect(leave.get('status')).toBe('Cancelled');
     });
 
     it('should return 403 when trying to update another employee\'s leave request', async () => {
         // 1. Seed database
         const user1 = await createTestUser({ role: Role.EMPLOYEE });
-        const employee1 = await createTestEmployee({ userId: user1.id });
+        const employee1 = await createTestEmployee({ userId: user1.get('id') as number });
         const user2 = await createTestUser({ role: Role.EMPLOYEE }); // Different user/employee
-        const employee2 = await createTestEmployee({ userId: user2.id });
-        const leave = await createTestLeave({ employeeId: employee2.id, status: 'Pending' }); // Leave belongs to employee2
+        const employee2 = await createTestEmployee({ userId: user2.get('id') as number });
+        const leave = await createTestLeave({ employeeId: employee2.get('id') as number, status: 'Pending' }); // Leave belongs to employee2
 
         // 2. Prepare update data
         const updatePayload = { status: 'Cancelled' };
 
         // 3. Mock session (employee1 logged in)
         mockGetSession.mockResolvedValue({
-          user: { id: user1.id, role: user1.role, employeeId: employee1.id },
+          user: { id: user1.get('id') as number, role: user1.get('role') as string, employeeId: employee1.get('id') as number },
           expires: faker.date.future().toISOString(),
         });
 
         // 4. Mock request/response objects
         const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
           method: 'PUT',
-          query: { id: leave.id.toString() }, // Trying to update leave belonging to employee2
+          query: { id: (leave.get('id') as number).toString() }, // Trying to update leave belonging to employee2
           body: updatePayload,
         });
 
@@ -317,12 +317,12 @@ describe('Leave API Routes', () => {
       // 1. Seed database
       const adminUser = await createTestUser({ role: Role.ADMIN });
       const employee = await createTestEmployee({});
-      const leave = await createTestLeave({ employeeId: employee.id });
-      const leaveId = leave.id; // Store ID
+      const leave = await createTestLeave({ employeeId: employee.get('id') as number });
+      const leaveId = leave.get('id') as number; // Store ID
 
       // 2. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, role: adminUser.role },
+        user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
         expires: faker.date.future().toISOString(),
       });
 
@@ -346,19 +346,19 @@ describe('Leave API Routes', () => {
     it('should return 403 if a non-admin tries to delete a leave request', async () => {
         // 1. Seed database
         const user = await createTestUser({ role: Role.EMPLOYEE });
-        const employee = await createTestEmployee({ userId: user.id });
-        const leave = await createTestLeave({ employeeId: employee.id });
+        const employee = await createTestEmployee({ userId: user.get('id') as number });
+        const leave = await createTestLeave({ employeeId: employee.get('id') as number });
 
         // 2. Mock session
         mockGetSession.mockResolvedValue({
-          user: { id: user.id, role: user.role, employeeId: employee.id },
+          user: { id: user.get('id') as number, role: user.get('role') as string, employeeId: employee.get('id') as number },
           expires: faker.date.future().toISOString(),
         });
 
         // 3. Mock request/response objects
         const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
           method: 'DELETE',
-          query: { id: leave.id.toString() },
+          query: { id: (leave.get('id') as number).toString() },
         });
 
         // 4. Call the handler

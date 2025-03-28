@@ -3,7 +3,7 @@
 
 import { setupTestDb } from './tests/db-setup'; // Adjust path as necessary
 
-export default async () => {
+const globalSetup = async () => {
   console.log('\nRunning Jest Global Setup...');
   try {
     await setupTestDb();
@@ -15,3 +15,5 @@ export default async () => {
     process.exit(1); // Exit test run if global setup fails
   }
 };
+
+export default globalSetup;

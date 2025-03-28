@@ -1,126 +1,150 @@
-// src/pages/leave/index.tsx
 import React, { useState } from 'react';
 import { GetServerSideProps } from 'next';
 import { getSession } from 'next-auth/react';
+import Head from 'next/head';
+import Link from 'next/link';
 import LeaveRequestList from '@/components/leave/LeaveRequestList';
-import MainLayout from '@/components/layouts/MainLayout'; // Assuming a main layout exists
+import Icon from '@/components/ui/Icon'; // Assuming Icon component exists
+
 // Placeholder: Import function to fetch employees for filter dropdown
 // import { fetchEmployeesForSelect } from '@/lib/api/employees'; // Adjust path
-// Placeholder: Import UI components (Select, Button)
 // Placeholder: Import UserRole type
 // import { UserRole } from '@/lib/middleware/withRole';
 
 interface LeaveIndexPageProps {
-  employees: { id: number; name: string }[]; // For filter dropdown
+  // employees: { id: number; name: string }[]; // Keep if needed for future filters
   currentUserRole: string | null; // To determine if manager actions are allowed
+  // Placeholder data for stats cards - replace with actual data fetching
+  stats: {
+    available: number;
+    pending: number;
+    approved: number;
+    usedThisYear: number;
+  };
 }
 
-// Example statuses for filter
-const leaveStatuses = ['Pending', 'Approved', 'Rejected'];
+// Statuses for tabs
+const leaveStatuses = ['All Requests', 'Pending', 'Approved', 'Denied']; // Use 'Denied' instead of 'Rejected' to match screenshot?
 
-const LeaveIndexPage: React.FC<LeaveIndexPageProps> = ({ employees, currentUserRole }) => {
-  // State for filters
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
-  const [selectedStatus, setSelectedStatus] = useState<string>('');
-  // TODO: Add date range filters if needed
+const LeaveIndexPage: React.FC<LeaveIndexPageProps> = ({ currentUserRole, stats }) => {
+  // State for active tab/filter
+  const [activeStatus, setActiveStatus] = useState<string>('Pending'); // Default to Pending to match screenshot
 
   // Determine if the current user can manage requests (e.g., approve/reject)
   const canManage = currentUserRole === 'Admin' || currentUserRole === 'DepartmentHead';
 
+  // Map tab label to status prop for the list component
+  const getStatusForList = (tabLabel: string): string | undefined => {
+    if (tabLabel === 'All Requests') return undefined;
+    if (tabLabel === 'Denied') return 'Rejected'; // Map UI 'Denied' to API 'Rejected' if needed
+    return tabLabel;
+  };
+
   return (
-    <MainLayout>
-      <div className="container mx-auto p-4">
-        <h1 className="text-2xl font-semibold mb-4">Leave Requests</h1>
+    <>
+      <Head>
+        <title>Leave Management - Mountain Care HR</title>
+      </Head>
+      <div className="p-8"> {/* Use consistent padding */}
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">Leave Management</h1>
+          {/* TODO: Link to actual request page */}
+          <Link href="/leave/request" className="btn btn-primary bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2">
+            Request Leave
+          </Link>
+        </div>
 
-        {/* Filter Section - Placeholder */}
-        <div className="mb-4 p-4 border rounded shadow-sm bg-gray-50 flex flex-wrap gap-4 items-end">
-          {/* Employee Filter (Show only if manager/admin?) */}
-          {(currentUserRole === 'Admin' || currentUserRole === 'DepartmentHead') && (
-            <div>
-              <label htmlFor="employeeFilter" className="block text-sm font-medium text-gray-700">Employee</label>
-              <select
-                id="employeeFilter"
-                value={selectedEmployeeId}
-                onChange={(e) => setSelectedEmployeeId(e.target.value)}
-                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              >
-                <option value="">All Employees</option>
-                {employees.map(emp => (
-                  <option key={emp.id} value={emp.id}>{emp.name}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Status Filter */}
-          <div>
-            <label htmlFor="statusFilter" className="block text-sm font-medium text-gray-700">Status</label>
-            <select
-              id="statusFilter"
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            >
-              <option value="">All Statuses</option>
-              {leaveStatuses.map(status => (
-                <option key={status} value={status}>{status}</option>
-              ))}
-            </select>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          {/* Available Balance Card */}
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h4 className="text-sm text-gray-500 mb-1">AVAILABLE BALANCE</h4>
+            <p className="text-3xl font-bold text-blue-600">{stats.available} days</p>
           </div>
+          {/* Pending Requests Card */}
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h4 className="text-sm text-gray-500 mb-1">PENDING REQUESTS</h4>
+            <p className="text-3xl font-bold text-yellow-600">{stats.pending}</p>
+          </div>
+          {/* Approved Card */}
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h4 className="text-sm text-gray-500 mb-1">APPROVED</h4>
+            <p className="text-3xl font-bold text-green-600">{stats.approved}</p>
+          </div>
+          {/* Used This Year Card */}
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h4 className="text-sm text-gray-500 mb-1">USED THIS YEAR</h4>
+            <p className="text-3xl font-bold text-gray-700">{stats.usedThisYear} days</p>
+          </div>
+        </div>
 
-          {/* Apply Filters Button (optional) */}
+        {/* Tabs */}
+        <div className="border-b border-gray-200 mb-4">
+          <nav className="-mb-px flex space-x-6" aria-label="Tabs">
+            {leaveStatuses.map((status) => (
+              <button
+                key={status}
+                onClick={() => setActiveStatus(status)}
+                className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${
+                  activeStatus === status
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                {status}
+              </button>
+            ))}
+          </nav>
         </div>
 
         {/* Leave Request List */}
         <LeaveRequestList
-          // If not admin/manager, filter by logged-in user's employee ID (needs to be fetched/passed)
-          employeeId={canManage ? (selectedEmployeeId ? parseInt(selectedEmployeeId, 10) : undefined) : undefined /* Pass logged-in employee ID here */}
-          status={selectedStatus || undefined}
+          // Pass filter based on active tab
+          status={getStatusForList(activeStatus)}
           canManage={canManage}
+          // Add other necessary props like employeeId if filtering non-managers
         />
+
+        {/* Placeholder message from screenshot */}
+         <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-md text-sm text-blue-700">
+             This is a placeholder page. In the full implementation, you would be able to request leave, approve/deny requests, and view leave history.
+         </div>
+
       </div>
-    </MainLayout>
+    </>
   );
 };
 
-// Fetch employees server-side for the filter dropdown & get user role
+// Fetch initial data (e.g., stats, maybe employees for future filters)
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const session = await getSession(context);
 
   // Protect route
   if (!session) {
-    return {
-      redirect: { destination: '/login', permanent: false },
-    };
+    return { redirect: { destination: '/login', permanent: false } };
   }
 
   const currentUserRole = session.user?.role as string | null; // Get role from session
 
-  let employees: { id: number; name: string }[] = [];
-  // Fetch employee list only if user is admin/manager (for filter dropdown)
-  if (currentUserRole === 'Admin' || currentUserRole === 'DepartmentHead') {
-    try {
-      // Placeholder: Fetch employees
-      console.log('SSR: Fetching employees for leave filter...');
-      // employees = await fetchEmployeesForSelect();
-      employees = [ // Placeholder data
-        { id: 1, name: 'Doe, John' },
-        { id: 2, name: 'Smith, Jane' },
-        { id: 3, name: 'Williams, Bob' },
-      ];
-    } catch (error) {
-      console.error('SSR Error fetching employees for filter:', error);
-    }
-  }
+  // Placeholder: Fetch actual stats from an API endpoint
+  const stats = {
+    available: 14,
+    pending: 2,
+    approved: 8,
+    usedThisYear: 6,
+  };
 
-  // TODO: If the user is a regular employee, potentially fetch their specific employee ID
-  // to pre-filter the list to only show their own requests.
+  // Placeholder: Fetch employees if needed for other filters later
+  // let employees: { id: number; name: string }[] = [];
+  // if (currentUserRole === 'Admin' || currentUserRole === 'DepartmentHead') { ... }
 
   return {
     props: {
-      employees,
+      // employees,
       currentUserRole,
-      session,
+      stats, // Pass fetched/mock stats
+      session, // Pass session if needed by child components
     },
   };
 };

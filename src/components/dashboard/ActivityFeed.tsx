@@ -43,10 +43,17 @@ const ActivityFeed: React.FC = () => {
     }, []);
 
     return (
-        <Card>
-            <div className="p-4">
-                <h3 className="text-md font-semibold text-gray-800 mb-4">Recent Activity</h3>
-
+        // Using Card component with flex column layout
+        <Card className="h-full flex flex-col">
+            {/* Card Header */}
+            <div className="flex justify-between items-center p-4 border-b border-gray-200">
+                <h3 className="text-md font-semibold text-gray-800">Recent Activity</h3>
+                <Link href="/activity" className="text-sm font-medium text-teal-600 hover:text-teal-800">
+                    View all <Icon iconName="fas fa-arrow-right" className="ml-1 text-xs" />
+                </Link>
+            </div>
+            {/* Card Body */}
+            <div className="p-4 flex-grow">
                 {/* Loading State */}
                 {loading && <p className="text-sm text-gray-500">Loading activity...</p>}
 
@@ -59,33 +66,26 @@ const ActivityFeed: React.FC = () => {
                         {activities.length === 0 ? (
                              <p className="text-sm text-gray-500">No recent activity.</p>
                         ) : (
+                            // Updated List Format
                             <div className="space-y-4">
-                                {activities.map((activity, index) => (
-                                    <div key={activity.id} className="relative pl-8">
-                                        {/* Timeline line */}
-                                        {index < activities.length - 1 && ( // Corrected operator
-                                            <span className="absolute left-[10px] top-5 -bottom-4 w-0.5 bg-gray-200" aria-hidden="true"></span>
-                                        )}
-                                        {/* Timeline badge/icon */}
-                                        {/* Ensure color classes are correctly generated (bg-* from text-*) */}
-                                        <div className={`absolute left-0 top-0.5 flex h-5 w-5 items-center justify-center rounded-full ${activity.color.replace('text-', 'bg-').replace('-500', '-100')}`}>
-                                            <Icon iconName={activity.icon} className={`h-3 w-3 ${activity.color}`} />
+                                {activities.map((activity) => (
+                                    <div key={activity.id} className="flex items-start space-x-3">
+                                        {/* Icon with background */}
+                                        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${activity.color.replace('text-', 'bg-').replace('-500', '-100')}`}>
+                                            <Icon iconName={activity.icon} className={`h-4 w-4 ${activity.color}`} />
                                         </div>
-                                        {/* Content */}
-                                        <p className="text-xs text-gray-500">{activity.time}</p>
-                                        <p className="text-sm text-gray-700">
-                                            <span className="font-medium text-gray-900">{activity.user}</span> {activity.description}
-                                        </p>
+                                        {/* Text Content */}
+                                        <div className="flex-grow">
+                                            <p className="text-sm text-gray-700">
+                                                <span className="font-semibold text-gray-900">{activity.user}</span> {activity.description}
+                                            </p>
+                                            <p className="text-xs text-gray-500 mt-0.5">{activity.time}</p>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
                         )}
-                         {/* Link to view all activity */}
-                         <div className="mt-5 text-right">
-                             <Link href="/activity" className="text-sm font-medium text-teal-600 hover:text-teal-800">
-                                 View all activity <Icon iconName="fas fa-arrow-right" className="ml-1 text-xs" />
-                             </Link>
-                         </div>
+                        {/* View All link moved to header */}
                     </>
                 )}
             </div>

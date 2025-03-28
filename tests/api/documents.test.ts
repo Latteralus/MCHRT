@@ -107,12 +107,12 @@ describe('Document API Routes', () => {
       // 1. Seed database
       const adminUser = await createTestUser({ role: Role.ADMIN });
       // Create documents (ownerId might be relevant depending on API logic)
-      const doc1 = await createTestDocument({ ownerId: adminUser.id, title: 'Doc A' });
-      const doc2 = await createTestDocument({ ownerId: adminUser.id, title: 'Doc B' });
+      const doc1 = await createTestDocument({ ownerId: adminUser.get('id') as number, title: 'Doc A' });
+      const doc2 = await createTestDocument({ ownerId: adminUser.get('id') as number, title: 'Doc B' });
 
       // 2. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, role: adminUser.role },
+        user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
         expires: faker.date.future().toISOString(),
       });
 
@@ -130,10 +130,10 @@ describe('Document API Routes', () => {
       expect(Array.isArray(responseData)).toBe(true);
       expect(responseData).toHaveLength(2);
       // Check if the returned data looks like document metadata
-      expect(responseData[0]).toHaveProperty('id', doc1.id);
+      expect(responseData[0]).toHaveProperty('id', doc1.get('id') as number);
       expect(responseData[0]).toHaveProperty('title', 'Doc A');
-      expect(responseData[0]).toHaveProperty('filePath', doc1.filePath);
-      expect(responseData[1]).toHaveProperty('id', doc2.id);
+      expect(responseData[0]).toHaveProperty('filePath', doc1.get('filePath') as string);
+      expect(responseData[1]).toHaveProperty('id', doc2.get('id') as number);
       expect(responseData[1]).toHaveProperty('title', 'Doc B');
     });
 
@@ -165,7 +165,7 @@ describe('Document API Routes', () => {
 
       // 2. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, role: adminUser.role },
+        user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
         expires: faker.date.future().toISOString(),
       });
 
@@ -178,7 +178,7 @@ describe('Document API Routes', () => {
       };
       const mockFields = {
         title: ['Test Document Title'], // formidable parses fields as arrays
-        employeeId: [employee.id.toString()], // Example: associating with an employee
+        employeeId: [(employee.get('id') as number).toString()], // Example: associating with an employee
         description: ['A test description.'],
       };
 
@@ -209,7 +209,7 @@ describe('Document API Routes', () => {
       const responseData = res._getJSONData();
       expect(responseData).toHaveProperty('id');
       expect(responseData).toHaveProperty('title', mockFields.title[0]);
-      expect(responseData).toHaveProperty('employeeId', employee.id);
+      expect(responseData).toHaveProperty('employeeId', employee.get('id') as number);
       expect(responseData).toHaveProperty('fileType', mockFile.mimetype);
       expect(responseData).toHaveProperty('fileSize', mockFile.size);
       expect(responseData).toHaveProperty('filePath'); // Check that a filePath is returned
@@ -217,8 +217,8 @@ describe('Document API Routes', () => {
       // 7. Verify DB record creation
       const createdRecord = await Document.findByPk(responseData.id);
       expect(createdRecord).not.toBeNull();
-      expect(createdRecord?.title).toBe(mockFields.title[0]);
-      expect(createdRecord?.filePath).toBe(responseData.filePath); // Ensure DB path matches response path
+      expect(createdRecord?.get('title')).toBe(mockFields.title[0]);
+      expect(createdRecord?.get('filePath')).toBe(responseData.filePath); // Ensure DB path matches response path
 
       // 8. Verify file system mock (rename) was called (optional but good)
       // This depends heavily on the implementation detail of where the file is saved
@@ -234,18 +234,18 @@ describe('Document API Routes', () => {
     it('should return metadata for a specific document for an authorized user', async () => {
       // 1. Seed database
       const adminUser = await createTestUser({ role: Role.ADMIN });
-      const doc = await createTestDocument({ ownerId: adminUser.id });
+      const doc = await createTestDocument({ ownerId: adminUser.get('id') as number });
 
       // 2. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, role: adminUser.role },
+        user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
         expires: faker.date.future().toISOString(),
       });
 
       // 3. Mock request/response objects
       const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
         method: 'GET',
-        query: { id: doc.id.toString() },
+        query: { id: (doc.get('id') as number).toString() },
       });
 
       // 4. Call the handler
@@ -254,10 +254,10 @@ describe('Document API Routes', () => {
       // 5. Assert response status and data
       expect(res._getStatusCode()).toBe(200);
       const responseData = res._getJSONData();
-      expect(responseData).toHaveProperty('id', doc.id);
-      expect(responseData).toHaveProperty('title', doc.title);
-      expect(responseData).toHaveProperty('filePath', doc.filePath);
-      expect(responseData).toHaveProperty('fileSize', doc.fileSize);
+      expect(responseData).toHaveProperty('id', doc.get('id') as number);
+      expect(responseData).toHaveProperty('title', doc.get('title') as string);
+      expect(responseData).toHaveProperty('filePath', doc.get('filePath') as string);
+      expect(responseData).toHaveProperty('fileSize', doc.get('fileSize') as number);
       // Should not return the actual file content here, just metadata
     });
 
@@ -265,7 +265,7 @@ describe('Document API Routes', () => {
         const adminUser = await createTestUser({ role: Role.ADMIN });
         const nonExistentId = 99999;
         mockGetSession.mockResolvedValue({
-          user: { id: adminUser.id, role: adminUser.role },
+          user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
           expires: faker.date.future().toISOString(),
         });
         const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
@@ -281,7 +281,7 @@ describe('Document API Routes', () => {
         mockGetSession.mockResolvedValue(null);
         const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
           method: 'GET',
-          query: { id: doc.id.toString() },
+          query: { id: (doc.get('id') as number).toString() },
         });
         await documentIdHandler(req, res);
         expect(res._getStatusCode()).toBe(401);
@@ -294,7 +294,7 @@ describe('Document API Routes', () => {
     it('should update metadata for a specific document when called by an authorized user', async () => {
       // 1. Seed database
       const adminUser = await createTestUser({ role: Role.ADMIN });
-      const doc = await createTestDocument({ ownerId: adminUser.id, title: 'Old Title' });
+      const doc = await createTestDocument({ ownerId: adminUser.get('id') as number, title: 'Old Title' });
 
       // 2. Prepare update data
       const updatePayload = {
@@ -305,14 +305,14 @@ describe('Document API Routes', () => {
 
       // 3. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, role: adminUser.role },
+        user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
         expires: faker.date.future().toISOString(),
       });
 
       // 4. Mock request/response objects
       const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
         method: 'PUT',
-        query: { id: doc.id.toString() },
+        query: { id: (doc.get('id') as number).toString() },
         body: updatePayload,
       });
 
@@ -322,14 +322,14 @@ describe('Document API Routes', () => {
       // 6. Assert response status and data
       expect(res._getStatusCode()).toBe(200);
       const responseData = res._getJSONData();
-      expect(responseData).toHaveProperty('id', doc.id);
+      expect(responseData).toHaveProperty('id', doc.get('id') as number);
       expect(responseData).toHaveProperty('title', updatePayload.title);
       expect(responseData).toHaveProperty('description', updatePayload.description);
 
       // 7. Verify update in DB
       await doc.reload();
-      expect(doc.title).toBe(updatePayload.title);
-      expect(doc.description).toBe(updatePayload.description);
+      expect(doc.get('title')).toBe(updatePayload.title);
+      expect(doc.get('description')).toBe(updatePayload.description);
     });
 
     it('should return 404 if document to update is not found', async () => {
@@ -337,7 +337,7 @@ describe('Document API Routes', () => {
         const nonExistentId = 99999;
         const updatePayload = { title: 'New Title' };
         mockGetSession.mockResolvedValue({
-          user: { id: adminUser.id, role: adminUser.role },
+          user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
           expires: faker.date.future().toISOString(),
         });
         const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
@@ -369,7 +369,7 @@ describe('Document API Routes', () => {
       // 1. Seed database
       const adminUser = await createTestUser({ role: Role.ADMIN });
       const doc = await createTestDocument({
-          ownerId: adminUser.id,
+          ownerId: adminUser.get('id') as number,
           filePath: 'test/path/document.pdf', // Use a predictable path for the test
           fileType: 'application/pdf',
           fileSize: 54321,
@@ -377,14 +377,14 @@ describe('Document API Routes', () => {
 
       // 2. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, username: adminUser.username, role: adminUser.role },
+        user: { id: adminUser.get('id') as number, username: adminUser.get('username') as string, role: adminUser.get('role') as string },
         expires: faker.date.future().toISOString(),
       });
 
       // 3. Mock request/response objects
       const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
         method: 'GET',
-        query: { id: doc.id.toString() },
+        query: { id: (doc.get('id') as number).toString() },
       });
 
       // 4. Call the handler
@@ -400,11 +400,11 @@ describe('Document API Routes', () => {
       expect(res._getHeaders()).toHaveProperty('content-type', 'application/pdf');
       expect(res._getHeaders()).toHaveProperty('content-length', '54321');
       // Check if Content-Disposition is set correctly (optional, depends on handler)
-      // expect(res._getHeaders()).toHaveProperty('content-disposition', expect.stringContaining(doc.title));
+      // expect(res._getHeaders()).toHaveProperty('content-disposition', expect.stringContaining(doc.get('title') as string));
 
       // 6. Assert that fs functions were called
-      expect(mockFsStat).toHaveBeenCalledWith(expect.stringContaining(doc.filePath));
-      expect(mockCreateReadStream).toHaveBeenCalledWith(expect.stringContaining(doc.filePath));
+      expect(mockFsStat).toHaveBeenCalledWith(expect.stringContaining(doc.get('filePath') as string));
+      expect(mockCreateReadStream).toHaveBeenCalledWith(expect.stringContaining(doc.get('filePath') as string));
 
       // 7. Assert the streamed content (optional, depends on mock stream implementation)
       // This requires capturing the output stream, which node-mocks-http doesn't do easily by default.
@@ -429,15 +429,15 @@ describe('Document API Routes', () => {
       // 1. Seed database
       const adminUser = await createTestUser({ role: Role.ADMIN });
       const doc = await createTestDocument({
-          ownerId: adminUser.id,
+          ownerId: adminUser.get('id') as number,
           filePath: 'test/to/be/deleted.txt', // Use a predictable path
       });
-      const docId = doc.id;
-      const docPath = doc.filePath;
+      const docId = doc.get('id') as number;
+      const docPath = doc.get('filePath') as string;
 
       // 2. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, role: adminUser.role },
+        user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
         expires: faker.date.future().toISOString(),
       });
 
@@ -465,7 +465,7 @@ describe('Document API Routes', () => {
         const adminUser = await createTestUser({ role: Role.ADMIN });
         const nonExistentId = 99999;
         mockGetSession.mockResolvedValue({
-          user: { id: adminUser.id, role: adminUser.role },
+          user: { id: adminUser.get('id') as number, role: adminUser.get('role') as string },
           expires: faker.date.future().toISOString(),
         });
         const { req, res } = createMocks<NextApiRequest, NextApiResponse>({

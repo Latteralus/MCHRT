@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the getter function
+import { getSequelizeInstance } from '@/db/sequelize'; // Use runtime Sequelize instance
 
 // Define the attributes for the Document model
 interface DocumentAttributes {
@@ -21,7 +21,7 @@ interface DocumentAttributes {
 export interface DocumentCreationAttributes extends Optional<DocumentAttributes, 'id' | 'createdAt' | 'updatedAt' | 'fileType' | 'fileSize' | 'ownerId' | 'employeeId' | 'departmentId' | 'version' | 'description'> {}
 
 // Define the Document model class
-class Document extends Model<DocumentAttributes, DocumentCreationAttributes> implements DocumentAttributes {
+class Document extends Model<DocumentAttributes, DocumentCreationAttributes> { // Removed 'implements DocumentAttributes'
   public id!: number;
   public title!: string;
   public filePath!: string;
