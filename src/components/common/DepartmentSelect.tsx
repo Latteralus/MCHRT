@@ -8,13 +8,15 @@ interface Department {
     // Add other fields if needed
 }
 
-interface DepartmentSelectProps extends Omit<SelectProps, 'options' | 'value' | 'onChange'> {
+interface DepartmentSelectProps extends Omit<SelectProps, 'options' | 'value' | 'onChange' | 'children' | 'label'> { // Omit label from SelectProps
+    label: string; // Make label required here
     value: string | number | undefined; // Allow number or string ID
     onChange: (value: string) => void; // Pass selected value (as string)
     placeholder?: string;
     required?: boolean;
     disabled?: boolean;
     className?: string;
+    // id is still passed via ...rest
 }
 
 const DepartmentSelect: React.FC<DepartmentSelectProps> = ({
@@ -24,6 +26,8 @@ const DepartmentSelect: React.FC<DepartmentSelectProps> = ({
     required,
     disabled,
     className,
+    id, // Explicitly destructure id
+    label, // Explicitly destructure label
     ...rest // Pass any remaining props to the underlying Select component
 }) => {
     const [departments, setDepartments] = useState<Department[]>([]);
@@ -58,8 +62,8 @@ const DepartmentSelect: React.FC<DepartmentSelectProps> = ({
     }));
 
     // Handle change event from the underlying Select component
-    const handleChange = (selectedValue: string) => {
-        onChange(selectedValue);
+    const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+        onChange(event.target.value); // Extract value from event
     };
 
     if (loading) {
@@ -72,15 +76,28 @@ const DepartmentSelect: React.FC<DepartmentSelectProps> = ({
 
     return (
         <Select
-            options={options}
+            id={id} // Pass id explicitly
+            label={label} // Pass label explicitly
             value={value?.toString()} // Ensure value passed to Select is string
             onChange={handleChange}
-            placeholder={placeholder}
             required={required}
             disabled={disabled || loading}
             className={className}
             {...rest} // Pass down other props like 'name', 'id', etc.
-        />
+        >
+            {/* Add placeholder option if provided */}
+            {placeholder && (
+                <option value="" disabled>
+                    {placeholder}
+                </option>
+            )}
+            {/* Map departments to option elements */}
+            {departments.map(dept => (
+                <option key={dept.id} value={dept.id.toString()}>
+                    {dept.name}
+                </option>
+            ))}
+        </Select>
     );
 };
 

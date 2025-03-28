@@ -72,6 +72,8 @@ const DepartmentReportsPage: React.FC<DepartmentReportsPageProps> = ({ currentUs
             <div>
                 <p className="mb-2">Select a department to view its report:</p>
                 <DepartmentSelect
+                    id="department-report-select" // Added id
+                    label="Select Department" // Added label
                     value={selectedDeptId ?? ''}
                     onChange={(value) => setSelectedDeptId(value)}
                     placeholder="Choose a department..."

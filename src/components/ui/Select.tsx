@@ -28,7 +28,7 @@ const Select: React.FC<SelectProps> = ({
       {label && (
         <label
           htmlFor={selectId}
-          className={`block text-sm font-medium text-gray-700 mb-1 ${labelClassName}`}
+          className={`block text-sm font-medium text-gray-700 mb-1 ${labelClassName} sr-only`} // Added sr-only
         >
           {label}
         </label>
