@@ -148,3 +148,45 @@
 *   **Jest `setupFilesAfterEnv`:** Use `setupFilesAfterEnv` to run the DB setup. While typically for test framework setup, it runs before tests in a suite, but *after* the environment is set up, which might be sufficient if `globalSetup` is too complex.
 *   **Manual Mocking:** Explicitly mock the models during the test setup phase and only unmock/import them after `beforeAll`.
 *   **Review `next/jest`:** Investigate if the `next/jest` wrapper introduces specific behaviors affecting module loading order or transformations.
+
+---
+
+## Vercel Build Debugging Notes (2025-03-28 ~03:00 AM MDT)
+
+**Problem:** Encountered a series of TypeScript and module resolution errors during Vercel builds after recent changes.
+
+**Debugging Steps & Fixes:**
+
+1.  **`src/pages/api/compliance/[id].ts` - Type Errors:**
+    *   Initial Error: `Interface 'ComplianceWithEmployee' incorrectly extends interface 'Compliance'` due to `employee?: Employee | null`.
+        *   *Fix:* Changed type to `employee?: Employee`.
+    *   Subsequent Errors: `Type 'Employee | undefined' is not assignable to type 'Employee'` and `'employee' is possibly 'undefined'` when accessing `employee.userId` or `employee.departmentId` after conditional checks.
+        *   *Fix:* Added non-null assertions (`employee!`) where TypeScript couldn't infer non-null status based on prior checks.
+    *   Final Error: `Type 'null' is not assignable to type 'number | undefined'` when passing `userDepartmentId` to `checkAccess`.
+        *   *Fix:* Used nullish coalescing (`userDepartmentId ?? undefined`) in the function call to convert potential `null` to `undefined`.
+
+2.  **`src/pages/api/leave/[id]/approve.ts` - Import & Type Errors:**
+    *   Error: `Module '"'db"'' has no exported member 'sequelize'`. (Build log showed corrupted path `''db''`, but actual file path `@/db` was correct).
+        *   *Investigation:* Checked `src/db/index.ts` and `src/db/mockDbSetup.ts`. Confirmed `sequelize` instance is accessed via `getSequelizeInstance()`.
+        *   *Fix:* Removed `sequelize` from `@/db` import, imported `getSequelizeInstance` from `@/db/mockDbSetup`, and replaced `sequelize.transaction()` with `getSequelizeInstance().transaction()`.
+    *   Error: `Argument of type 'Date' is not assignable to parameter of type 'string'` for `calculateLeaveDuration`.
+        *   *Fix:* Converted `Date` objects to ISO strings using `.toISOString()`.
+    *   Error: Duplicate argument `leaveRequest.leaveType` passed to `deductLeaveBalance`.
+        *   *Fix:* Removed the duplicate argument.
+    *   (Potential Error): Initial TS error suggested `deductLeaveBalance` expected `number` for `leaveType`, but function signature confirmed `string`. Assumed TS error was stale.
+
+3.  **`src/pages/api/leave/index.ts` - Redeclaration Error:**
+    *   Error: `Cannot redeclare block-scoped variable 'employeeId'`.
+        *   *Fix:* Removed duplicate destructuring assignment of `req.query`.
+
+4.  **`src/pages/index.tsx` - Type Error:**
+    *   Error: `Property 'username' does not exist on type '{...}'` when accessing `session.user.username`.
+        *   *Fix:* Removed the fallback access to `session.user.username`.
+
+5.  **`tests/db-setup.ts` - Module Resolution Error:**
+    *   Error: `Cannot find module 'umzug/storage/sequelize'`.
+        *   *Investigation:* Checked `package.json`, found `umzug` dependency was missing.
+        *   *Fix 1:* Installed `umzug` (`npm install umzug@^2.3.0`).
+        *   *Fix 2 (Error persisted):* Changed import from `import { SequelizeStorage } from 'umzug/storage/sequelize'` to `import { Umzug, SequelizeStorage } from 'umzug'`.
+
+**Outcome:** After these fixes, the Vercel build process is expected to succeed.
