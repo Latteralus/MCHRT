@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { sequelize } from '@/db/mockDbSetup'; // Adjust path as needed
+import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the getter function
 
 // Define the attributes for the Employee model
 interface EmployeeAttributes {
@@ -116,7 +116,7 @@ Employee.init(
     },
   },
   {
-    sequelize,
+    sequelize: getSequelizeInstance(), // Get the instance via the function
     tableName: 'Employees', // Explicitly define table name
     // Optional: Add indexes here if needed
     // indexes: [{ fields: ['lastName', 'firstName'] }]

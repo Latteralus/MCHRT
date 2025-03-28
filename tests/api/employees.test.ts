@@ -4,12 +4,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import handler from '@/pages/api/employees'; // Assuming default export for index route
 import employeeIdHandler from '@/pages/api/employees/[id]'; // Assuming default export for [id] route
 import { setupTestDb, teardownTestDb, clearTestDb } from '../db-setup';
-import User from '@/modules/auth/models/User';
-import Employee from '@/modules/employees/models/Employee';
-import Department from '@/modules/organization/models/Department';
-import { createTestUser, generateUserData } from '../fixtures/userFixtures'; // Use generate for POST data
-import { createTestEmployee, generateEmployeeData } from '../fixtures/employeeFixtures';
-import { createTestDepartment } from '../fixtures/departmentFixtures';
+// Models and fixtures will be imported inside describe block
 import { Role } from '@/types/roles';
 // Mock next-auth session
 jest.mock('next-auth/react', () => ({
@@ -24,9 +19,32 @@ const mockGetSession = getSession as jest.MockedFunction<typeof getSession>;
 
 
 describe('Employee API Routes', () => {
-  // Setup and teardown database before/after tests
+  // Import models and fixtures inside describe to ensure DB is setup first
+  let User: typeof import('@/modules/auth/models/User').default;
+  let Employee: typeof import('@/modules/employees/models/Employee').default;
+  let Department: typeof import('@/modules/organization/models/Department').default;
+  let createTestUser: typeof import('../fixtures/userFixtures').createTestUser;
+  let generateUserData: typeof import('../fixtures/userFixtures').generateUserData;
+  let createTestEmployee: typeof import('../fixtures/employeeFixtures').createTestEmployee;
+  let generateEmployeeData: typeof import('../fixtures/employeeFixtures').generateEmployeeData;
+  let createTestDepartment: typeof import('../fixtures/departmentFixtures').createTestDepartment;
+
   beforeAll(async () => {
+    // Perform DB setup which initializes Sequelize
     await setupTestDb();
+
+    // Dynamically import models and fixtures AFTER setup
+    User = (await import('@/modules/auth/models/User')).default;
+    Employee = (await import('@/modules/employees/models/Employee')).default;
+    Department = (await import('@/modules/organization/models/Department')).default;
+    const userFixtures = await import('../fixtures/userFixtures');
+    createTestUser = userFixtures.createTestUser;
+    generateUserData = userFixtures.generateUserData;
+    const employeeFixtures = await import('../fixtures/employeeFixtures');
+    createTestEmployee = employeeFixtures.createTestEmployee;
+    generateEmployeeData = employeeFixtures.generateEmployeeData;
+    const departmentFixtures = await import('../fixtures/departmentFixtures');
+    createTestDepartment = departmentFixtures.createTestDepartment;
   });
 
   afterAll(async () => {
@@ -135,17 +153,17 @@ describe('Employee API Routes', () => {
       expect(res._getStatusCode()).toBe(201);
       const responseData = res._getJSONData();
       expect(responseData).toHaveProperty('id'); // Should have an ID now
-      expect(responseData).toHaveProperty('firstName', newEmployeeData.firstName);
-      expect(responseData).toHaveProperty('lastName', newEmployeeData.lastName);
-      expect(responseData).toHaveProperty('departmentId', newEmployeeData.departmentId);
+      expect(responseData).toHaveProperty('firstName', requestBody.firstName);
+      expect(responseData).toHaveProperty('lastName', requestBody.lastName);
+      expect(responseData).toHaveProperty('departmentId', requestBody.departmentId);
       // Ensure sensitive data is not returned
       expect(responseData).not.toHaveProperty('ssnEncrypted');
 
       // 6. Verify employee created in DB
       const createdEmployee = await Employee.findByPk(responseData.id);
       expect(createdEmployee).not.toBeNull();
-      expect(createdEmployee?.firstName).toBe(newEmployeeData.firstName);
-      expect(createdEmployee?.departmentId).toBe(newEmployeeData.departmentId);
+      expect(createdEmployee?.firstName).toBe(requestBody.firstName);
+      expect(createdEmployee?.departmentId).toBe(requestBody.departmentId);
     });
 
     it('should return 403 if user is not an admin', async () => {

@@ -1,6 +1,6 @@
 // src/modules/leave/models/LeaveBalance.ts
 import { DataTypes, Model, Optional } from 'sequelize';
-import { sequelize } from '@/db/mockDbSetup'; // Adjust path as needed
+import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the getter function
 import type Employee from '@/modules/employees/models/Employee'; // Import Employee type
 
 // Define the attributes for the LeaveBalance model
@@ -95,7 +95,7 @@ LeaveBalance.init(
     },
   },
   {
-    sequelize,
+    sequelize: getSequelizeInstance(), // Get the instance via the function
     tableName: 'LeaveBalances', // Explicitly define table name
     indexes: [
       // Ensure an employee can only have one balance record per leave type

@@ -1,30 +1,22 @@
 // tests/db-setup.ts
 import { Sequelize, QueryInterface } from 'sequelize';
 import { Umzug, SequelizeStorage } from 'umzug';
-import { sequelize } from '@/db'; // Import the named export
+import { setSequelizeInstance, getSequelizeInstance } from '@/db/mockDbSetup'; // Import setter and getter
+// Config will be imported inside setupTestDb
 import path from 'path';
 
-// Import all models to ensure they are registered with Sequelize
-// Adjust paths as necessary based on actual model locations
-import '@/modules/auth/models/User';
-import '@/modules/organization/models/Department';
-import '@/modules/employees/models/Employee';
-import '@/modules/attendance/models/Attendance';
-import '@/modules/leave/models/Leave';
-import '@/modules/leave/models/LeaveBalance'; // Added
-import '@/modules/compliance/models/Compliance';
-import '@/modules/documents/models/Document';
-import '@/modules/tasks/models/Task'; // Added
+// --- Sequelize instance will be created and set in setupTestDb ---
 
-// Ensure associations are loaded
-import '@/db/associations';
+// Models and associations will be imported inside setupTestDb
 
+// Define umzug instance outside setup
+// or ensure sequelize instance is set before umzug uses it.
+// For simplicity, we'll assume umzug can be defined here and uses the getter which works *after* setupTestDb runs.
 const umzug = new Umzug({
   migrations: {
     glob: path.join(__dirname, '../migrations/*.js'), // Path to migrations
-    resolve: ({ name, path, context }: { name: string; path: string; context: QueryInterface }) => {
-      // Adjust the migration resolution as needed, especially if context is required
-      const migration = require(path);
+    resolve: ({ name, path: migrationPath, context }: { name: string; path: string; context: QueryInterface }) => {
+      const migration = require(migrationPath);
       return {
         name,
         up: async () => migration.up(context, Sequelize),
@@ -32,18 +24,45 @@ const umzug = new Umzug({
       };
     },
   },
-  context: sequelize.getQueryInterface(), // Pass queryInterface as context
-  storage: new SequelizeStorage({ sequelize }),
-  logger: undefined, // Disable Umzug logging for tests, or use console.log for debugging
+  // These will use getSequelizeInstance(), which requires the instance to be set first
+  context: () => getSequelizeInstance().getQueryInterface(),
+  storage: new SequelizeStorage({ sequelize: () => getSequelizeInstance() }),
+  logger: undefined,
 });
 
+
 export const setupTestDb = async () => {
+  // Import config HERE, inside the async function run by beforeAll, using alias
+  const { dbConfig } = await import('@/config/config');
+  const testConfig = dbConfig.test;
+  if (!testConfig) {
+      throw new Error('Test database configuration not found in config/config.ts');
+  }
+
+  // Create and set the instance HERE
+  const sequelizeTestInstance = new Sequelize(testConfig);
+  setSequelizeInstance(sequelizeTestInstance);
+
+  // Dynamically import models and associations HERE, AFTER instance is set
+  // This ensures models use the correct, initialized Sequelize instance
+  await import('@/modules/auth/models/User');
+  await import('@/modules/organization/models/Department');
+  await import('@/modules/employees/models/Employee');
+  await import('@/modules/attendance/models/Attendance');
+  await import('@/modules/leave/models/Leave');
+  await import('@/modules/leave/models/LeaveBalance');
+  await import('@/modules/compliance/models/Compliance');
+  await import('@/modules/documents/models/Document');
+  await import('@/modules/tasks/models/Task');
+  await import('@/db/associations'); // Run association logic
+
+  const sequelize = getSequelizeInstance(); // Now we can get the instance safely
   try {
-    // Ensure connection is established (sync might do this, but explicit connect is safer)
+    // Ensure connection is established
     await sequelize.authenticate();
     console.log('Test DB Connection established.');
 
-    // Run all migrations
+    // Run all migrations using the now-initialized instance
     await umzug.up();
     console.log('Migrations applied successfully.');
 
@@ -54,6 +73,7 @@ export const setupTestDb = async () => {
 };
 
 export const teardownTestDb = async () => {
+  const sequelize = getSequelizeInstance(); // Get instance
   try {
     // Close the database connection
     await sequelize.close();
@@ -66,6 +86,7 @@ export const teardownTestDb = async () => {
 
 // Optional: Function to clear data between tests for isolation
 export const clearTestDb = async () => {
+    const sequelize = getSequelizeInstance(); // Get instance
     try {
         const models = sequelize.models;
         // Need to delete in an order that respects foreign key constraints,

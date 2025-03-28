@@ -4,12 +4,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import handler from '@/pages/api/compliance'; // Assuming default export for index route
 import complianceIdHandler from '@/pages/api/compliance/[id]'; // Assuming default export for [id] route
 import { setupTestDb, teardownTestDb, clearTestDb } from '../db-setup';
-import User from '@/modules/auth/models/User';
-import Employee from '@/modules/employees/models/Employee';
-import Compliance from '@/modules/compliance/models/Compliance';
-import { createTestUser } from '../fixtures/userFixtures';
-import { createTestEmployee } from '../fixtures/employeeFixtures';
-import { createTestCompliance, generateComplianceData } from '../fixtures/complianceFixtures';
+// Models and fixtures will be imported inside describe block
 import { Role } from '@/types/roles';
 import { faker } from '@faker-js/faker';
 // Mock next-auth session
@@ -23,9 +18,30 @@ const mockGetSession = getSession as jest.MockedFunction<typeof getSession>;
 
 
 describe('Compliance API Routes', () => {
-  // Setup and teardown database before/after tests
+  // Import models and fixtures inside describe
+  let User: typeof import('@/modules/auth/models/User').default;
+  let Employee: typeof import('@/modules/employees/models/Employee').default;
+  let Compliance: typeof import('@/modules/compliance/models/Compliance').default;
+  let createTestUser: typeof import('../fixtures/userFixtures').createTestUser;
+  let createTestEmployee: typeof import('../fixtures/employeeFixtures').createTestEmployee;
+  let createTestCompliance: typeof import('../fixtures/complianceFixtures').createTestCompliance;
+  let generateComplianceData: typeof import('../fixtures/complianceFixtures').generateComplianceData;
+
   beforeAll(async () => {
+    // Perform DB setup which initializes Sequelize
     await setupTestDb();
+
+    // Dynamically import models and fixtures AFTER setup
+    User = (await import('@/modules/auth/models/User')).default;
+    Employee = (await import('@/modules/employees/models/Employee')).default;
+    Compliance = (await import('@/modules/compliance/models/Compliance')).default;
+    const userFixtures = await import('../fixtures/userFixtures');
+    createTestUser = userFixtures.createTestUser;
+    const employeeFixtures = await import('../fixtures/employeeFixtures');
+    createTestEmployee = employeeFixtures.createTestEmployee;
+    const complianceFixtures = await import('../fixtures/complianceFixtures');
+    createTestCompliance = complianceFixtures.createTestCompliance;
+    generateComplianceData = complianceFixtures.generateComplianceData;
   });
 
   afterAll(async () => {
@@ -151,26 +167,183 @@ describe('Compliance API Routes', () => {
   });
 
   describe('GET /api/compliance/[id]', () => {
-    it('should return a specific compliance item', async () => {
-      // TODO: Implement test
-      expect(true).toBe(true); // Placeholder
+    it('should return a specific compliance item for an authorized user', async () => {
+      // 1. Seed database
+      const adminUser = await createTestUser({ role: Role.ADMIN });
+      const employee = await createTestEmployee({});
+      const item = await createTestCompliance({ employeeId: employee.id });
+
+      // 2. Mock session
+      mockGetSession.mockResolvedValue({
+        user: { id: adminUser.id, username: adminUser.username, role: adminUser.role },
+        expires: faker.date.future().toISOString(),
+      });
+
+      // 3. Mock request/response objects
+      const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+        method: 'GET',
+        query: { id: item.id.toString() },
+      });
+
+      // 4. Call the handler
+      await complianceIdHandler(req, res);
+
+      // 5. Assert response status and data
+      expect(res._getStatusCode()).toBe(200);
+      const responseData = res._getJSONData();
+      expect(responseData).toHaveProperty('id', item.id);
+      expect(responseData).toHaveProperty('employeeId', item.employeeId);
+      expect(responseData).toHaveProperty('itemName', item.itemName);
+      expect(responseData).toHaveProperty('status', item.status);
     });
-    // TODO: Add tests for not found, RBAC
+
+    it('should return 404 if compliance item is not found', async () => {
+        const adminUser = await createTestUser({ role: Role.ADMIN });
+        const nonExistentId = 99999;
+        mockGetSession.mockResolvedValue({
+          user: { id: adminUser.id, username: adminUser.username, role: adminUser.role },
+          expires: faker.date.future().toISOString(),
+        });
+        const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+          method: 'GET',
+          query: { id: nonExistentId.toString() },
+        });
+        await complianceIdHandler(req, res);
+        expect(res._getStatusCode()).toBe(404);
+    });
+
+     it('should return 401 if user is not authenticated', async () => {
+        const employee = await createTestEmployee({});
+        const item = await createTestCompliance({ employeeId: employee.id });
+        mockGetSession.mockResolvedValue(null);
+        const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+          method: 'GET',
+          query: { id: item.id.toString() },
+        });
+        await complianceIdHandler(req, res);
+        expect(res._getStatusCode()).toBe(401);
+    });
+
+    // TODO: Add tests for RBAC (employee seeing own, manager seeing dept)
   });
 
   describe('PUT /api/compliance/[id]', () => {
-    it('should update a specific compliance item', async () => {
-      // TODO: Implement test
-      expect(true).toBe(true); // Placeholder
+    it('should update a specific compliance item when called by an admin', async () => {
+      // 1. Seed database
+      const adminUser = await createTestUser({ role: Role.ADMIN });
+      const employee = await createTestEmployee({});
+      const item = await createTestCompliance({
+        employeeId: employee.id,
+        itemName: 'Initial Training',
+        status: 'PendingReview',
+      });
+
+      // 2. Prepare update data
+      const updatePayload = {
+        itemName: 'Completed Initial Training',
+        status: 'Active',
+        issueDate: '2024-03-28', // Add issue date upon completion
+      };
+
+      // 3. Mock session
+      mockGetSession.mockResolvedValue({
+        user: { id: adminUser.id, username: adminUser.username, role: adminUser.role },
+        expires: faker.date.future().toISOString(),
+      });
+
+      // 4. Mock request/response objects
+      const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+        method: 'PUT',
+        query: { id: item.id.toString() },
+        body: updatePayload,
+      });
+
+      // 5. Call the handler
+      await complianceIdHandler(req, res);
+
+      // 6. Assert response status and data
+      expect(res._getStatusCode()).toBe(200);
+      const responseData = res._getJSONData();
+      expect(responseData).toHaveProperty('id', item.id);
+      expect(responseData).toHaveProperty('itemName', updatePayload.itemName);
+      expect(responseData).toHaveProperty('status', updatePayload.status);
+      expect(responseData).toHaveProperty('issueDate', updatePayload.issueDate);
+
+      // 7. Verify update in DB
+      await item.reload();
+      expect(item.itemName).toBe(updatePayload.itemName);
+      expect(item.status).toBe(updatePayload.status);
+      expect(item.issueDate).toBe(updatePayload.issueDate);
     });
-    // TODO: Add tests for validation errors, not found, RBAC
+
+    it('should return 403 if user is not an admin', async () => {
+        const user = await createTestUser({ role: Role.EMPLOYEE });
+        const employee = await createTestEmployee({ userId: user.id });
+        const item = await createTestCompliance({ employeeId: employee.id });
+        const updatePayload = { status: 'Active' };
+        mockGetSession.mockResolvedValue({
+          user: { id: user.id, username: user.username, role: user.role },
+          expires: faker.date.future().toISOString(),
+        });
+        const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+          method: 'PUT',
+          query: { id: item.id.toString() },
+          body: updatePayload,
+        });
+        await complianceIdHandler(req, res);
+        expect(res._getStatusCode()).toBe(403); // Assuming only admin can update
+    });
+
+    // TODO: Add tests for validation errors, not found
   });
 
   describe('DELETE /api/compliance/[id]', () => {
-    it('should delete a specific compliance item', async () => {
-      // TODO: Implement test
-      expect(true).toBe(true); // Placeholder
+    it('should delete a specific compliance item when called by an admin', async () => {
+      // 1. Seed database
+      const adminUser = await createTestUser({ role: Role.ADMIN });
+      const employee = await createTestEmployee({});
+      const item = await createTestCompliance({ employeeId: employee.id });
+      const itemId = item.id; // Store ID
+
+      // 2. Mock session
+      mockGetSession.mockResolvedValue({
+        user: { id: adminUser.id, username: adminUser.username, role: adminUser.role },
+        expires: faker.date.future().toISOString(),
+      });
+
+      // 3. Mock request/response objects
+      const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+        method: 'DELETE',
+        query: { id: itemId.toString() },
+      });
+
+      // 4. Call the handler
+      await complianceIdHandler(req, res);
+
+      // 5. Assert response status
+      expect([200, 204]).toContain(res._getStatusCode());
+
+      // 6. Verify record deleted from DB
+      const deletedRecord = await Compliance.findByPk(itemId);
+      expect(deletedRecord).toBeNull();
     });
-    // TODO: Add tests for not found, RBAC
+
+    it('should return 403 if user is not an admin', async () => {
+        const user = await createTestUser({ role: Role.EMPLOYEE });
+        const employee = await createTestEmployee({ userId: user.id });
+        const item = await createTestCompliance({ employeeId: employee.id });
+        mockGetSession.mockResolvedValue({
+          user: { id: user.id, username: user.username, role: user.role },
+          expires: faker.date.future().toISOString(),
+        });
+        const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+          method: 'DELETE',
+          query: { id: item.id.toString() },
+        });
+        await complianceIdHandler(req, res);
+        expect(res._getStatusCode()).toBe(403); // Assuming only admin can delete
+    });
+
+    // TODO: Add tests for not found
   });
 });

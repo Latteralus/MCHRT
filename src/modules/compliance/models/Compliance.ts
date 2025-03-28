@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { sequelize } from '@/db/mockDbSetup'; // Adjust path as needed
+import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the getter function
 import Employee from '@/modules/employees/models/Employee'; // Import Employee model for association typing
 
 // Define possible compliance item statuses (consider using enums)
@@ -111,7 +111,7 @@ Compliance.init(
     },
   },
   {
-    sequelize,
+    sequelize: getSequelizeInstance(), // Get the instance via the function
     tableName: 'ComplianceItems', // Explicitly define table name
     // Optional: Add indexes here if needed
     // indexes: [{ fields: ['employeeId', 'expirationDate'] }]

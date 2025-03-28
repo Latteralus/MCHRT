@@ -1,4 +1,7 @@
-import { sequelize, testConnection } from './mockDbSetup'; // Import the initialized instance
+// Only import testConnection - Initialization happens elsewhere
+// Models will import getSequelizeInstance directly from mockDbSetup
+import { testConnection } from './mockDbSetup';
+
 
 // Import all models
 import User from '@/modules/auth/models/User';
@@ -27,10 +30,10 @@ import { defineAssociations } from './associations';
 defineAssociations(); // Ensure associations are set up
 
 // Optional: Test connection on startup (can be removed in production)
-// testConnection();
+// testConnection(); // Requires instance to be set first
 
-// Export the sequelize instance and all models
-export { sequelize, models, testConnection };
+// Export the models object and testConnection
+export { models, testConnection };
 
 // Export models individually for easier direct import if preferred
 export {

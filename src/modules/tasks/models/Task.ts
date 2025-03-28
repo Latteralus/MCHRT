@@ -1,6 +1,6 @@
 // src/modules/tasks/models/Task.ts
 import { DataTypes, Model, Optional } from 'sequelize';
-import { sequelize } from '@/db/mockDbSetup'; // Adjust path as needed
+import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the getter function
 import Employee from '@/modules/employees/models/Employee'; // For assignee
 import User from '@/modules/auth/models/User'; // For creator
 
@@ -111,7 +111,7 @@ Task.init(
         },
     },
     {
-        sequelize,
+        sequelize: getSequelizeInstance(), // Get the instance via the function
         tableName: 'Tasks',
         // Optional: Add indexes
         // indexes: [{ fields: ['assignedToId', 'status'] }, { fields: ['relatedEntityType', 'relatedEntityId'] }]

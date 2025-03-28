@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { sequelize } from '@/db/mockDbSetup'; // Adjust path as needed
+import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the getter function
 import type Employee from '@/modules/employees/models/Employee'; // Import Employee type
 import type User from '@/modules/auth/models/User'; // Import User type
 
@@ -125,7 +125,7 @@ Leave.init(
     },
   },
   {
-    sequelize,
+    sequelize: getSequelizeInstance(), // Get the instance via the function
     tableName: 'Leaves', // Explicitly define table name
     // Optional: Add indexes here if needed
     // indexes: [{ fields: ['employeeId', 'startDate'] }]

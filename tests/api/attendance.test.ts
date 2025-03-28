@@ -4,12 +4,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import handler from '@/pages/api/attendance'; // Assuming default export for index route
 import attendanceIdHandler from '@/pages/api/attendance/[id]'; // Assuming default export for [id] route
 import { setupTestDb, teardownTestDb, clearTestDb } from '../db-setup';
-import User from '@/modules/auth/models/User';
-import Employee from '@/modules/employees/models/Employee';
-import Attendance from '@/modules/attendance/models/Attendance';
-import { createTestUser } from '../fixtures/userFixtures';
-import { createTestEmployee } from '../fixtures/employeeFixtures';
-import { createTestAttendance, generateAttendanceData } from '../fixtures/attendanceFixtures';
+// Models and fixtures will be imported inside describe block
 import { Role } from '@/types/roles';
 import { faker } from '@faker-js/faker';
 // Mock next-auth session
@@ -23,9 +18,30 @@ const mockGetSession = getSession as jest.MockedFunction<typeof getSession>;
 
 
 describe('Attendance API Routes', () => {
-  // Setup and teardown database before/after tests
+  // Import models and fixtures inside describe
+  let User: typeof import('@/modules/auth/models/User').default;
+  let Employee: typeof import('@/modules/employees/models/Employee').default;
+  let Attendance: typeof import('@/modules/attendance/models/Attendance').default;
+  let createTestUser: typeof import('../fixtures/userFixtures').createTestUser;
+  let createTestEmployee: typeof import('../fixtures/employeeFixtures').createTestEmployee;
+  let createTestAttendance: typeof import('../fixtures/attendanceFixtures').createTestAttendance;
+  let generateAttendanceData: typeof import('../fixtures/attendanceFixtures').generateAttendanceData;
+
   beforeAll(async () => {
+    // Perform DB setup which initializes Sequelize
     await setupTestDb();
+
+    // Dynamically import models and fixtures AFTER setup
+    User = (await import('@/modules/auth/models/User')).default;
+    Employee = (await import('@/modules/employees/models/Employee')).default;
+    Attendance = (await import('@/modules/attendance/models/Attendance')).default;
+    const userFixtures = await import('../fixtures/userFixtures');
+    createTestUser = userFixtures.createTestUser;
+    const employeeFixtures = await import('../fixtures/employeeFixtures');
+    createTestEmployee = employeeFixtures.createTestEmployee;
+    const attendanceFixtures = await import('../fixtures/attendanceFixtures');
+    createTestAttendance = attendanceFixtures.createTestAttendance;
+    generateAttendanceData = attendanceFixtures.generateAttendanceData;
   });
 
   afterAll(async () => {

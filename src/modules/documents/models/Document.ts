@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { sequelize } from '@/db/mockDbSetup'; // Adjust path as needed
+import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the getter function
 
 // Define the attributes for the Document model
 interface DocumentAttributes {
@@ -18,7 +18,7 @@ interface DocumentAttributes {
 }
 
 // Define creation attributes (optional fields for creation)
-interface DocumentCreationAttributes extends Optional<DocumentAttributes, 'id' | 'createdAt' | 'updatedAt' | 'fileType' | 'fileSize' | 'ownerId' | 'employeeId' | 'departmentId' | 'version' | 'description'> {}
+export interface DocumentCreationAttributes extends Optional<DocumentAttributes, 'id' | 'createdAt' | 'updatedAt' | 'fileType' | 'fileSize' | 'ownerId' | 'employeeId' | 'departmentId' | 'version' | 'description'> {}
 
 // Define the Document model class
 class Document extends Model<DocumentAttributes, DocumentCreationAttributes> implements DocumentAttributes {
@@ -122,7 +122,7 @@ Document.init(
     },
   },
   {
-    sequelize,
+    sequelize: getSequelizeInstance(), // Get the instance via the function
     tableName: 'Documents', // Explicitly define table name
     // Optional: Add indexes here if needed
     // indexes: [{ fields: ['employeeId'] }, { fields: ['departmentId'] }]

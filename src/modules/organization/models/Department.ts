@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { sequelize } from '@/db/mockDbSetup'; // Adjust path as needed
+import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the getter function
 
 // Define the attributes for the Department model
 interface DepartmentAttributes {
@@ -66,7 +66,7 @@ Department.init(
     },
   },
   {
-    sequelize,
+    sequelize: getSequelizeInstance(), // Get the instance via the function
     tableName: 'Departments', // Explicitly define table name
     // Optional: Add indexes here if needed
     // indexes: [{ unique: true, fields: ['name'] }]

@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { sequelize } from '@/db/mockDbSetup'; // Adjust path as needed based on final db setup location
+import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the getter function
 
 // Define the attributes for the User model
 interface UserAttributes {
@@ -76,7 +76,7 @@ User.init(
     },
   },
   {
-    sequelize,
+    sequelize: getSequelizeInstance(), // Get the instance via the function
     tableName: 'Users', // Explicitly define table name
     // Optional: Add indexes here if needed
     // indexes: [{ unique: true, fields: ['username'] }]

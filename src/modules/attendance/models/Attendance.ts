@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { sequelize } from '@/db/mockDbSetup'; // Adjust path as needed
+import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the getter function
 
 // Define the attributes for the Attendance model
 interface AttendanceAttributes {
@@ -76,7 +76,7 @@ Attendance.init(
     },
   },
   {
-    sequelize,
+    sequelize: getSequelizeInstance(), // Get the instance via the function
     tableName: 'Attendance', // Explicitly define table name
     // Optional: Add indexes here if needed, e.g., for querying by employee and date
     // indexes: [{ fields: ['employeeId', 'date'] }]

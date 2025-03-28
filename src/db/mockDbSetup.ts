@@ -1,39 +1,38 @@
 import { Sequelize } from 'sequelize';
-import { dbConfig } from './config'; // Import the configuration
 
-// Determine the environment (default to development if not set)
-const env = process.env.NODE_ENV || 'development';
-const config = dbConfig[env as keyof typeof dbConfig]; // Get the config for the current environment
+// This variable will be set externally (e.g., by test setup or main app entry point)
+let sequelizeInstance: Sequelize | null = null;
 
-// Initialize Sequelize instance
-let sequelize: Sequelize;
+// Function to SET the instance
+export const setSequelizeInstance = (instance: Sequelize): void => {
+    if (sequelizeInstance) {
+        console.warn('Sequelize instance is being overwritten.');
+    }
+    sequelizeInstance = instance;
+};
 
-if (config) {
-  sequelize = new Sequelize({
-    ...config, // Spread the configuration options
-  });
-} else {
-  console.error(`Database configuration for environment "${env}" not found.`);
-  process.exit(1); // Exit if config is missing
-}
+// Function to GET the instance
+export const getSequelizeInstance = (): Sequelize => {
+    if (!sequelizeInstance) {
+        // This error might occur if models are imported before the instance is set
+        throw new Error('Sequelize has not been initialized or set.');
+    }
+    return sequelizeInstance;
+};
 
-// Function to test the database connection
-const testConnection = async () => {
+// Function to test the database connection (if needed, uses the getter)
+export const testConnection = async () => {
+  if (!sequelizeInstance) {
+      console.error('Cannot test connection, Sequelize instance not set.');
+      return;
+  }
   try {
-    await sequelize.authenticate();
-    console.log(`Database connection has been established successfully for environment: ${env}.`);
-    // In a real setup, you might sync models here for development:
-    // await sequelize.sync({ force: true }); // Use { force: true } cautiously - it drops tables!
-    // console.log("All models were synchronized successfully.");
+    await sequelizeInstance.authenticate();
+    console.log(`Database connection test successful.`);
   } catch (error) {
     console.error('Unable to connect to the database:', error);
   }
 };
 
-// Export the initialized sequelize instance for use in other parts of the application
-export { sequelize, testConnection };
-
-// If this script is run directly (e.g., `node src/db/mockDbSetup.js`), test the connection
-if (require.main === module) {
-  testConnection();
-}
+// Export the getter and setter
+export { setSequelizeInstance, getSequelizeInstance, testConnection };

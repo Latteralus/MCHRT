@@ -7,12 +7,7 @@ import leaveIdHandler from '@/pages/api/leave/[id]'; // Assuming default export 
 // import approveHandler from '@/pages/api/leave/[id]/approve';
 // import rejectHandler from '@/pages/api/leave/[id]/reject';
 import { setupTestDb, teardownTestDb, clearTestDb } from '../db-setup';
-import User from '@/modules/auth/models/User';
-import Employee from '@/modules/employees/models/Employee';
-import Leave from '@/modules/leave/models/Leave';
-import { createTestUser } from '../fixtures/userFixtures';
-import { createTestEmployee } from '../fixtures/employeeFixtures';
-import { createTestLeave, generateLeaveData } from '../fixtures/leaveFixtures';
+// Models and fixtures will be imported inside describe block
 import { Role } from '@/types/roles';
 import { faker } from '@faker-js/faker';
 // Mock next-auth session
@@ -26,9 +21,30 @@ const mockGetSession = getSession as jest.MockedFunction<typeof getSession>;
 
 
 describe('Leave API Routes', () => {
-  // Setup and teardown database before/after tests
+  // Import models and fixtures inside describe
+  let User: typeof import('@/modules/auth/models/User').default;
+  let Employee: typeof import('@/modules/employees/models/Employee').default;
+  let Leave: typeof import('@/modules/leave/models/Leave').default;
+  let createTestUser: typeof import('../fixtures/userFixtures').createTestUser;
+  let createTestEmployee: typeof import('../fixtures/employeeFixtures').createTestEmployee;
+  let createTestLeave: typeof import('../fixtures/leaveFixtures').createTestLeave;
+  let generateLeaveData: typeof import('../fixtures/leaveFixtures').generateLeaveData;
+
   beforeAll(async () => {
+    // Perform DB setup which initializes Sequelize
     await setupTestDb();
+
+    // Dynamically import models and fixtures AFTER setup
+    User = (await import('@/modules/auth/models/User')).default;
+    Employee = (await import('@/modules/employees/models/Employee')).default;
+    Leave = (await import('@/modules/leave/models/Leave')).default;
+    const userFixtures = await import('../fixtures/userFixtures');
+    createTestUser = userFixtures.createTestUser;
+    const employeeFixtures = await import('../fixtures/employeeFixtures');
+    createTestEmployee = employeeFixtures.createTestEmployee;
+    const leaveFixtures = await import('../fixtures/leaveFixtures');
+    createTestLeave = leaveFixtures.createTestLeave;
+    generateLeaveData = leaveFixtures.generateLeaveData;
   });
 
   afterAll(async () => {

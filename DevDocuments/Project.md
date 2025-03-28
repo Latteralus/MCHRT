@@ -4,7 +4,7 @@
 - [x] Initialize Next.js project with TypeScript
 - [x] Set up project folder structure
 - [x] Configure ESLint and Prettier
-- [x] Create mock database (SQLite) configuration
+- [x] Create mock database (SQLite) configuration (`src/config/config.ts`)
 - [x] Set up NextAuth with CredentialsProvider
 - [x] Implement basic authentication (login page)
 - [x] Create basic layout components (MainLayout, Sidebar) (TopBar removed)
@@ -70,7 +70,7 @@
 ## Phase 8: Testing & Documentation
 - [/] Create unit tests for critical functions (leaveBalanceService done)
   - `npx jest tests/unit/services/leaveBalanceService.test.ts`
-- [ ] Add integration tests for API routes
+- [/] Add integration tests for API routes (Basic CRUD tests written for Employees, Attendance, Leave, Compliance, Documents; **Blocked by Jest/Sequelize initialization issue**)
 - [ ] Implement E2E tests for critical user flows
 - [ ] Document database schema
 - [ ] Create API documentation
@@ -84,489 +84,11 @@
 - [ ] Set up deployment configuration
 - [ ] Document known limitations and future improvements
 
-MCHRT/
-│
-├── public/                     # Static assets
-│   ├── favicon.ico
-│   ├── logo.svg
-│   └── images/
-│
-├── src/
-│   ├── components/             # Reusable UI components
-│   │   ├── auth/               # Authentication components
-│   │   │   ├── LoginForm.tsx
-│   │   │   └── PasswordReset.tsx
-│   │   │
-│   │   ├── common/             # Common UI elements
-│   │   │   ├── Table.tsx
-│   │   │   ├── Pagination.tsx
-│   │   │   ├── FilterBar.tsx
-│   │   │   ├── SortableHeader.tsx
-│   │   │   ├── EmptyState.tsx
-│   │   │   ├── ErrorMessage.tsx
-│   │   │   └── ErrorBoundary.tsx
-│   │   │
-│   │   ├── dashboard/          # Dashboard components
-│   │   │   ├── DashboardLayout.tsx
-│   │   │   ├── Grid.tsx
-│   │   │   ├── Container.tsx
-│   │   │   ├── MetricCard.tsx
-│   │   │   ├── MetricsRow.tsx
-│   │   │   ├── ActivityFeed.tsx
-│   │   │   ├── WidgetContainer.tsx
-│   │   │   └── widgets/
-│   │   │       ├── EmployeeStats.tsx
-│   │   │       ├── AttendanceWidget.tsx
-│   │   │       ├── ComplianceStatsWidget.tsx  # Added
-│   │   │       ├── ExpiringComplianceWidget.tsx # Added (Replaces ComplianceWidget?)
-│   │   │       ├── LeaveWidget.tsx
-│   │   │       └── RecentDocuments.tsx
-│   │   │
-│   │   ├── employees/          # Employee management components
-│   │   │   ├── EmployeeList.tsx
-│   │   │   ├── EmployeeFilters.tsx
-│   │   │   ├── EmployeeDetails.tsx
-│   │   │   ├── EmployeeTabs.tsx
-│   │   │   ├── EmployeeForm.tsx
-│   │   │   └── DepartmentSelect.tsx
-│   │   │
-│   │   ├── attendance/         # Attendance components
-│   │   │   ├── AttendanceForm.tsx
-│   │   │   ├── AttendanceList.tsx
-│   │   │   └── DailyAttendance.tsx
-│   │   │
-│   │   ├── leave/              # Leave management components
-│   │   │   ├── LeaveRequestForm.tsx
-│   │   │   ├── LeaveRequestList.tsx
-│   │   │   ├── ApprovalActions.tsx
-│   │   │   └── LeaveBalance.tsx
-│   │   │
-│   │   ├── compliance/         # Compliance components
-│   │   │   ├── ComplianceList.tsx   # Renamed/Replaced LicenseList? (Added)
-│   │   │   ├── ComplianceForm.tsx   # Renamed/Replaced LicenseForm? (Added)
-│   │   │   ├── ExpirationMonitor.tsx # Likely replaced by service logic
-│   │   │   ├── ComplianceStats.tsx   # Component for stats (may be widget now)
-│   │   │   ├── DepartmentCompliance.tsx
-│   │   │   └── StatusCards.tsx
-│   │   │
-│   │   ├── documents/          # Document management components
-│   │   │   ├── UploadForm.tsx      # Added
-│   │   │   ├── DocumentList.tsx      # Added
-│   │   │   ├── DocumentViewer.tsx    # Placeholder/Future
-│   │   │   ├── DocumentFilters.tsx   # Placeholder/Future
-│   │   │   └── MetadataEditor.tsx    # Placeholder/Future
-│   │   │
-│   │   ├── forms/              # Form components
-│   │   │   ├── FormContainer.tsx
-│   │   │   ├── FormField.tsx
-│   │   │   ├── FormActions.tsx
-│   │   │   ├── FormSection.tsx
-│   │   │   ├── ValidationError.tsx
-│   │   │   └── FormError.tsx
-│   │   │
-│   │   ├── layouts/            # Layout components
-│   │   │   ├── MainLayout.tsx
-│   │   │   └── AuthLayout.tsx
-│   │   │
-│   │   ├── navigation/         # Navigation components
-│   │   │   ├── Sidebar.tsx
-│   │   │   ├── TopBar.tsx
-│   │   │   ├── MobileMenu.tsx
-│   │   │   └── Breadcrumb.tsx
-│   │   │
-│   │   ├── notifications/      # Notification components
-│   │   │   ├── NotificationCenter.tsx
-│   │   │   ├── NotificationItem.tsx
-│   │   │   └── Toast.tsx
-│   │   │
-│   │   ├── onboarding/         # Onboarding components
-│   │   │   ├── ChecklistTemplate.tsx
-│   │   │   └── ChecklistEditor.tsx
-│   │   │
-│   │   ├── offboarding/        # Offboarding components
-│   │   │   ├── ProcessTemplate.tsx
-│   │   │   └── ProcessEditor.tsx
-│   │   │
-│   │   ├── profile/            # User profile components
-│   │   │   └── ProfileForm.tsx
-│   │   │
-│   │   ├── reports/            # Reporting components
-│   │   │   ├── AttendanceSummaryReport.tsx # Added
-│   │   │   └── DepartmentReport.tsx
-│   │   │
-│   │   ├── tasks/              # Task management components
-│   │   │   ├── TaskList.tsx
-│   │   │   └── TaskForm.tsx
-│   │   │
-│   │   └── ui/                 # UI component library
-│   │       ├── Button.tsx
-│   │       ├── Card.tsx
-│   │       ├── Input.tsx
-│   │       ├── Select.tsx
-│   │       ├── Modal.tsx
-│   │       ├── Alert.tsx
-│   │       ├── Badge.tsx
-│   │       ├── Avatar.tsx
-│   │       └── Icon.tsx
-│   │
-│   ├── config/                 # Configuration files
-│   │   ├── navigation.ts       # Navigation configuration
-│   │   └── permissions.ts      # RBAC permission matrices
-│   │
-│   ├── db/                     # Database setup
-│   │   ├── config.ts           # Database configuration
-│   │   ├── mockDbSetup.ts      # SQLite setup for development
-│   │   ├── associations.ts     # Model associations
-│   │   ├── migrations/         # Sequelize migrations
-│   │   └── seeders/            # Data seeders
-│   │
-│   ├── lib/                    # Utility libraries
-│   │   ├── activity/           # Activity tracking utilities
-│   │   │   └── activityTracker.ts
-│   │   │
-│   │   ├── api/                # API utilities
-│   │   │   ├── responses.ts    # API response utilities
-│   │   │   ├── statusCodes.ts  # HTTP status codes
-│   │   │   └── withErrorHandling.ts # Error wrapper
-│   │   │
-│   │   ├── auth/               # Authentication utilities
-│   │   │   └── index.ts
-│   │   │
-│   │   ├── context/            # React context providers
-│   │   │   └── NotificationContext.tsx
-│   │   │
-│   │   ├── cron/               # Scheduled jobs
-│   │   │   ├── reminderJobs.ts
-│   │   │   └── complianceJobs.ts
-│   │   │
-│   │   ├── dates/              # Date utilities
-│   │   │   └── expirationUtil.ts
-│   │   │
-│   │   ├── email/              # Email utilities
-│   │   │   └── sendEmail.ts
-│   │   │
-│   │   ├── encryption/         # Encryption utilities
-│   │   │   └── index.ts
-│   │   │
-│   │   ├── errors/             # Error handling
-│   │   │   ├── appErrors.ts    # Error class hierarchy
-│   │   │   └── errorReporter.ts # Error reporting
-│   │   │
-│   │   ├── export/             # Export utilities
-│   │   │   └── csvExporter.ts
-│   │   │
-│   │   ├── fileUpload/         # File upload utilities
-│   │   │   ├── uploadHandler.ts
-│   │   │   └── pathGenerator.ts
-│   │   │
-│   │   ├── hooks/              # React hooks
-│   │   │   ├── useEmployees.ts
-│   │   │   ├── useEmployee.ts
-│   │   │   ├── useAttendance.ts
-│   │   │   ├── useLeaveRequests.ts
-│   │   │   ├── useLicenses.ts
-│   │   │   ├── useForm.ts
-│   │   │   └── useFormValidation.ts
-│   │   │
-│   │   ├── logger/             # Logging utility
-│   │   │   └── index.ts
-│   │   │
-│   │   ├── middleware/         # API route middleware
-│   │   │   ├── checkRole.ts    # Role checking
-│   │   │   ├── checkDepartmentAccess.ts # Department access
-│   │   │   └── documentAccess.ts # Document access
-│   │   │
-│   │   ├── password/           # Password utilities
-│   │   │   └── index.ts
-│   │   │
-│   │   ├── rbac/               # RBAC utilities
-│   │   │   ├── index.ts
-│   │   │   └── departmentAccess.ts
-│   │   │
-│   │   ├── session/            # Session management
-│   │   │   └── index.ts
-│   │   │
-│   │   ├── validation/         # Validation
-│   │   │   ├── index.ts        # Core validation utilities
-│   │   │   ├── employeeSchema.ts
-│   │   │   ├── attendanceSchema.ts
-│   │   │   └── leaveSchema.ts
-│   │   │
-│   │   └── withAuth.ts         # Auth HOC for route protection
-│   │
-│   ├── modules/                # Business logic modules
-│   │   ├── attendance/         # Attendance module
-│   │   │   ├── models/         # Sequelize models
-│   │   │   │   └── Attendance.ts
-│   │   │   └── services/       # Business logic services
-│   │   │       └── attendanceService.ts
-│   │   │
-│   │   ├── auth/               # Authentication module
-│   │   │   ├── models/         # Sequelize models
-│   │   │   │   └── User.ts
-│   │   │   └── services/       # Business logic services
-│   │   │       └── authService.ts
-│   │   │
-│   │   ├── compliance/         # Compliance module
-│   │   │   ├── models/         # Sequelize models
-│   │   │   │   └── Compliance.ts
-│   │   │   └── services/       # Business logic services
-│   │   │       ├── expirationService.ts    # Added
-│   │   │       └── notificationService.ts  # Placeholder/Future
-│   │   │
-│   │   ├── dashboard/          # Dashboard module
-│   │   │   └── services/       # Business logic services
-│   │   │       ├── metricsService.ts
-│   │   │       └── activityService.ts
-│   │   │
-│   │   ├── documents/          # Document management module
-│   │   │   ├── models/         # Sequelize models
-│   │   │   │   └── Document.ts
-│   │   │   └── services/       # Business logic services
-│   │   │       ├── storageService.ts
-│   │   │       ├── accessControlService.ts
-│   │   │       └── metadataService.ts
-│   │   │
-│   │   ├── employees/          # Employee management module
-│   │   │   ├── models/         # Sequelize models
-│   │   │   │   └── Employee.ts
-│   │   │   └── services/       # Business logic services
-│   │   │       ├── employeeService.ts
-│   │   │       └── profileService.ts
-│   │   │
-│   │   ├── leave/              # Leave management module
-│   │   │   ├── models/         # Sequelize models
-│   │   │   │   └── Leave.ts
-│   │   │   └── services/       # Business logic services
-│   │   │       ├── approvalService.ts
-│   │   │       ├── leaveBalanceService.ts
-│   │   │       └── leaveAccrualService.ts # Added
-│   │   │
-│   │   ├── notifications/      # Notifications module
-│   │   │   ├── services/       # Business logic services
-│   │   │   │   └── reminderService.ts
-│   │   │   └── templates/      # Email templates
-│   │   │       └── expiration-reminder.html
-│   │   │
-│   │   ├── offboarding/        # Offboarding module
-│   │   │   └── data/           # Template data
-│   │   │       └── processTemplates.ts
-│   │   │
-│   │   ├── onboarding/         # Onboarding module
-│   │   │   └── data/           # Template data
-│   │   │       └── checklistTemplates.ts
-│   │   │
-│   │   ├── organization/       # Organization module
-│   │   │   ├── models/         # Sequelize models
-│   │   │   │   └── Department.ts
-│   │   │   └── services/       # Business logic services
-│   │   │       └── departmentService.ts
-│   │   │
-│   │   ├── reports/            # Reporting module
-│   │   │   └── services/       # Business logic services
-│   │   │       └── departmentReportService.ts
-│   │   │
-│   │   └── tasks/              # Task management module
-│   │       ├── models/         # Sequelize models
-│   │       │   └── Task.ts
-│   │       └── services/       # Business logic services
-│   │           └── taskService.ts
-│   │
-│   ├── pages/                  # Next.js pages
-│   │   ├── _app.tsx            # App wrapper component
-│   │   ├── _document.tsx       # Document wrapper component
-│   │   ├── _error.tsx          # Error page component
-│   │   ├── 404.tsx             # Not found page
-│   │   ├── 500.tsx             # Server error page
-│   │   ├── index.tsx           # Dashboard/home page
-│   │   ├── login.tsx           # Login page
-│   │   ├── profile.tsx         # User profile page (Created)
-│   │   │
-│   │   ├── api/                # API routes
-│   │   │   ├── auth/
-│   │   │   │   └── [...nextauth].ts    # NextAuth setup
-│   │   │   │
-│   │   │   ├── attendance/
-│   │   │   │   ├── index.ts           # GET, POST
-│   │   │   │   ├── [id].ts            # GET, PUT, DELETE
-│   │   │   │   ├── bulk.ts            # Bulk operations
-│   │   │   │   └── export.ts          # CSV export
-│   │   │   │
-│   │   │   ├── compliance/
-│   │   │   │   ├── index.ts           # Added (GET list, POST create)
-│   │   │   │   ├── [id].ts            # Added (GET single, PUT, DELETE)
-│   │   │   │   ├── expiring.ts        # Placeholder/Future (or handled by service)
-│   │   │   │   ├── stats.ts           # Placeholder/Future
-│   │   │   │   └── export.ts          # Placeholder/Future
-│   │   │   │
-│   │   │   ├── dashboard/
-│   │   │   │   ├── metrics.ts         # Dashboard metrics
-│   │   │   │   └── activity.ts        # Activity feed
-│   │   │   │
-│   │   │   ├── cron/                # Added - API routes for scheduled tasks
-│   │   │   │   ├── trigger-leave-accrual.ts # Added
-│   │   │   │   └── trigger-compliance-check.ts # Added
-│   │   │   │
-│   │   │   ├── documents/
-│   │   │   │   ├── index.ts           # Added (GET list)
-│   │   │   │   ├── [id].ts            # Placeholder/Future (GET single, PUT metadata, DELETE)
-│   │   │   │   ├── upload.ts          # Added (POST upload)
-│   │   │   │   ├── [id]/file.ts       # Placeholder/Future (Secure file serving)
-│   │   │   │   └── [id]/metadata.ts   # Placeholder/Future
-│   │   │   │
-│   │   │   ├── employees/
-│   │   │   │   ├── index.ts           # GET, POST
-│   │   │   │   ├── [id].ts            # GET, PUT, DELETE
-│   │   │   │   ├── [id]/department.ts # Department assignment
-│   │   │   │   ├── [id]/leave-balance.ts # Leave balance
-│   │   │   │   └── export.ts          # CSV export
-│   │   │   │
-│   │   │   ├── leave/
-│   │   │   │   ├── index.ts           # GET, POST
-│   │   │   │   ├── [id].ts            # GET, PUT, DELETE
-│   │   │   │   ├── [id]/approve.ts    # Approval
-│   │   │   │   ├── [id]/reject.ts     # Rejection
-│   │   │   │   └── export.ts          # CSV export
-│   │   │   │
-│   │   │   ├── notifications/
-│   │   │   │   └── send-reminder.ts   # Send reminders
-│   │   │   │
-│   │   │   ├── onboarding/
-│   │   │   │   └── templates.ts       # Checklist templates
-│   │   │   │
-│   │   │   ├── offboarding/
-│   │   │   │   └── templates.ts       # Process templates
-│   │   │   │
-│   │   │   ├── reports/
-│   │   │   │   └── departments.ts     # Department reports
-│   │   │   │
-│   │   │   └── tasks/
-│   │   │       ├── index.ts           # GET, POST
-│   │   │       └── [id].ts            # GET, PUT, DELETE
-│   │   │
-│   │   ├── attendance/
-│   │   │   ├── index.tsx              # Attendance list page
-│   │   │   ├── record.tsx             # Record attendance page
-│   │   │   └── daily.tsx              # Daily view page
-│   │   │
-│   │   ├── compliance/
-│   │   │   ├── index.tsx              # Added (Compliance Tracking Page)
-│   │   │   ├── dashboard.tsx          # Placeholder/Future (Or integrated into main dashboard)
-│   │   │   └── settings.tsx           # Placeholder/Future
-│   │   │
-│   │   ├── documents/
-│   │   │   ├── index.tsx              # Added (Document Management Page)
-│   │   │   └── upload.tsx             # Placeholder/Future (Or integrated into index)
-│   │   │
-│   │   ├── employees/
-│   │   │   ├── index.tsx              # Employee list
-│   │   │   ├── new.tsx                # Add new employee page
-│   │   │   └── [id]/
-│   │   │       ├── index.tsx          # Employee details (assuming [id].tsx moved here or duplicated)
-│   │   │       └── edit.tsx           # Edit employee page
-│   │   │
-│   │   ├── leave/
-│   │   │   ├── index.tsx              # Leave requests list
-│   │   │   ├── request.tsx            # Request leave page
-│   │   │   └── [id].tsx               # Request details
-│   │   │
-│   │   ├── onboarding/
-│   │   │   └── index.tsx              # Onboarding dashboard
-│   │   │
-│   │   ├── offboarding/
-│   │   │   └── index.tsx              # Offboarding dashboard
-│   │   │
-│   │   ├── reports/
-│   │   │   ├── attendance.tsx         # Added (Attendance Summary Report)
-│   │   │   └── departments.tsx        # Placeholder/Future
-│   │   │
-│   │   └── tasks/
-│   │       └── index.tsx              # Task management
-│   │
-│   ├── styles/                 # CSS and styling
-│   │   ├── globals.css         # Global styles
-│   │   └── theme.ts           # Design tokens
-│   │
-│   └── types/                  # TypeScript types
-│       ├── index.ts            # Core type definitions
-│       ├── roles.ts            # Role enums
-│       └── leave.ts            # Leave type enums
-│
-├── local-storage/              # Local filesystem storage
-│   └── documents/              # Document storage
-│       ├── administration/     # Admin documents
-│       ├── compliance/         # Compliance documents
-│       ├── hr/                 # HR documents
-│       └── employees/          # Employee documents
-│
-├── tests/                      # Test files
-│   ├── setup.js                # Test setup
-│   │
-│   ├── api/                    # API tests
-│   │   ├── helpers.ts          # Test helpers
-│   │   ├── employees.test.ts   # Employee API tests
-│   │   ├── attendance.test.ts  # Attendance API tests
-│   │   ├── leave.test.ts       # Leave API tests
-│   │   ├── compliance.test.ts  # Compliance API tests
-│   │   ├── documents.test.ts   # Document API tests
-│   │   └── auth.test.ts        # Auth API tests
-│   │
-│   ├── fixtures/               # Test fixtures
-│   │   ├── userFixtures.ts     # User fixtures
-│   │   ├── employeeFixtures.ts # Employee fixtures
-│   │   ├── departmentFixtures.ts # Department fixtures
-│   │   ├── attendanceFixtures.ts # Attendance fixtures
-│   │   ├── leaveFixtures.ts    # Leave fixtures
-│   │   └── complianceFixtures.ts # Compliance fixtures
-│   │
-│   ├── rbac/                   # RBAC tests
-│   │   ├── adminPermissions.test.ts  # Admin tests
-│   │   ├── managerPermissions.test.ts # Manager tests
-│   │   └── employeePermissions.test.ts # Employee tests
-│   │
-│   ├── security/               # Security tests
-│   │   ├── encryption.test.ts  # Encryption tests
-│   │   ├── sensitiveData.test.ts # SSN handling tests
-│   │   ├── accessControl.test.ts # Access control tests
-│   │   └── dataMasking.test.ts # Data masking tests
-│   │
-│   ├── db-setup.ts             # Database setup for tests
-│   └── utils/                  # Test utilities
-│       └── rbacHelpers.ts      # RBAC test helpers
-│
-├── e2e/                        # End-to-end tests
-│   ├── auth.spec.ts            # Auth E2E tests
-│   ├── employees.spec.ts       # Employee E2E tests
-│   ├── leave.spec.ts           # Leave E2E tests
-│   ├── documents.spec.ts       # Document E2E tests
-│   └── utils/                  # E2E test utilities
-│
-├── docs/                       # Documentation
-│   ├── database/               # Database documentation
-│   │   ├── schema.md           # Schema documentation
-│   │   ├── erd.png             # Entity relationship diagram
-│   │   └── associations.md     # Model associations
-│   │
-│   └── api/                    # API documentation
-│
-├── .env.development            # Development environment variables
-├── .env.test                   # Test environment variables
-├── .env.local.example          # Example local environment variables
-├── .gitignore                  # Git ignore file
-├── .nvmrc                      # Node version
-├── next.config.js              # Next.js configuration
-├── package.json                # Dependencies and scripts
-├── tsconfig.json               # TypeScript configuration
-├── jest.config.js              # Jest configuration
-├── playwright.config.ts        # Playwright configuration
-├── sequelize.config.js         # Sequelize CLI config
-└── vercel.json                 # Vercel deployment config
-
 ---
 
-## Current Status & Next Steps (As of 2025-03-27 ~11:35 PM MDT)
+## Current Status & Next Steps (As of 2025-03-28 ~01:50 AM MDT)
 
-**Current Focus:** Phase 8 - Testing & Documentation
+**Current Focus:** Phase 8 - Testing & Documentation (Debugging Jest Integration Tests)
 
 **Completed:**
 - Phase 1: All items completed.
@@ -576,25 +98,53 @@ MCHRT/
 - Phase 5: Core structure implemented (API routes, basic components). UI integration and refinement pending.
 - Phase 6: All items completed (Dashboard layout, widgets connected, reports page structure, export button). API logic uses placeholders.
 - Phase 7: All items completed (Templates created, basic reminder infrastructure, basic task management interface). Email reminders use placeholders.
+- Phase 8: Unit test for `leaveBalanceService` complete. Basic API integration tests written for core modules, but blocked by a persistent Jest initialization error.
 
 **Where We Left Off:**
-- Phases 1-4, 6, 7 are functionally complete for the MVP scope, though some areas rely on placeholder logic (APIs, email).
-- Phase 5 (Compliance/Documents) requires frontend integration (connecting UI to APIs, implementing modals, secure downloads) and metadata management UI.
-- Phase 8 (Testing/Docs) is the next focus.
+- Attempting to run API integration tests (`npm test`).
+- Tests consistently fail with `Sequelize has not been initialized or set.` error, originating from model initialization (`Model.init`) which calls `getSequelizeInstance()` before the instance is set by `tests/db-setup.ts`'s `beforeAll` hook.
 
-**Next Steps (To Complete MVP):**
-1.  **Phase 5 Completion:**
-    *   Connect Compliance/Document frontend components to APIs.
-    *   Implement UI elements (Modals, file download links).
-    *   Implement secure file serving API.
-    *   Refine RBAC in API handlers.
-    *   Implement Metadata Management UI (if deemed essential for MVP).
-2.  **Phase 8 Implementation:**
-    *   Add Unit Tests for critical services/utilities.
-    *   Add Integration Tests for key API routes.
-    *   Document Database Schema and API endpoints.
-3.  **Phase 9 Polish:**
-    *   Refine placeholder API logic (Dashboard metrics, Activity feed, Department reports).
-    *   Implement real email sending (requires configuration).
-    *   Code review, bug fixing, performance optimization.
-    *   Prepare demo data and deployment configuration.
+**Next Steps (Debugging):**
+1.  **Investigate Jest Module Loading:** The core issue seems to be Jest loading/transforming modules (specifically the models) before the `beforeAll` hook in `tests/db-setup.ts` can create and set the Sequelize instance.
+2.  **Alternative Initialization:** Explore alternative Jest setup methods (e.g., `globalSetup`, `setupFilesAfterEnv`) to ensure Sequelize is initialized globally before any test files are processed.
+3.  **Simplify Further:** Temporarily remove `next/jest` wrapper or simplify `jest.config.js` to rule out configuration conflicts.
+4.  **Consult Jest/Sequelize Docs:** Review documentation for best practices regarding asynchronous setup and module mocking/loading order in Jest.
+
+---
+
+## Jest Integration Test Debugging Notes (2025-03-28)
+
+**Problem:** API integration tests consistently fail with `Sequelize has not been initialized or set.` This error occurs because Sequelize models (e.g., `User`, `Employee`) are being imported and initialized (calling `Model.init`, which uses `getSequelizeInstance`) at the top level of the test files, *before* the `beforeAll` hook in `tests/db-setup.ts` has a chance to create the Sequelize instance using the test configuration and set it via `setSequelizeInstance`.
+
+**Attempted Fixes:**
+
+1.  **Refactored DB Initialization:**
+    *   Moved config loading and Sequelize instance creation out of `src/db/mockDbSetup.ts` and `src/db/index.ts`.
+    *   Created `initializeSequelize` and later `setSequelizeInstance`/`getSequelizeInstance` functions in `src/db/mockDbSetup.ts`.
+    *   Updated models to use `getSequelizeInstance()`.
+    *   Made `tests/db-setup.ts` responsible for importing the test config, creating the instance, and calling `setSequelizeInstance` within `beforeAll`.
+    *   *Result:* Error changed from `Cannot read properties of undefined (reading 'test')` (config undefined) to `Sequelize has not been initialized or set.` (instance not set yet).
+
+2.  **Configuration File Handling:**
+    *   Renamed `config/config.js` to `src/config/config.ts`.
+    *   Updated `config.ts` to use ES Module exports (`export const dbConfig`).
+    *   Tried various import paths in `src/db/index.ts` and `tests/db-setup.ts` (relative, alias `@/`, dynamic `import()`).
+    *   *Result:* Did not resolve the core initialization order issue.
+
+3.  **Jest Environment:**
+    *   Ensured `NODE_ENV=test` is set using `cross-env` in `package.json` test script.
+    *   Cleared Jest cache (`--clearCache`).
+    *   *Result:* No change in the error.
+
+4.  **Delayed Imports in Test Files:**
+    *   Refactored `tests/api/employees.test.ts` (and subsequently others) to declare model/fixture variables in the `describe` scope and perform dynamic `import()` within `beforeAll`, *after* calling `setupTestDb`.
+    *   *Result:* Still failed with `Sequelize has not been initialized or set.`, indicating the models are likely still being processed/imported by Jest before `beforeAll` completes its setup, despite the dynamic import syntax.
+
+**Conclusion:** The fundamental issue appears to be Jest's module execution order interacting with Sequelize model definitions that rely on a globally available (but asynchronously initialized) instance. The top-level model imports in the test files trigger `Model.init` too early.
+
+**Next Debugging Ideas:**
+
+*   **Jest Global Setup:** Use Jest's `globalSetup` configuration option to run the database initialization *once* before all test suites. This might guarantee the instance is ready before any test file code executes.
+*   **Jest `setupFilesAfterEnv`:** Use `setupFilesAfterEnv` to run the DB setup. While typically for test framework setup, it runs before tests in a suite, but *after* the environment is set up, which might be sufficient if `globalSetup` is too complex.
+*   **Manual Mocking:** Explicitly mock the models during the test setup phase and only unmock/import them after `beforeAll`.
+*   **Review `next/jest`:** Investigate if the `next/jest` wrapper introduces specific behaviors affecting module loading order or transformations.
