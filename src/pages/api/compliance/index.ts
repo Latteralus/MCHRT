@@ -1,116 +1,118 @@
+// src/pages/api/compliance/index.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import Compliance from '@/modules/compliance/models/Compliance';
-import { Op } from 'sequelize';
-import { withRole } from '@/lib/middleware/withRole'; // Import withRole
-import { AuthenticatedNextApiHandler } from '@/lib/middleware/withAuth'; // Import handler type
-// import { defineAssociations } from '@/db/associations';
+import { Compliance, Employee } from '@/db'; // Import models
+import { withRole, AuthenticatedNextApiHandler, UserRole } from '@/lib/middleware/withRole';
+import { sequelize } from '@/db/mockDbSetup'; // For potential transactions or complex queries
+import { Op } from 'sequelize'; // For query operators
 
-// TODO: Add more granular authorization (e.g., Dept Head for own dept)
-// TODO: Add proper error handling and validation
-// TODO: Add logic to automatically update status based on expirationDate?
-
-// Ensure associations are defined
-// defineAssociations();
-
-// Define the core handler logic expecting authentication and session
+// Define the handler logic
 const handler: AuthenticatedNextApiHandler = async (req, res, session) => {
-  const { method } = req;
+    const { method } = req;
+    const userRole = session.user?.role as UserRole;
+    const userId = session.user?.id; // Assuming user ID is stored in session
+    const userDepartmentId = session.user?.departmentId; // Assuming department ID is stored
 
-  switch (method) {
-    case 'GET':
-      // Handle GET request - List compliance items
-      try {
-        // TODO: Add filtering (employeeId, status, type, expiring soon), pagination, sorting
-        const { employeeId, status, itemType } = req.query;
+    // --- GET: List Compliance Items ---
+    if (method === 'GET') {
+        const { employeeId, status, itemType, page = 1, limit = 20 } = req.query;
+        const offset = (Number(page) - 1) * Number(limit);
+
         const whereClause: any = {};
-        if (employeeId) whereClause.employeeId = parseInt(employeeId as string, 10);
-        if (status) whereClause.status = status as string;
-        if (itemType) whereClause.itemType = itemType as string;
+        if (status) whereClause.status = status;
+        if (itemType) whereClause.itemType = itemType;
 
-        // Example: Filter for items expiring within the next 30 days
-        // if (req.query.expiringSoon === 'true') {
-        //   const today = new Date();
-        //   const futureDate = new Date(today.setDate(today.getDate() + 30));
-        //   whereClause.expirationDate = {
-        //     [Op.between]: [new Date(), futureDate]
-        //   };
-        //   whereClause.status = { [Op.ne]: 'Expired' }; // Exclude already expired
-        // }
-
-        const complianceItems = await Compliance.findAll({
-            where: whereClause,
-            order: [['expirationDate', 'ASC']] // Show soonest expiring first
-            // TODO: Include Employee details if needed
-        });
-        res.status(200).json(complianceItems);
-      } catch (error) {
-        console.error('Error fetching compliance items:', error);
-        res.status(500).json({ message: 'Internal Server Error' });
-      }
-      break;
-
-    case 'POST':
-      // Handle POST request - Create a new compliance item
-      try {
-        const {
-          employeeId,
-          itemType,
-          itemName,
-          authority,
-          licenseNumber,
-          issueDate,
-          expirationDate,
-          status // Allow setting status manually, or calculate it
-        } = req.body;
-
-        // Basic validation
-        if (!employeeId || !itemType || !itemName) {
-          return res.status(400).json({ message: 'Employee ID, item type, and item name are required' });
-        }
-
-        // TODO: Add validation for dates, status enum
-
-        // Determine status automatically if not provided?
-        let calculatedStatus = status;
-        if (!calculatedStatus && expirationDate) {
-            const expDate = new Date(expirationDate);
-            const today = new Date();
-            const thirtyDaysFromNow = new Date(today.setDate(today.getDate() + 30));
-            if (expDate < new Date()) {
-                calculatedStatus = 'Expired';
-            } else if (expDate <= thirtyDaysFromNow) {
-                calculatedStatus = 'ExpiringSoon';
+        // RBAC: Filter based on role
+        if (userRole === 'Employee') {
+            // Find the employee record linked to the user
+            const employee = await Employee.findOne({ where: { userId } });
+            if (!employee) return res.status(403).json({ message: 'Forbidden: Employee record not found for user.' });
+            whereClause.employeeId = employee.id; // Only show own items
+        } else if (userRole === 'DepartmentHead') {
+            if (!userDepartmentId) return res.status(403).json({ message: 'Forbidden: Department information missing.' });
+            // Filter by specific employee ID if provided AND they are in the user's department
+            if (employeeId) {
+                 const targetEmployee = await Employee.findOne({ where: { id: employeeId, departmentId: userDepartmentId } });
+                 if (!targetEmployee) return res.status(404).json({ message: 'Employee not found or not in your department.' });
+                 whereClause.employeeId = employeeId;
             } else {
-                calculatedStatus = 'Active';
+                // Show all employees within the department head's department
+                 whereClause.employeeId = {
+                     [Op.in]: sequelize.literal(`(SELECT id FROM "Employees" WHERE "departmentId" = ${userDepartmentId})`)
+                 };
             }
-        } else if (!calculatedStatus) {
-            calculatedStatus = 'Active'; // Default if no expiration
+        } else if (userRole === 'Admin') {
+            // Admin can see all, but can still filter by employeeId if provided
+            if (employeeId) whereClause.employeeId = employeeId;
+        } else {
+             return res.status(403).json({ message: 'Forbidden: Invalid role.' });
         }
 
 
-        const newItem = await Compliance.create({
-          employeeId,
-          itemType,
-          itemName,
-          authority,
-          licenseNumber,
-          issueDate: issueDate ? new Date(issueDate) : undefined,
-          expirationDate: expirationDate ? new Date(expirationDate) : undefined,
-          status: calculatedStatus,
-        });
-        res.status(201).json(newItem);
-      } catch (error: any) {
-        console.error('Error creating compliance item:', error);
-        // Handle potential foreign key constraint errors
-        res.status(500).json({ message: 'Internal Server Error' });
-      }
-      break;
+        try {
+            const { count, rows } = await Compliance.findAndCountAll({
+                where: whereClause,
+                limit: Number(limit),
+                offset: offset,
+                order: [['expirationDate', 'ASC'], ['itemName', 'ASC']], // Example order
+                // Include Employee details if needed
+                 include: [{ model: Employee, as: 'employee', attributes: ['id', 'firstName', 'lastName'] }]
+            });
+            const totalPages = Math.ceil(count / Number(limit));
+            return res.status(200).json({ items: rows, totalPages, currentPage: Number(page) });
+        } catch (error) {
+            console.error('Error fetching compliance items:', error);
+            return res.status(500).json({ message: 'Internal Server Error' });
+        }
+    }
 
-    default:
-      res.setHeader('Allow', ['GET', 'POST']);
-      res.status(405).end(`Method ${method} Not Allowed`);
-  }
+    // --- POST: Create Compliance Item ---
+    if (method === 'POST') {
+        // RBAC: Only Admin/HR/DeptHead should create items? Adjust as needed.
+        if (!['Admin', 'DepartmentHead'].includes(userRole)) { // Example restriction
+            return res.status(403).json({ message: 'Forbidden: You do not have permission to create compliance items.' });
+        }
+
+        const { employeeId, itemType, itemName, authority, licenseNumber, issueDate, expirationDate, status } = req.body;
+
+        // Validation (basic example)
+        if (!employeeId || !itemType || !itemName) {
+            return res.status(400).json({ message: 'Missing required fields: employeeId, itemType, itemName' });
+        }
+
+        // RBAC Check: If DeptHead, ensure employeeId is within their department
+        if (userRole === 'DepartmentHead') {
+             if (!userDepartmentId) return res.status(403).json({ message: 'Forbidden: Department information missing.' });
+             const targetEmployee = await Employee.findOne({ where: { id: employeeId, departmentId: userDepartmentId } });
+             if (!targetEmployee) return res.status(403).json({ message: 'Forbidden: Cannot add item for employee outside your department.' });
+        }
+
+        try {
+            // TODO: Add logic to auto-determine status based on dates if not provided
+            const newItem = await Compliance.create({
+                employeeId,
+                itemType,
+                itemName,
+                authority,
+                licenseNumber,
+                issueDate: issueDate || null,
+                expirationDate: expirationDate || null,
+                status: status || 'PendingReview', // Default status
+            });
+            return res.status(201).json(newItem);
+        } catch (error: any) {
+            console.error('Error creating compliance item:', error);
+             if (error.name === 'SequelizeValidationError') {
+                return res.status(400).json({ message: 'Validation Error', errors: error.errors.map((e: any) => e.message) });
+            }
+            return res.status(500).json({ message: 'Internal Server Error' });
+        }
+    }
+
+    // --- Method Not Allowed ---
+    res.setHeader('Allow', ['GET', 'POST']);
+    return res.status(405).json({ message: `Method ${method} Not Allowed` });
 };
 
-// Wrap the handler with the RBAC middleware, allowing Admins and Department Heads
-export default withRole(['Admin', 'DepartmentHead'], handler);
+// Apply middleware (assuming Admins, DeptHeads, and Employees can access - GET needs finer control inside)
+// Adjust roles as needed for overall access to the endpoint itself.
+export default withRole(['Admin', 'DepartmentHead', 'Employee'], handler);

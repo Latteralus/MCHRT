@@ -7,7 +7,7 @@ export type AuthenticatedNextApiHandler = (
   req: NextApiRequest,
   res: NextApiResponse,
   session: Session // Use the imported Session type
-) => void | Promise<void>;
+) => any | Promise<any>; // Allow handler to return responses or throw errors
 
 
 /**

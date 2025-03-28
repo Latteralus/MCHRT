@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import { sequelize } from '@/db/mockDbSetup'; // Adjust path as needed
+import Employee from '@/modules/employees/models/Employee'; // Import Employee model for association typing
 
 // Define possible compliance item statuses (consider using enums)
 type ComplianceStatus = 'Active' | 'ExpiringSoon' | 'Expired' | 'PendingReview';
@@ -18,6 +19,9 @@ interface ComplianceAttributes {
   // Add fields for associated documents if needed (e.g., documentId)
   createdAt?: Date;
   updatedAt?: Date;
+
+  // Associations (added via include)
+  employee?: Employee; // Add the associated employee type
 }
 
 // Define creation attributes (optional fields for creation)

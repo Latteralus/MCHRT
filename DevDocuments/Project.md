@@ -37,19 +37,21 @@
 ## Phase 4: Attendance & Leave Management
 - [x] Create attendance entry form (FE Component + Page + API Integration)
 - [x] Build attendance list view (FE Component + Page + API Integration)
-- [/] Implement attendance filtering and reporting (API filtering done; Reporting TBD)
+- [/] Implement attendance filtering and reporting (API filtering done; Basic summary report page created)
 - [x] Create leave request form (FE Component + Page + API Integration)
 - [x] Build leave request list view (FE Component + Page + API Integration)
 - [x] Implement basic approval workflow (Backend API routes + FE Integration)
-- [/] Add leave balance tracking (Model, DB, Service, API Integration done; Accrual TBD)
+- [x] Add leave balance tracking (Model, DB, Service, API Integration done; Accrual Service + API Trigger created)
+- [x] Implement Frontend RBAC (Verified for Leave List)
+- [ ] Add tests for API routes and services (Deferred)
 
 ## Phase 5: Compliance & Document Management
-- [ ] Build license/certification tracking interface
-- [ ] Implement expiration monitoring
-- [ ] Create compliance dashboard
-- [ ] Build document upload functionality
-- [ ] Create document browser/viewer
-- [ ] Implement RBAC for document access
+- [/] Build license/certification tracking interface (API routes, List/Form components, Index page created)
+- [x] Implement expiration monitoring (Service + API Trigger created)
+- [/] Create compliance dashboard (Stats + Expiring widgets created)
+- [/] Build document upload functionality (API route, UploadForm component created)
+- [/] Create document browser/viewer (API route for listing, DocumentList component created)
+- [/] Implement RBAC for document access (Basic RBAC in list/upload API routes)
 - [ ] Set up document metadata management
 
 ## Phase 6: Dashboard & Reporting
@@ -114,7 +116,8 @@ MCHRT/
 │   │   │   └── widgets/
 │   │   │       ├── EmployeeStats.tsx
 │   │   │       ├── AttendanceWidget.tsx
-│   │   │       ├── ComplianceWidget.tsx
+│   │   │       ├── ComplianceStatsWidget.tsx  # Added
+│   │   │       ├── ExpiringComplianceWidget.tsx # Added (Replaces ComplianceWidget?)
 │   │   │       ├── LeaveWidget.tsx
 │   │   │       └── RecentDocuments.tsx
 │   │   │
@@ -138,19 +141,19 @@ MCHRT/
 │   │   │   └── LeaveBalance.tsx
 │   │   │
 │   │   ├── compliance/         # Compliance components
-│   │   │   ├── LicenseList.tsx
-│   │   │   ├── LicenseForm.tsx
-│   │   │   ├── ExpirationMonitor.tsx
-│   │   │   ├── ComplianceStats.tsx
+│   │   │   ├── ComplianceList.tsx   # Renamed/Replaced LicenseList? (Added)
+│   │   │   ├── ComplianceForm.tsx   # Renamed/Replaced LicenseForm? (Added)
+│   │   │   ├── ExpirationMonitor.tsx # Likely replaced by service logic
+│   │   │   ├── ComplianceStats.tsx   # Component for stats (may be widget now)
 │   │   │   ├── DepartmentCompliance.tsx
 │   │   │   └── StatusCards.tsx
 │   │   │
 │   │   ├── documents/          # Document management components
-│   │   │   ├── UploadForm.tsx
-│   │   │   ├── DocumentList.tsx
-│   │   │   ├── DocumentViewer.tsx
-│   │   │   ├── DocumentFilters.tsx
-│   │   │   └── MetadataEditor.tsx
+│   │   │   ├── UploadForm.tsx      # Added
+│   │   │   ├── DocumentList.tsx      # Added
+│   │   │   ├── DocumentViewer.tsx    # Placeholder/Future
+│   │   │   ├── DocumentFilters.tsx   # Placeholder/Future
+│   │   │   └── MetadataEditor.tsx    # Placeholder/Future
 │   │   │
 │   │   ├── forms/              # Form components
 │   │   │   ├── FormContainer.tsx
@@ -187,6 +190,7 @@ MCHRT/
 │   │   │   └── ProfileForm.tsx
 │   │   │
 │   │   ├── reports/            # Reporting components
+│   │   │   ├── AttendanceSummaryReport.tsx # Added
 │   │   │   └── DepartmentReport.tsx
 │   │   │
 │   │   ├── tasks/              # Task management components
@@ -306,8 +310,8 @@ MCHRT/
 │   │   │   ├── models/         # Sequelize models
 │   │   │   │   └── Compliance.ts
 │   │   │   └── services/       # Business logic services
-│   │   │       ├── expirationService.ts
-│   │   │       └── notificationService.ts
+│   │   │       ├── expirationService.ts    # Added
+│   │   │       └── notificationService.ts  # Placeholder/Future
 │   │   │
 │   │   ├── dashboard/          # Dashboard module
 │   │   │   └── services/       # Business logic services
@@ -334,7 +338,8 @@ MCHRT/
 │   │   │   │   └── Leave.ts
 │   │   │   └── services/       # Business logic services
 │   │   │       ├── approvalService.ts
-│   │   │       └── leaveBalanceService.ts
+│   │   │       ├── leaveBalanceService.ts
+│   │   │       └── leaveAccrualService.ts # Added
 │   │   │
 │   │   ├── notifications/      # Notifications module
 │   │   │   ├── services/       # Business logic services
@@ -387,22 +392,26 @@ MCHRT/
 │   │   │   │   └── export.ts          # CSV export
 │   │   │   │
 │   │   │   ├── compliance/
-│   │   │   │   ├── index.ts           # GET, POST
-│   │   │   │   ├── [id].ts            # GET, PUT, DELETE
-│   │   │   │   ├── expiring.ts        # Expiring items
-│   │   │   │   ├── stats.ts           # Compliance stats
-│   │   │   │   └── export.ts          # CSV export
+│   │   │   │   ├── index.ts           # Added (GET list, POST create)
+│   │   │   │   ├── [id].ts            # Added (GET single, PUT, DELETE)
+│   │   │   │   ├── expiring.ts        # Placeholder/Future (or handled by service)
+│   │   │   │   ├── stats.ts           # Placeholder/Future
+│   │   │   │   └── export.ts          # Placeholder/Future
 │   │   │   │
 │   │   │   ├── dashboard/
 │   │   │   │   ├── metrics.ts         # Dashboard metrics
 │   │   │   │   └── activity.ts        # Activity feed
 │   │   │   │
+│   │   │   ├── cron/                # Added - API routes for scheduled tasks
+│   │   │   │   ├── trigger-leave-accrual.ts # Added
+│   │   │   │   └── trigger-compliance-check.ts # Added
+│   │   │   │
 │   │   │   ├── documents/
-│   │   │   │   ├── index.ts           # GET, POST
-│   │   │   │   ├── [id].ts            # GET, PUT, DELETE
-│   │   │   │   ├── upload.ts          # File upload
-│   │   │   │   ├── [id]/file.ts       # File serving
-│   │   │   │   └── [id]/metadata.ts   # Metadata management
+│   │   │   │   ├── index.ts           # Added (GET list)
+│   │   │   │   ├── [id].ts            # Placeholder/Future (GET single, PUT metadata, DELETE)
+│   │   │   │   ├── upload.ts          # Added (POST upload)
+│   │   │   │   ├── [id]/file.ts       # Placeholder/Future (Secure file serving)
+│   │   │   │   └── [id]/metadata.ts   # Placeholder/Future
 │   │   │   │
 │   │   │   ├── employees/
 │   │   │   │   ├── index.ts           # GET, POST
@@ -440,12 +449,13 @@ MCHRT/
 │   │   │   └── daily.tsx              # Daily view page
 │   │   │
 │   │   ├── compliance/
-│   │   │   ├── index.tsx              # Compliance dashboard
-│   │   │   └── settings.tsx           # Compliance settings
+│   │   │   ├── index.tsx              # Added (Compliance Tracking Page)
+│   │   │   ├── dashboard.tsx          # Placeholder/Future (Or integrated into main dashboard)
+│   │   │   └── settings.tsx           # Placeholder/Future
 │   │   │
 │   │   ├── documents/
-│   │   │   ├── index.tsx              # Document library
-│   │   │   └── upload.tsx             # Upload page
+│   │   │   ├── index.tsx              # Added (Document Management Page)
+│   │   │   └── upload.tsx             # Placeholder/Future (Or integrated into index)
 │   │   │
 │   │   ├── employees/
 │   │   │   ├── index.tsx              # Employee list
@@ -466,7 +476,8 @@ MCHRT/
 │   │   │   └── index.tsx              # Offboarding dashboard
 │   │   │
 │   │   ├── reports/
-│   │   │   └── departments.tsx        # Department reports
+│   │   │   ├── attendance.tsx         # Added (Attendance Summary Report)
+│   │   │   └── departments.tsx        # Placeholder/Future
 │   │   │
 │   │   └── tasks/
 │   │       └── index.tsx              # Task management
@@ -552,40 +563,40 @@ MCHRT/
 
 ---
 
-## Current Status & Next Steps (As of 2025-03-27 ~8:29 PM MDT)
+## Current Status & Next Steps (As of 2025-03-27 ~9:40 PM MDT)
 
-**Current Focus:** Completing Phase 4 - Attendance & Leave Management
+**Current Focus:** Phase 5 - Compliance & Document Management (Core Structure)
 
 **Completed:**
 - Phase 1: All items completed.
 - Phase 2: All items completed.
 - Phase 3: All items completed.
+- Phase 4: All items completed (excluding deferred testing).
+    - Leave Accrual: Service (`leaveAccrualService`) and API trigger (`/api/cron/trigger-leave-accrual`) created.
+    - Frontend RBAC: Verified for Leave Management actions.
+    - Reporting: Basic Attendance Summary report page (`/reports/attendance`) and component created (using mock data).
 
-**Phase 4 Progress:**
-- **Attendance:**
-    - Created frontend components (`AttendanceForm`, `AttendanceList`) and pages (`/attendance/record`, `/attendance/index`).
-    - Implemented backend API routes (`/api/attendance`, `/api/attendance/[id]`) for CRUD with refined authorization and filtering.
-    - Integrated frontend form/list with backend APIs.
-- **Leave Management:**
-    - Created frontend components (`LeaveRequestForm`, `LeaveRequestList`) and pages (`/leave/request`, `/leave/index`).
-    - Implemented backend API routes (`/api/leave`, `/api/leave/[id]`) for CRUD with refined authorization.
-    - Implemented backend API routes for approval/rejection (`/api/leave/[id]/approve`, `/api/leave/[id]/reject`) with refined authorization.
-    - Integrated frontend form/list with backend APIs (including approve/reject actions).
-- **Leave Balance:**
-    - Created `LeaveBalance` model and database table.
-    - Created `leaveBalanceService` (get/check/deduct/accrue).
-    - Integrated balance check/deduction into API routes.
-    - Created API endpoint (`/api/employees/[id]/leave-balance`) to view balances.
-    - Created frontend component (`LeaveBalanceDisplay`) and integrated into employee detail page.
+**Phase 5 Progress (Core Structure Implemented):**
+- **Compliance:**
+    - API routes created for CRUD (`/api/compliance`, `/api/compliance/[id]`) with RBAC.
+    - Frontend components (`ComplianceList`, `ComplianceForm`) and main page (`/compliance`) created with placeholders/mock data.
+    - Expiration monitoring service (`expirationService`) and API trigger (`/api/cron/trigger-compliance-check`) created.
+    - Dashboard widgets (`ComplianceStatsWidget`, `ExpiringComplianceWidget`) created with mock data.
+- **Document Management:**
+    - API route for upload (`/api/documents/upload`) created using `formidable`.
+    - API route for listing (`/api/documents/index`) created with RBAC.
+    - Frontend components (`UploadForm`, `DocumentList`) and main page (`/documents`) created with placeholders/mock data.
+    - Basic RBAC implemented in API routes.
 
 **Where We Left Off:**
-- Core frontend and backend for Attendance and Leave are functional and integrated. Basic leave balance viewing and deduction are implemented.
+- Core backend services and API routes for Phase 5 features are established.
+- Frontend components and pages for Phase 5 are created but primarily use mock data and placeholders for full functionality (e.g., modals, API integration, file download).
 
-**Next Steps (To Complete Phase 4):**
-1.  **Implement Leave Accrual:** Create mechanism/service/job to periodically accrue leave balances (e.g., monthly/pay period).
-2.  **Frontend RBAC:** Implement conditional rendering in frontend based on roles (e.g., hide approve/reject buttons, filter options).
-3.  **Reporting:** Define and implement specific reporting features (e.g., attendance summaries, leave usage reports).
-4.  **Testing:** Add tests for API routes and services.
-
-**Once Phase 4 is complete:**
-- Proceed to **Phase 5: Compliance & Document Management**.
+**Next Steps (To Complete Phase 5 MVP):**
+1.  **API Integration:** Connect frontend components (ComplianceList, ComplianceForm, DocumentList, UploadForm, dashboard widgets) to their respective backend API routes.
+2.  **UI Implementation:** Replace placeholders with actual UI library components (Modals, Tables, Badges, etc.). Implement modal logic for ComplianceForm.
+3.  **Secure File Serving:** Create an API route (e.g., `/api/documents/download/[filename]`) to securely serve files from local storage based on user permissions. Implement download links in `DocumentList`.
+4.  **Refine RBAC:** Implement detailed RBAC checks within API handlers (e.g., can user X upload for employee Y?).
+5.  **Metadata Management:** Implement API route and potentially UI for editing document metadata (title, description, associations).
+6.  **Cron Job Setup:** Configure external cron jobs (e.g., Vercel) to trigger the accrual and compliance check API endpoints.
+7.  **Dashboard Integration:** Add `ComplianceStatsWidget` and `ExpiringComplianceWidget` to the main dashboard page (`/`).

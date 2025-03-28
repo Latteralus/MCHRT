@@ -1,6 +1,9 @@
 import type { NextApiRequest, NextApiResponse, NextApiHandler } from 'next';
 import { getSession } from 'next-auth/react';
-import { withAuth, AuthenticatedNextApiHandler } from './withAuth'; // Import the base auth middleware
+import { withAuth, AuthenticatedNextApiHandler as BaseAuthenticatedNextApiHandler } from './withAuth'; // Import the base auth middleware
+
+// Re-export the type for external use
+export type AuthenticatedNextApiHandler = BaseAuthenticatedNextApiHandler;
 
 // Define role types (consider moving to a central types file, e.g., src/types/roles.ts)
 export type UserRole = 'Admin' | 'DepartmentHead' | 'Employee';

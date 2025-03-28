@@ -1,97 +1,106 @@
+// src/pages/api/documents/index.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import Document from '@/modules/documents/models/Document';
+import { Document, Employee, User } from '@/db'; // Import models
+import { withRole, AuthenticatedNextApiHandler, UserRole } from '@/lib/middleware/withRole';
+import { sequelize } from '@/db/mockDbSetup';
 import { Op } from 'sequelize';
-import { withRole } from '@/lib/middleware/withRole'; // Import withRole
-import { AuthenticatedNextApiHandler } from '@/lib/middleware/withAuth'; // Import handler type
-// import { defineAssociations } from '@/db/associations';
 
-// TODO: Add more granular authorization (RBAC for documents based on context)
-// TODO: Add proper error handling and validation
-// TODO: Integrate with actual file upload logic (this route only creates metadata)
-
-// Ensure associations are defined
-// defineAssociations();
-
-// Define the core handler logic expecting authentication and session
+// Define the handler logic
 const handler: AuthenticatedNextApiHandler = async (req, res, session) => {
-  const { method } = req;
+    const { method } = req;
+    const userRole = session.user?.role as UserRole;
+    const userId = session.user?.id;
+    const userDepartmentId = session.user?.departmentId;
 
-  switch (method) {
-    case 'GET':
-      // Handle GET request - List document metadata
-      try {
-        // TODO: Add filtering (employeeId, departmentId, ownerId, type), pagination, sorting
-        const { employeeId, departmentId, ownerId } = req.query;
+    // --- GET: List Documents ---
+    if (method === 'GET') {
+        const { employeeId, departmentId, title, page = 1, limit = 20 } = req.query;
+        const offset = (Number(page) - 1) * Number(limit);
+
         const whereClause: any = {};
-        if (employeeId) whereClause.employeeId = parseInt(employeeId as string, 10);
-        if (departmentId) whereClause.departmentId = parseInt(departmentId as string, 10);
-        if (ownerId) whereClause.ownerId = parseInt(ownerId as string, 10);
+        if (title) whereClause.title = { [Op.iLike]: `%${title}%` }; // Case-insensitive search
 
-        // TODO: Implement RBAC filtering based on user session
+        // RBAC Filtering Logic:
+        if (userRole === 'Employee') {
+            // Employees see their own docs + general docs (no employee/dept association)
+            const employee = await Employee.findOne({ where: { userId } });
+            whereClause[Op.or] = [
+                { employeeId: employee ? employee.id : null }, // Their specific docs
+                { ownerId: userId }, // Docs they uploaded
+                { employeeId: null, departmentId: null } // General company docs
+            ];
+            // Prevent employee from filtering by other employee/department IDs
+            if (employeeId && employeeId !== (employee?.id?.toString())) {
+                 return res.status(403).json({ message: 'Forbidden: Cannot filter by other employees.' });
+            }
+             if (departmentId) {
+                 return res.status(403).json({ message: 'Forbidden: Cannot filter by department.' });
+            }
 
-        const documents = await Document.findAll({
-            where: whereClause,
-            order: [['updatedAt', 'DESC']]
-            // TODO: Include owner/employee/department details if needed
-        });
-        res.status(200).json(documents);
-      } catch (error) {
-        console.error('Error fetching documents:', error);
-        res.status(500).json({ message: 'Internal Server Error' });
-      }
-      break;
+        } else if (userRole === 'DepartmentHead') {
+            if (!userDepartmentId) return res.status(403).json({ message: 'Forbidden: Department information missing.' });
 
-    case 'POST':
-      // Handle POST request - Create new document metadata
-      // Assumes file is already uploaded and filePath is provided
-      try {
-        const {
-          title,
-          filePath, // This path should come from the upload handler
-          fileType,
-          fileSize,
-          ownerId, // Should likely come from session
-          employeeId,
-          departmentId,
-          description
-        } = req.body;
+            // Dept Heads see their own docs, their dept docs, their employees' docs, and general docs
+            const departmentEmployeeIds = await Employee.findAll({
+                where: { departmentId: userDepartmentId },
+                attributes: ['id']
+            }).then(emps => emps.map(e => e.id));
 
-        // Basic validation
-        if (!title || !filePath) {
-          return res.status(400).json({ message: 'Title and file path are required' });
+            const deptHeadEmployee = await Employee.findOne({ where: { userId } });
+
+
+            whereClause[Op.or] = [
+                 { ownerId: userId }, // Docs they uploaded
+                 { departmentId: userDepartmentId }, // Department docs
+                 { employeeId: { [Op.in]: departmentEmployeeIds } }, // Their employees' docs
+                 { employeeId: deptHeadEmployee ? deptHeadEmployee.id : null }, // Their own employee docs
+                 { employeeId: null, departmentId: null } // General docs
+            ];
+
+            // Allow filtering, but ensure requested employee/dept is within their scope
+             if (employeeId && !departmentEmployeeIds.includes(parseInt(employeeId as string, 10)) && employeeId !== (deptHeadEmployee?.id?.toString())) {
+                 return res.status(403).json({ message: 'Forbidden: Cannot filter by employee outside your department.' });
+             }
+             if (departmentId && departmentId !== userDepartmentId.toString()) {
+                  return res.status(403).json({ message: 'Forbidden: Cannot filter by other departments.' });
+             }
+             // Apply specific filters if provided within scope
+             if (employeeId) whereClause.employeeId = employeeId;
+             if (departmentId) whereClause.departmentId = departmentId;
+
+
+        } else if (userRole === 'Admin') {
+            // Admin sees all. Apply filters if provided.
+            if (employeeId) whereClause.employeeId = employeeId;
+            if (departmentId) whereClause.departmentId = departmentId;
+        } else {
+             return res.status(403).json({ message: 'Forbidden: Invalid role.' });
         }
 
-        // TODO: Validate filePath format, ownerId from session
-
-        const newDocument = await Document.create({
-          title,
-          filePath,
-          fileType,
-          fileSize,
-          ownerId, // Use session user ID
-          employeeId,
-          departmentId,
-          description,
-          version: 1, // Initial version
-        });
-        res.status(201).json(newDocument);
-      } catch (error: any) {
-        console.error('Error creating document metadata:', error);
-         if (error.name === 'SequelizeUniqueConstraintError') {
-          // This might indicate a filePath collision if filePath is unique
-          return res.status(409).json({ message: 'Document with this file path already exists' });
+        try {
+            const { count, rows } = await Document.findAndCountAll({
+                where: whereClause,
+                limit: Number(limit),
+                offset: offset,
+                order: [['updatedAt', 'DESC']], // Example order
+                // Include owner/employee/department details if needed
+                include: [
+                    { model: User, as: 'owner', attributes: ['id', 'username'] }, // Assuming username exists
+                    { model: Employee, as: 'employee', attributes: ['id', 'firstName', 'lastName'] }
+                ]
+            });
+            const totalPages = Math.ceil(count / Number(limit));
+            return res.status(200).json({ documents: rows, totalPages, currentPage: Number(page) });
+        } catch (error) {
+            console.error('Error fetching documents:', error);
+            return res.status(500).json({ message: 'Internal Server Error' });
         }
-        // Handle potential foreign key constraint errors
-        res.status(500).json({ message: 'Internal Server Error' });
-      }
-      break;
+    }
 
-    default:
-      res.setHeader('Allow', ['GET', 'POST']);
-      res.status(405).end(`Method ${method} Not Allowed`);
-  }
+    // --- Method Not Allowed ---
+    res.setHeader('Allow', ['GET']);
+    return res.status(405).json({ message: `Method ${method} Not Allowed` });
 };
 
-// Wrap the handler with the RBAC middleware, allowing all authenticated users for now
-// More specific checks (e.g., based on document ownership/department) should be inside the handler
-export default withRole(['Admin', 'DepartmentHead', 'Employee'], handler);
+// Apply middleware - Allow relevant roles to access the list endpoint
+export default withRole(['Admin', 'DepartmentHead', 'Employee'], handler); // Adjust as needed
