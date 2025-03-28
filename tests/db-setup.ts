@@ -9,28 +9,7 @@ import path from 'path';
 
 // Models and associations will be imported inside setupTestDb
 
-// Define umzug instance outside setup
-// or ensure sequelize instance is set before umzug uses it.
-// For simplicity, we'll assume umzug can be defined here and uses the getter which works *after* setupTestDb runs.
-const umzug = new Umzug({
-  migrations: {
-    glob: path.join(__dirname, '../migrations/*.js'), // Path to migrations
-    resolve: ({ name, path: migrationPath, context }: { name: string; path: string; context: QueryInterface }) => {
-      const migration = require(migrationPath);
-      return {
-        name,
-        up: async () => migration.up(context, Sequelize),
-        down: async () => migration.down(context, Sequelize),
-      };
-    },
-  },
-  // These will use getSequelizeInstance(), which requires the instance to be set first
-  context: () => getSequelizeInstance().getQueryInterface(),
-  storage: new SequelizeStorage({ sequelize: () => getSequelizeInstance() }),
-  logger: undefined,
-});
-
-
+// --- Umzug instance will be created inside setupTestDb after Sequelize is ready ---
 export const setupTestDb = async () => {
   // Import config HERE, inside the async function run by beforeAll, using alias
   const { dbConfig } = await import('@/config/config');
@@ -62,10 +41,33 @@ export const setupTestDb = async () => {
     await sequelize.authenticate();
     console.log('Test DB Connection established.');
 
-    // Run all migrations using the now-initialized instance
+    // --- Create Umzug instance HERE, now that Sequelize instance is set ---
+    const umzug = new Umzug({
+      migrations: {
+        glob: path.join(__dirname, '../migrations/*.js'), // Path to migrations
+        resolve: ({ name, path: migrationPath, context }: import('umzug').MigrationParams<QueryInterface>) => {
+          // Handle potentially undefined path
+          if (!migrationPath) {
+            throw new Error(`Migration path is undefined for migration: ${name}`);
+          }
+          const migration = require(migrationPath);
+          return {
+            name,
+            // Pass the actual Sequelize class, not an instance
+            up: async () => migration.up(context, Sequelize),
+            down: async () => migration.down(context, Sequelize),
+          };
+        },
+      },
+      // Pass the actual instance now
+      context: sequelize.getQueryInterface(),
+      storage: new SequelizeStorage({ sequelize: sequelize }), // Pass the instance directly
+      logger: undefined, // Or console for debugging
+    });
+
+    // Run all migrations using the newly created umzug instance
     await umzug.up();
     console.log('Migrations applied successfully.');
-
   } catch (error) {
     console.error('Error setting up test database:', error);
     throw error; // Re-throw to fail test setup
