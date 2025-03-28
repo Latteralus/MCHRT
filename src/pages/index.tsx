@@ -168,7 +168,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     return {
         props: {
-            userName: session.user?.name ?? session.user?.username ?? null, // Use username if name is not available
+            userName: session.user?.name ?? null, // Use name, default to null if unavailable
             session, // Pass session if needed by MainLayout or other components
         },
     };
