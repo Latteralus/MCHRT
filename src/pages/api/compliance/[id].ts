@@ -75,7 +75,7 @@ const handler: AuthenticatedNextApiHandler = async (req, res, session) => {
     const userDepartmentId = session.user?.departmentId;
 
     // --- Check access for the specific item ---
-    const accessResult = await checkAccess(complianceItemId, userRole, userId, userDepartmentId);
+    const accessResult = await checkAccess(complianceItemId, userRole, userId, userDepartmentId ?? undefined);
 
     // Check allowed status first using the discriminated union
     if (!accessResult.allowed) {
