@@ -11,13 +11,12 @@ export const generateUserData = (overrides: Partial<User> = {}): Partial<User> =
   // but we might need to hash here for direct DB insertion in tests.
   // Consider if your User model handles hashing automatically.
   const hashedPassword = bcrypt.hashSync(password, 10); // Sync for simplicity in fixtures
+  const fakeUsername = faker.internet.userName().toLowerCase() + faker.string.numeric(4); // Ensure uniqueness
 
   return {
-    name: faker.person.fullName(),
-    email: faker.internet.email().toLowerCase(),
-    password: hashedPassword, // Store hashed password
+    username: fakeUsername,
+    passwordHash: hashedPassword, // Match model property name
     role: faker.helpers.arrayElement(Object.values(Role)), // Assign a random role
-    isActive: true,
     ...overrides, // Apply any specific overrides
   };
 };
