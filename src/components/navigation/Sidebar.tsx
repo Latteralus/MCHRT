@@ -27,14 +27,14 @@ const menuItems = [
 const Sidebar: React.FC<SidebarProps> = ({
   userName = 'Faith Calkins', // Default placeholder
   userRole = 'HR Director', // Default placeholder
-  userAvatarUrl = 'https://via.placeholder.com/36', // Default placeholder
+  userAvatarUrl = '/images/default-avatar.png', // Default placeholder
   activePath = '/', // Default placeholder
 }) => {
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
         {/* Replace with actual logo */}
-        <Image src="https://via.placeholder.com/40" alt="Mountain Care Logo" width={40} height={40} />
+        <Image src="/images/logo.png" alt="Mountain Care Logo" width={40} height={40} />
         {/* <Image src={logo} alt="Mountain Care Logo" height={40} /> */}
         <span>Mountain Care</span>
       </div>

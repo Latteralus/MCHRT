@@ -1,6 +1,7 @@
 // src/pages/api/attendance/[id].ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { Attendance, Employee, AttendanceAttributes } from '@/db'; // Import Attendance, Employee models and AttendanceAttributes interface
+import Attendance, { AttendanceAttributes } from '@/modules/attendance/models/Attendance'; // Import Attendance model and attributes
+import Employee from '@/modules/employees/models/Employee'; // Import Employee model
 import { withAuth, AuthenticatedNextApiHandler } from '@/lib/middleware/withAuth';
 // Placeholder: Import authorization middleware if needed (e.g., check if user owns the record or is manager/admin)
 // import { withAttendanceAccess } from '@/lib/middleware/withAttendanceAccess'; // Example
