@@ -1,9 +1,15 @@
 // src/pages/api/attendance/[id].ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { Attendance } from '@/db'; // Import Attendance model from central db index
+import { Attendance, Employee } from '@/db'; // Import Attendance and Employee models
 import { withAuth, AuthenticatedNextApiHandler } from '@/lib/middleware/withAuth';
 // Placeholder: Import authorization middleware if needed (e.g., check if user owns the record or is manager/admin)
 // import { withAttendanceAccess } from '@/lib/middleware/withAttendanceAccess'; // Example
+import { UserRole } from '@/lib/middleware/withRole'; // Import UserRole
+
+// Define an interface that includes the associated employee
+interface AttendanceWithEmployee extends Attendance {
+  employee?: Employee | null; // Define the included association
+}
 
 // Define the handler logic, wrapped with authentication
 const handler: AuthenticatedNextApiHandler = async (req, res, session) => {
@@ -20,8 +26,8 @@ const handler: AuthenticatedNextApiHandler = async (req, res, session) => {
   }
 
   const requestingUserId = session.user?.id;
-  const requestingUserRole = session.user?.role;
-  let attendanceRecord; // To store the found record
+  const requestingUserRole = session.user?.role as UserRole | undefined; // Add type assertion for role
+  let attendanceRecord: AttendanceWithEmployee | null = null; // Use the extended type
 
   // Fetch the record first for authorization checks
   try {
