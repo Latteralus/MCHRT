@@ -1,7 +1,7 @@
 // src/modules/compliance/services/expirationService.ts
 import { Compliance } from '@/db';
 import { Op, literal } from 'sequelize';
-import { sequelize } from '@/db/mockDbSetup'; // For transaction
+import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the getter function
 import { sendComplianceExpirationReminders } from '@/modules/notifications/services/reminderService'; // Import reminder service
 
 const EXPIRING_SOON_DAYS = 30; // Define threshold for "ExpiringSoon"
@@ -12,6 +12,7 @@ const EXPIRING_SOON_DAYS = 30; // Define threshold for "ExpiringSoon"
  */
 export const checkComplianceExpirations = async (): Promise<{ updatedToExpired: number; updatedToExpiringSoon: number; revertedToActive: number }> => {
     console.log('Starting compliance expiration check...');
+    const sequelize = getSequelizeInstance(); // Get the instance
     const transaction = await sequelize.transaction();
     let updatedToExpired = 0;
     let updatedToExpiringSoon = 0;
