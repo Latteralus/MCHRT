@@ -29,7 +29,7 @@ export const authOptions: NextAuthOptions = {
           // The object returned will be encoded in the JWT/session.
           // Ensure sensitive data like passwordHash is NOT included here.
           return {
-            id: '1', // Use a unique ID (from DB later)
+            id: 1, // Use a unique ID (number type)
             name: 'Admin User', // Or user.name
             // email: user.email, // Not required for login per docs
             role: 'Admin', // Add custom properties like role
@@ -51,17 +51,20 @@ export const authOptions: NextAuthOptions = {
   // Add custom callbacks to include role in JWT and session
   callbacks: {
     async jwt({ token, user }) {
-      // Persist the user role to the JWT right after sign-in
-      if (user?.role) {
+      // Persist custom user data to the JWT right after sign-in
+      if (user) { // user object is only available on initial sign-in
+        token.id = user.id;
         token.role = user.role;
+        token.departmentId = user.departmentId;
       }
       return token;
     },
     async session({ session, token }) {
-      // Send role property to the client session
-      if (token?.role && session?.user) {
-         // Add role to session.user - requires extending the Session type
-         (session.user as any).role = token.role;
+      // Send custom properties to the client session from the JWT
+      if (token && session.user) {
+        session.user.id = token.id;
+        session.user.role = token.role;
+        session.user.departmentId = token.departmentId;
       }
       return session;
     }
@@ -80,30 +83,4 @@ export const authOptions: NextAuthOptions = {
 
 export default NextAuth(authOptions);
 
-// --- Type Augmentation (Important!) ---
-// Extend the built-in session/user types to include the 'role' property
-// You might want to put this in a separate `types/next-auth.d.ts` file
-import { DefaultSession } from 'next-auth'; // Import DefaultSession
-
-declare module 'next-auth' {
-  interface Session {
-    user?: {
-      name?: string | null;
-      email?: string | null; // Keep email if needed elsewhere, though not for login
-      image?: string | null;
-      role?: string; // Add custom role property
-    } & DefaultSession['user']; // Extend default user properties if needed
-  }
-
-  interface User {
-    // Add custom properties returned by the authorize callback
-    role?: string;
-  }
-}
-
-declare module 'next-auth/jwt' {
-  // Returned by the `jwt` callback
-  interface JWT {
-    role?: string; // Add custom role property
-  }
-}
+// Type augmentation is now handled in src/types/next-auth.d.ts
