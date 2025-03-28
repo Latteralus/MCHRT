@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 
 interface AvatarProps {
   src?: string | null;
@@ -38,8 +39,9 @@ const Avatar: React.FC<AvatarProps> = ({
           {initials ? initials.slice(0, 2).toUpperCase() : '?'}
         </span>
       ) : (
-        <img
-          className="h-full w-full object-cover"
+        <Image
+          fill
+          style={{ objectFit: 'cover' }} // Replaced object-cover class with style prop
           src={src}
           alt={alt}
           onError={handleImageError}

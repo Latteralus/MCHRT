@@ -1,5 +1,5 @@
 // src/components/leave/LeaveRequestList.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 // Placeholder: Import UI components (Table, Pagination, Badge, Button, LoadingSpinner, ErrorMessage)
 // import { Table, Pagination, Badge, Button, LoadingSpinner, ErrorMessage } from '@/components/common';
 import { fetchLeaveRequests, approveLeaveRequest, rejectLeaveRequest } from '@/lib/api/leave'; // Import API functions
@@ -37,7 +37,7 @@ const LeaveRequestList: React.FC<LeaveRequestListProps> = ({ employeeId, status,
   const [totalPages, setTotalPages] = useState(1);
   const [limit] = useState(20); // Or make configurable
 
-  const loadRequests = async () => {
+  const loadRequests = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
@@ -61,11 +61,11 @@ const LeaveRequestList: React.FC<LeaveRequestListProps> = ({ employeeId, status,
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [employeeId, status, currentPage, limit, setIsLoading, setError, setLeaveRequests, setTotalPages, setCurrentPage]); // Add dependencies for useCallback
 
   useEffect(() => {
     loadRequests();
-  }, [employeeId, status, currentPage, limit]); // Re-fetch when filters or page change
+  }, [loadRequests]); // Now depends on the memoized loadRequests
 
   const handleApprove = async (requestId: number) => {
     // Optional: Add confirmation dialog
@@ -145,7 +145,7 @@ const LeaveRequestList: React.FC<LeaveRequestListProps> = ({ employeeId, status,
           {leaveRequests.map((request) => (
             <tr key={request.id}>
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                 {request.employee ? `${request.employee.lastName}, ${request.employee.firstName}` : 'N/A'}
+                 {request.employeeName || 'N/A'}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{request.startDate}</td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{request.endDate}</td>

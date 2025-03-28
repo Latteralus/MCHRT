@@ -2,7 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 // Assuming a logo file exists or using a placeholder
 // import logo from '@/public/logo.svg'; // Example path
-// import Image from 'next/image';
+import Image from 'next/image';
 
 interface SidebarProps {
   // Add any necessary props, e.g., user info, active path
@@ -34,7 +34,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     <aside className="sidebar">
       <div className="sidebar-logo">
         {/* Replace with actual logo */}
-        <img src="https://via.placeholder.com/40" alt="Mountain Care Logo" style={{ height: '40px' }} />
+        <Image src="https://via.placeholder.com/40" alt="Mountain Care Logo" width={40} height={40} />
         {/* <Image src={logo} alt="Mountain Care Logo" height={40} /> */}
         <span>Mountain Care</span>
       </div>
@@ -49,7 +49,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         ))}
       </nav>
       <div className="sidebar-footer">
-        <img src={userAvatarUrl} alt="User avatar" />
+        <Image src={userAvatarUrl} alt="User avatar" width={36} height={36} className="rounded-full" /> {/* Added rounded-full for styling */}
         <div className="user-info">
           <div className="user-name">{userName}</div>
           <div className="user-role">{userRole}</div>
