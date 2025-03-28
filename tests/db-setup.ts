@@ -1,6 +1,7 @@
 // tests/db-setup.ts
 import { Sequelize, QueryInterface } from 'sequelize';
-import { Umzug, SequelizeStorage } from 'umzug';
+import { Umzug } from 'umzug'; // Import only Umzug from main
+import { SequelizeStorage } from 'umzug/storage/sequelize'; // Import storage separately
 import { setSequelizeInstance, getSequelizeInstance } from '@/db/mockDbSetup'; // Import setter and getter
 // Config will be imported inside setupTestDb
 import path from 'path';
