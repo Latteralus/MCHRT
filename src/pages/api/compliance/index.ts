@@ -2,7 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { Compliance, Employee } from '@/db'; // Import models
 import { withRole, AuthenticatedNextApiHandler, UserRole } from '@/lib/middleware/withRole';
-import { sequelize } from '@/db/mockDbSetup'; // For potential transactions or complex queries
+import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the getter function
 import { Op } from 'sequelize'; // For query operators
 
 // Define the handler logic
@@ -36,6 +36,7 @@ const handler: AuthenticatedNextApiHandler = async (req, res, session) => {
                  whereClause.employeeId = employeeId;
             } else {
                 // Show all employees within the department head's department
+                 const sequelize = getSequelizeInstance(); // Get instance
                  whereClause.employeeId = {
                      [Op.in]: sequelize.literal(`(SELECT id FROM "Employees" WHERE "departmentId" = ${userDepartmentId})`)
                  };

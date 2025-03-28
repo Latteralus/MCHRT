@@ -2,7 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { Document, Employee, User } from '@/db'; // Import models
 import { withRole, AuthenticatedNextApiHandler, UserRole } from '@/lib/middleware/withRole';
-import { sequelize } from '@/db/mockDbSetup';
+// import { sequelize } from '@/db/mockDbSetup'; // Removed unused import
 import { Op } from 'sequelize';
 
 // Define the handler logic

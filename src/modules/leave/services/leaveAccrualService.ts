@@ -1,7 +1,7 @@
 // src/modules/leave/services/leaveAccrualService.ts
 import { Employee } from '@/db'; // Import Employee model
 import { accrueLeaveBalance } from './leaveBalanceService'; // Import the single accrual function
-import { sequelize } from '@/db/mockDbSetup'; // Import sequelize for transactions
+import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the getter function
 
 const LEAVE_TYPE_TO_ACCRUE = 'Vacation';
 const AMOUNT_TO_ACCRUE = 8; // Example: 8 hours
@@ -13,6 +13,7 @@ const AMOUNT_TO_ACCRUE = 8; // Example: 8 hours
  */
 export const runMonthlyLeaveAccrual = async (): Promise<void> => {
   console.log(`Starting monthly leave accrual (${AMOUNT_TO_ACCRUE} hours of ${LEAVE_TYPE_TO_ACCRUE})...`);
+  const sequelize = getSequelizeInstance(); // Get the instance
   const transaction = await sequelize.transaction(); // Start a transaction
 
   try {
