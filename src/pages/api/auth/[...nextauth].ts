@@ -53,7 +53,7 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       // Persist custom user data to the JWT right after sign-in
       if (user) { // user object is only available on initial sign-in
-        token.id = user.id;
+        token.id = Number(user.id); // Ensure id is a number
         token.role = user.role;
         token.departmentId = user.departmentId;
       }
