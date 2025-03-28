@@ -8,7 +8,7 @@
 - [x] Set up NextAuth with CredentialsProvider
 - [x] Implement basic authentication (login page)
 - [x] Create basic layout components (MainLayout, Sidebar) (TopBar removed)
-- [ ] Set up core UI component library
+- [x] Set up core UI component library (Basic components created in src/components/ui/)
 - [x] Configure environment variables
 - [x] Set up local filesystem for document storage
 
@@ -24,7 +24,7 @@
 - [x] Create migrations for all models
 - [x] Generate seed data for development (Core models seeded)
 - [x] Implement API routes for CRUD operations on all models (Basic implementation)
-- [ ] Add RBAC middleware for API routes (Middleware created, partially applied)
+- [x] Add RBAC middleware for API routes (Applied to Employees, Attendance, Leave, Documents)
 
 ## Phase 3: Employee Management Module
 - [x] Build employee list page with filtering (Basic page created)
@@ -46,13 +46,13 @@
 - [ ] Add tests for API routes and services (Deferred)
 
 ## Phase 5: Compliance & Document Management
-- [/] Build license/certification tracking interface (API routes, List/Form components, Index page created)
+- [x] Build license/certification tracking interface (API, List, Form, Index page integrated)
 - [x] Implement expiration monitoring (Service + API Trigger created)
-- [/] Create compliance dashboard (Stats + Expiring widgets created)
-- [/] Build document upload functionality (API route, UploadForm component created)
-- [/] Create document browser/viewer (API route for listing, DocumentList component created)
-- [/] Implement RBAC for document access (Basic RBAC in list/upload API routes)
-- [ ] Set up document metadata management
+- [x] Create compliance dashboard (Widgets created and integrated)
+- [x] Build document upload functionality (API route, UploadForm integrated with modal)
+- [x] Create document browser/viewer (API route, DocumentList integrated with download)
+- [x] Implement RBAC for document access (Refined in list, upload, download, metadata routes)
+- [/] Set up document metadata management (API route created, UI pending)
 
 ## Phase 6: Dashboard & Reporting
 - [ ] Create main dashboard matching design

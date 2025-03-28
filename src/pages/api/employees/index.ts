@@ -17,10 +17,27 @@ const handler: AuthenticatedNextApiHandler = async (req, res, session) => {
 
   switch (method) {
     case 'GET':
-      // Handle GET request - List all employees (excluding encrypted SSN)
+      // Handle GET request - List employees (excluding encrypted SSN)
+      // Admins see all, Department Heads see their department only
       try {
+        const userRole = session.user?.role;
+        const userDepartmentId = session.user?.departmentId;
+
+        let whereClause = {};
+        if (userRole === 'DepartmentHead') {
+          if (!userDepartmentId) {
+            console.warn(`DepartmentHead ${session.user?.id} missing departmentId in session.`);
+            return res.status(403).json({ message: 'Forbidden: Department information missing.' });
+          }
+          whereClause = { departmentId: userDepartmentId };
+        } else if (userRole !== 'Admin') {
+          // Should not happen due to withRole, but as a safeguard
+          return res.status(403).json({ message: 'Forbidden: Insufficient permissions.' });
+        }
+
         // TODO: Add filtering, pagination, sorting options
         const employees = await Employee.findAll({
+          where: whereClause, // Apply department filter for Department Heads
           attributes: { exclude: ['ssnEncrypted'] } // Exclude sensitive data
         });
         res.status(200).json(employees);
@@ -32,6 +49,10 @@ const handler: AuthenticatedNextApiHandler = async (req, res, session) => {
 
     case 'POST':
       // Handle POST request - Create a new employee
+      // Restrict POST to Admins only internally
+      if (session.user?.role !== 'Admin') {
+          return res.status(403).json({ message: 'Forbidden: Only Admins can create employees.' });
+      }
       try {
         const { firstName, lastName, ssn, departmentId, position, hireDate } = req.body;
 
@@ -65,7 +86,8 @@ const handler: AuthenticatedNextApiHandler = async (req, res, session) => {
       break;
 
     default:
-      res.setHeader('Allow', ['GET', 'POST']);
+      // Update Allow header as POST is now restricted internally
+      res.setHeader('Allow', ['GET']); // Technically POST is allowed by routing, but forbidden by logic for non-admins
       res.status(405).end(`Method ${method} Not Allowed`);
   }
 };

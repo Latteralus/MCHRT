@@ -1,8 +1,8 @@
-// src/components/compliance/ComplianceList.tsx
 import React, { useState, useEffect } from 'react';
-// Placeholder: Import API functions (fetch, delete)
-// import { fetchComplianceItems, deleteComplianceItem } from '@/lib/api/compliance';
-// Placeholder: Import UI components (Table, Pagination, Badge, Button, Loading, Error)
+import { fetchComplianceItems, deleteComplianceItem } from '@/lib/api/compliance';
+import Button from '@/components/ui/Button';
+import Badge from '@/components/ui/Badge';
+import { format } from 'date-fns'; // For date formatting
 // Placeholder: Import types (ComplianceItem, UserRole)
 
 // Define the shape of a compliance item for display
@@ -29,28 +29,29 @@ interface ComplianceListProps {
     onEdit?: (itemId: number) => void;
 }
 
-// Mock API function for fetching
-const mockFetchComplianceItems = async (filters: any): Promise<{ items: DisplayComplianceItem[], totalPages: number }> => {
-    console.log('Mock fetching compliance items with filters:', filters);
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
-    // Return mock data based on filters if needed, otherwise static list
-    return {
-        items: [
-            { id: 1, employeeName: 'Kirk, James', itemType: 'License', itemName: 'Pharmacist License', authority: 'State Board', licenseNumber: 'PH12345', issueDate: '2023-01-15', expirationDate: '2025-01-14', status: 'ExpiringSoon' },
-            { id: 2, employeeName: 'McCoy, Leonard', itemType: 'License', itemName: 'Pharmacy Tech License', authority: 'State Board', licenseNumber: 'PT67890', issueDate: '2022-06-01', expirationDate: '2024-05-31', status: 'Expired' },
-            { id: 3, employeeName: 'Uhura, Nyota', itemType: 'Training', itemName: 'HIPAA Compliance', authority: 'Internal HR', issueDate: '2024-01-10', expirationDate: '2025-01-09', status: 'Active' },
-            { id: 4, employeeName: 'Manager, William', itemType: 'Review', itemName: '90 Day Review', authority: 'HR', issueDate: '2024-03-01', expirationDate: undefined, status: 'PendingReview' },
-        ],
-        totalPages: 1,
-    };
+// Helper to format date strings (e.g., YYYY-MM-DD)
+const formatDate = (dateString: string | undefined | null): string => {
+    if (!dateString) return 'N/A';
+    try {
+        // Ensure the date string is treated correctly (might need parsing if not ISO)
+        // If dateString is just 'YYYY-MM-DD', new Date() might interpret it as UTC midnight.
+        // Adding time component 'T00:00:00' helps ensure local interpretation if needed.
+        // Or use date-fns parseISO if format is guaranteed ISO 8601.
+        return format(new Date(dateString + 'T00:00:00'), 'yyyy-MM-dd');
+    } catch {
+        return 'Invalid Date';
+    }
 };
 
-// Mock API function for deleting
-const mockDeleteComplianceItem = async (itemId: number): Promise<void> => {
-     console.log(`Mock deleting compliance item ${itemId}`);
-     await new Promise(resolve => setTimeout(resolve, 300));
-     // Simulate potential error
-     // if (itemId === 2) throw new Error("Simulated deletion error");
+// Helper to map status to Badge color
+const getStatusColor = (status: string): 'success' | 'warning' | 'danger' | 'gray' => {
+    switch (status?.toLowerCase()) {
+        case 'active': return 'success';
+        case 'expiringsoon': return 'warning'; // Assuming API returns 'ExpiringSoon'
+        case 'expired': return 'danger';
+        case 'pendingreview': return 'gray';
+        default: return 'gray';
+    }
 };
 
 
@@ -66,18 +67,35 @@ const ComplianceList: React.FC<ComplianceListProps> = ({ employeeId, status, ite
         setIsLoading(true);
         setError(null);
         try {
-            // Replace with actual API call: fetchComplianceItems
-            const data = await mockFetchComplianceItems({
+            // Use actual API call
+            const response = await fetchComplianceItems({
                 employeeId,
                 status,
                 itemType,
                 page: currentPage,
                 limit
             });
-            setItems(data.items);
-            setTotalPages(data.totalPages);
-            if (currentPage > data.totalPages) {
-                setCurrentPage(Math.max(1, data.totalPages));
+
+            // Map API response to DisplayComplianceItem
+            const displayItems = response.items.map(item => ({
+                id: item.id,
+                employeeName: item.employee ? `${item.employee.lastName}, ${item.employee.firstName}` : 'N/A',
+                itemType: item.itemType,
+                itemName: item.itemName,
+                authority: item.authority,
+                licenseNumber: item.licenseNumber,
+                issueDate: formatDate(item.issueDate),
+                expirationDate: formatDate(item.expirationDate),
+                status: item.status, // Assuming API returns status string directly
+            }));
+
+            setItems(displayItems);
+            setTotalPages(response.totalPages);
+            // Adjust current page if it becomes invalid after data load (e.g., after deletion)
+            if (currentPage > response.totalPages && response.totalPages > 0) {
+                setCurrentPage(response.totalPages);
+            } else if (response.totalPages === 0) {
+                 setCurrentPage(1); // Reset to page 1 if no results
             }
         } catch (err: any) {
             console.error('Failed to fetch compliance items:', err);
@@ -89,7 +107,8 @@ const ComplianceList: React.FC<ComplianceListProps> = ({ employeeId, status, ite
 
     useEffect(() => {
         loadItems();
-    }, [employeeId, status, itemType, currentPage, limit]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [employeeId, status, itemType, currentPage, limit]); // Dependencies for re-fetching
 
     const handleDelete = async (itemId: number) => {
         if (!confirm('Are you sure you want to delete this compliance item?')) {
@@ -97,20 +116,24 @@ const ComplianceList: React.FC<ComplianceListProps> = ({ employeeId, status, ite
         }
         try {
             setIsLoading(true); // Indicate loading state during action
-            // Replace with actual API call: deleteComplianceItem
-            await mockDeleteComplianceItem(itemId);
+            // Use actual API call
+            await deleteComplianceItem(itemId);
             alert('Item deleted successfully.'); // Simple feedback
-            loadItems(); // Refresh list
+            // Refresh list - loadItems will be triggered by state change if currentPage needs adjustment,
+            // or call it directly if staying on the same page is desired after deletion.
+            // If deleting the last item on a page, adjusting currentPage might be needed.
+            // For simplicity, just reload current view. If it was the last item, loadItems will adjust.
+            loadItems();
         } catch (err: any) {
            console.error('Error deleting item:', err);
            alert(`Failed to delete item: ${err.message}`);
            setIsLoading(false); // Reset loading state on error
         }
-        // No finally setIsLoading(false) here, as loadItems() handles it
+        // loadItems() handles the final setIsLoading(false)
     };
 
     const handlePageChange = (newPage: number) => {
-        if (newPage >= 1 && newPage <= totalPages) {
+        if (newPage >= 1 && newPage <= totalPages && newPage !== currentPage) {
             setCurrentPage(newPage);
         }
     };
@@ -120,17 +143,18 @@ const ComplianceList: React.FC<ComplianceListProps> = ({ employeeId, status, ite
     }
 
     if (error) {
+        // Use Alert component if available and desired
         return <div className="text-center p-4 text-red-500 bg-red-100 border border-red-400 rounded">{error}</div>;
     }
 
-    if (items.length === 0) {
+    if (items.length === 0 && !isLoading) { // Ensure not loading before showing "no items"
         return <div className="text-center p-4 text-gray-500">No compliance items found matching the criteria.</div>;
     }
 
-    // Placeholder: Replace with actual Table component
+    // Use actual Table component (assuming one exists or using basic table for now)
     return (
-        <div className="overflow-x-auto relative">
-             {isLoading && <div className="absolute inset-0 bg-white bg-opacity-50 flex items-center justify-center z-10">Loading...</div>}
+        <div className="overflow-x-auto relative shadow-md sm:rounded-lg">
+             {isLoading && <div className="absolute inset-0 bg-white bg-opacity-50 flex items-center justify-center z-10 rounded-lg">Loading...</div>}
             <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                     <tr>
@@ -148,38 +172,68 @@ const ComplianceList: React.FC<ComplianceListProps> = ({ employeeId, status, ite
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.employeeName}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.itemName}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.itemType}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.expirationDate || 'N/A'}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.expirationDate}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                {/* Placeholder: Replace with Badge component */}
-                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                    item.status === 'Active' ? 'bg-green-100 text-green-800' :
-                                    item.status === 'Expired' ? 'bg-red-100 text-red-800' :
-                                    item.status === 'ExpiringSoon' ? 'bg-yellow-100 text-yellow-800' :
-                                    'bg-gray-100 text-gray-800' // PendingReview or other
-                                }`}>
+                                {/* Use Badge component */}
+                                <Badge color={getStatusColor(item.status)} size="sm">
                                     {item.status}
-                                </span>
+                                </Badge>
                             </td>
                             {canManage && (
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                                    {/* Placeholder: Replace with Button components */}
-                                    <button onClick={() => onEdit && onEdit(item.id)} className="text-indigo-600 hover:text-indigo-900 disabled:opacity-50" disabled={isLoading}>Edit</button>
-                                    <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-900 disabled:opacity-50" disabled={isLoading}>Delete</button>
+                                    {/* Use Button components */}
+                                    <Button
+                                        variant="outline"
+                                        size="sm" // Assuming Button has size prop
+                                        onClick={() => onEdit && onEdit(item.id)}
+                                        disabled={isLoading}
+                                        className="text-indigo-600 border-indigo-300 hover:bg-indigo-50"
+                                    >
+                                        Edit
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleDelete(item.id)}
+                                        disabled={isLoading}
+                                        className="text-red-600 border-red-300 hover:bg-red-50"
+                                    >
+                                        Delete
+                                    </Button>
                                 </td>
                             )}
                         </tr>
                     ))}
                 </tbody>
             </table>
-            {/* Placeholder: Replace with actual Pagination component */}
-            <div className="mt-4 flex justify-center">
+            {/* Pagination Controls */}
+            <div className="py-3 px-6 flex justify-center items-center space-x-2 bg-gray-50 border-t border-gray-200">
                 {totalPages > 1 && (
                     <>
-                        <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage <= 1 || isLoading} className="mx-1 px-3 py-1 border rounded disabled:opacity-50">Previous</button>
-                        <span className="mx-2 self-center">Page {currentPage} of {totalPages}</span>
-                        <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage >= totalPages || isLoading} className="mx-1 px-3 py-1 border rounded disabled:opacity-50">Next</button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            disabled={currentPage <= 1 || isLoading}
+                        >
+                            Previous
+                        </Button>
+                        <span className="text-sm text-gray-700">
+                            Page {currentPage} of {totalPages}
+                        </span>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            disabled={currentPage >= totalPages || isLoading}
+                        >
+                            Next
+                        </Button>
                     </>
                 )}
+                 {totalPages <= 1 && items.length > 0 && (
+                     <span className="text-sm text-gray-700">Page 1 of 1</span>
+                 )}
             </div>
         </div>
     );

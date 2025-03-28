@@ -3,7 +3,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import formidable, { File } from 'formidable'; // Import formidable and File type
 import fs from 'fs';
 import path from 'path';
-import { Document } from '@/db'; // Import Document model
+import { Document, Employee } from '@/db'; // Import Document and Employee models
 import { withRole, AuthenticatedNextApiHandler, UserRole } from '@/lib/middleware/withRole';
 import { v4 as uuidv4 } from 'uuid'; // For generating unique filenames
 
@@ -84,7 +84,50 @@ const handler: AuthenticatedNextApiHandler = async (req, res, session) => {
         const employeeId = fields.employeeId?.[0] ? parseInt(fields.employeeId[0], 10) : undefined;
         const departmentId = fields.departmentId?.[0] ? parseInt(fields.departmentId[0], 10) : undefined;
 
-        // TODO: Add RBAC check here - can this user upload for this employee/department?
+        // --- RBAC Check ---
+        const userRole = session.user?.role as UserRole;
+        const userDepartmentId = session.user?.departmentId;
+        let authorized = false;
+
+        if (userRole === 'Admin') {
+            authorized = true; // Admins can upload anything
+        } else if (userRole === 'DepartmentHead') {
+            if (!userDepartmentId) {
+                return res.status(403).json({ message: 'Forbidden: Department information missing for manager.' });
+            }
+            if (!employeeId && !departmentId) { // General upload
+                authorized = true;
+            } else if (departmentId && departmentId === userDepartmentId && !employeeId) { // Department upload
+                authorized = true;
+            } else if (employeeId) { // Employee-specific upload
+                const employee = await Employee.findOne({ where: { id: employeeId, departmentId: userDepartmentId }, attributes: ['id'] });
+                if (employee) {
+                    authorized = true; // Employee is in manager's department
+                } else {
+                    // Check if manager is uploading for themselves
+                    const managerEmployee = await Employee.findOne({ where: { userId: userId }, attributes: ['id'] });
+                    if (managerEmployee && managerEmployee.id === employeeId) {
+                        authorized = true;
+                    }
+                }
+            }
+        } else if (userRole === 'Employee') {
+            if (!employeeId && !departmentId) { // General upload
+                authorized = true;
+            } else if (employeeId) { // Self-upload
+                const employee = await Employee.findOne({ where: { userId: userId }, attributes: ['id'] });
+                if (employee && employee.id === employeeId) {
+                    authorized = true;
+                }
+            }
+            // Employees cannot upload for specific departments or other employees
+        }
+
+        if (!authorized) {
+            return res.status(403).json({ message: 'Forbidden: You do not have permission to upload this document association.' });
+        }
+        // --- End RBAC Check ---
+
 
         // Create document record in the database
         const newDocument = await Document.create({

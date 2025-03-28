@@ -1,123 +1,109 @@
-// src/components/compliance/ComplianceForm.tsx
 import React, { useState, useEffect } from 'react';
-// Placeholder: Import API functions (fetch single item, create, update)
-// import { fetchComplianceItem, createComplianceItem, updateComplianceItem } from '@/lib/api/compliance';
-// Placeholder: Import Employee fetch function for dropdown
-// import { fetchEmployeesForSelect } from '@/lib/api/employees';
-// Placeholder: Import UI components (Input, Select, DatePicker, Button, Loading, Error)
-// Placeholder: Import types (ComplianceItem, ComplianceStatus)
+import { fetchComplianceItem, createComplianceItem, updateComplianceItem } from '@/lib/api/compliance';
+import { fetchEmployeesForSelect } from '@/lib/api/employees';
+import Input from '@/components/ui/Input';
+import Select from '@/components/ui/Select';
+import Button from '@/components/ui/Button';
+import Alert from '@/components/ui/Alert'; // Import Alert for error display
 
+// Interface for form data state
 interface ComplianceFormData {
-    employeeId: string; // Use string for select input value
+    employeeId: string; // Keep as string for Select component value
     itemType: string;
     itemName: string;
     authority: string;
     licenseNumber: string;
-    issueDate: string; // Use string for date input value
-    expirationDate: string; // Use string for date input value
-    status: string; // ComplianceStatus
+    issueDate: string; // Keep as string for Input type="date"
+    expirationDate: string; // Keep as string for Input type="date"
+    status: string;
+}
+
+// Interface for employee select options
+interface EmployeeOption {
+    id: number;
+    name: string;
 }
 
 interface ComplianceFormProps {
-    itemId?: number | null; // ID of the item to edit, or null/undefined for new item
-    onSuccess: () => void; // Callback on successful save
-    onCancel: () => void; // Callback on cancel
+    itemId?: number | null;
+    onSuccess: () => void;
+    onCancel: () => void;
 }
 
-// Mock API functions
-const mockFetchComplianceItem = async (id: number): Promise<Partial<ComplianceFormData>> => {
-    console.log(`Mock fetching compliance item ${id}`);
-    await new Promise(resolve => setTimeout(resolve, 300));
-    // Return mock data for editing
-    if (id === 1) {
-        return {
-            employeeId: '1', // Assuming employee ID 1 is James Kirk
-            itemType: 'License',
-            itemName: 'Pharmacist License',
-            authority: 'State Board',
-            licenseNumber: 'PH12345',
-            issueDate: '2023-01-15',
-            expirationDate: '2025-01-14',
-            status: 'ExpiringSoon',
-        };
-    }
-    throw new Error("Item not found for editing (mock)");
-};
-
-const mockCreateComplianceItem = async (data: ComplianceFormData): Promise<any> => {
-    console.log('Mock creating compliance item:', data);
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return { id: Date.now(), ...data }; // Return mock created item
-};
-
-const mockUpdateComplianceItem = async (id: number, data: Partial<ComplianceFormData>): Promise<any> => {
-    console.log(`Mock updating compliance item ${id}:`, data);
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return { id, ...data }; // Return mock updated item
-};
-
-// Mock employee list for dropdown
-const mockEmployees = [
-    { id: 1, name: 'Kirk, James' },
-    { id: 2, name: 'McCoy, Leonard' },
-    { id: 3, name: 'Uhura, Nyota' },
-    { id: 4, name: 'Manager, William' },
-];
-
-// Example statuses and types for dropdowns
-const complianceStatuses = ['Active', 'ExpiringSoon', 'Expired', 'PendingReview'];
-const complianceItemTypes = ['License', 'Certification', 'Training', 'Review'];
+// Constants for dropdowns
+const complianceStatuses = ['Active', 'ExpiringSoon', 'Expired', 'PendingReview', 'Archived']; // Added Archived
+const complianceItemTypes = ['License', 'Certification', 'Training', 'Review', 'PolicyAcknowledgement']; // Added more types
 
 const ComplianceForm: React.FC<ComplianceFormProps> = ({ itemId, onSuccess, onCancel }) => {
     const [formData, setFormData] = useState<ComplianceFormData>({
-        employeeId: '',
-        itemType: '',
-        itemName: '',
-        authority: '',
-        licenseNumber: '',
-        issueDate: '',
-        expirationDate: '',
-        status: 'PendingReview', // Default status
+        employeeId: '', itemType: '', itemName: '', authority: '',
+        licenseNumber: '', issueDate: '', expirationDate: '', status: 'PendingReview'
     });
-    const [employees, setEmployees] = useState<{ id: number; name: string }[]>([]);
+    const [employees, setEmployees] = useState<EmployeeOption[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
+    const [isFetchingInitialData, setIsFetchingInitialData] = useState<boolean>(false);
 
-    // Fetch item data if editing
+    // Fetch employees and item data (if editing)
     useEffect(() => {
-        // Fetch employees for dropdown
-        // In a real app, fetchEmployeesForSelect() would be called here
-        setEmployees(mockEmployees);
-
-        if (itemId) {
-            setIsLoading(true);
+        let isMounted = true;
+        const loadInitialData = async () => {
+            setIsFetchingInitialData(true);
             setError(null);
-            // Replace with actual API call: fetchComplianceItem
-            mockFetchComplianceItem(itemId)
-                .then(data => {
-                    setFormData(prev => ({
-                        ...prev, // Keep defaults for fields not returned
-                        ...data,
-                        // Ensure dates are formatted correctly for input type="date" (YYYY-MM-DD)
-                        issueDate: data.issueDate ? data.issueDate.split('T')[0] : '',
-                        expirationDate: data.expirationDate ? data.expirationDate.split('T')[0] : '',
-                    }));
-                })
-                .catch(err => {
-                    console.error(`Failed to fetch item ${itemId}:`, err);
-                    setError(err.message || 'Failed to load item data.');
-                })
-                .finally(() => setIsLoading(false));
-        } else {
-            // Reset form for new item
-             setFormData({
-                employeeId: '', itemType: '', itemName: '', authority: '',
-                licenseNumber: '', issueDate: '', expirationDate: '', status: 'PendingReview'
-            });
-        }
+            try {
+                // Fetch employees concurrently
+                const employeesPromise = fetchEmployeesForSelect();
+
+                let itemDataPromise: Promise<any> = Promise.resolve(null);
+                if (itemId) {
+                    itemDataPromise = fetchComplianceItem(itemId);
+                }
+
+                const [fetchedEmployees, itemData] = await Promise.all([employeesPromise, itemDataPromise]);
+
+                if (!isMounted) return; // Prevent state update if component unmounted
+
+                setEmployees(fetchedEmployees);
+
+                if (itemData) {
+                    // Populate form with fetched item data
+                    setFormData({
+                        employeeId: itemData.employeeId?.toString() || '',
+                        itemType: itemData.itemType || '',
+                        itemName: itemData.itemName || '',
+                        authority: itemData.authority || '',
+                        licenseNumber: itemData.licenseNumber || '',
+                        // Format dates for input type="date" (YYYY-MM-DD)
+                        issueDate: itemData.issueDate ? itemData.issueDate.split('T')[0] : '',
+                        expirationDate: itemData.expirationDate ? itemData.expirationDate.split('T')[0] : '',
+                        status: itemData.status || 'PendingReview',
+                    });
+                } else {
+                     // Reset form if creating new or itemId is invalid
+                     setFormData({
+                        employeeId: '', itemType: '', itemName: '', authority: '',
+                        licenseNumber: '', issueDate: '', expirationDate: '', status: 'PendingReview'
+                    });
+                }
+
+            } catch (err: any) {
+                 if (isMounted) {
+                    console.error('Failed to load initial form data:', err);
+                    setError(err.message || 'Failed to load data.');
+                 }
+            } finally {
+                 if (isMounted) {
+                    setIsFetchingInitialData(false);
+                 }
+            }
+        };
+
+        loadInitialData();
+
+        return () => { isMounted = false; }; // Cleanup function
     }, [itemId]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
@@ -134,13 +120,23 @@ const ComplianceForm: React.FC<ComplianceFormProps> = ({ itemId, onSuccess, onCa
             return;
         }
 
+        // Prepare data for API (convert employeeId to number, handle optional fields)
+        const apiData = {
+            employeeId: parseInt(formData.employeeId, 10),
+            itemType: formData.itemType,
+            itemName: formData.itemName,
+            authority: formData.authority || null,
+            licenseNumber: formData.licenseNumber || null,
+            issueDate: formData.issueDate || null,
+            expirationDate: formData.expirationDate || null,
+            status: formData.status,
+        };
+
         try {
             if (itemId) {
-                // Update existing item - Replace with actual API call: updateComplianceItem
-                await mockUpdateComplianceItem(itemId, formData);
+                await updateComplianceItem(itemId, apiData);
             } else {
-                // Create new item - Replace with actual API call: createComplianceItem
-                await mockCreateComplianceItem(formData);
+                await createComplianceItem(apiData);
             }
             onSuccess(); // Call success callback
         } catch (err: any) {
@@ -151,162 +147,129 @@ const ComplianceForm: React.FC<ComplianceFormProps> = ({ itemId, onSuccess, onCa
         // Don't set loading false here if onSuccess navigates away or closes modal
     };
 
-    if (isLoading && !itemId) { // Show loading only when fetching for edit
-        return <div>Loading item data...</div>;
+    if (isFetchingInitialData) {
+        return <div className="p-4 text-center">Loading form data...</div>;
     }
 
-    // Placeholder: Replace with actual form layout and UI components
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <h2 className="text-xl font-semibold mb-4">{itemId ? 'Edit' : 'Add'} Compliance Item</h2>
 
-            {error && <div className="p-3 bg-red-100 text-red-700 border border-red-400 rounded">{error}</div>}
+            {error && <Alert type="danger" title="Error">{error}</Alert>}
 
-            {/* Employee Select */}
-            <div>
-                <label htmlFor="employeeId" className="block text-sm font-medium text-gray-700">Employee *</label>
-                <select
-                    id="employeeId"
-                    name="employeeId"
-                    value={formData.employeeId}
-                    onChange={handleChange}
-                    required
-                    className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    disabled={isLoading}
-                >
-                    <option value="" disabled>Select Employee</option>
-                    {employees.map(emp => (
-                        <option key={emp.id} value={emp.id}>{emp.name}</option>
-                    ))}
-                </select>
-            </div>
+            <Select
+                label="Employee *"
+                id="employeeId"
+                name="employeeId"
+                value={formData.employeeId}
+                onChange={handleChange}
+                required
+                disabled={isLoading || isFetchingInitialData}
+                error={!formData.employeeId && error ? 'Employee is required' : undefined} // Example inline error
+            >
+                <option value="" disabled>Select Employee</option>
+                {employees.map(emp => (
+                    <option key={emp.id} value={emp.id}>{emp.name}</option>
+                ))}
+            </Select>
 
-            {/* Item Name */}
-            <div>
-                <label htmlFor="itemName" className="block text-sm font-medium text-gray-700">Item Name *</label>
-                <input
-                    type="text"
-                    id="itemName"
-                    name="itemName"
-                    value={formData.itemName}
-                    onChange={handleChange}
-                    required
-                    className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    disabled={isLoading}
-                />
-            </div>
+            <Input
+                label="Item Name *"
+                id="itemName"
+                name="itemName"
+                value={formData.itemName}
+                onChange={handleChange}
+                required
+                disabled={isLoading}
+                error={!formData.itemName && error ? 'Item Name is required' : undefined}
+            />
 
-             {/* Item Type Select */}
-             <div>
-                <label htmlFor="itemType" className="block text-sm font-medium text-gray-700">Item Type *</label>
-                <select
-                    id="itemType"
-                    name="itemType"
-                    value={formData.itemType}
-                    onChange={handleChange}
-                    required
-                    className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    disabled={isLoading}
-                >
-                    <option value="" disabled>Select Type</option>
-                    {complianceItemTypes.map(type => (
-                        <option key={type} value={type}>{type}</option>
-                    ))}
-                </select>
-            </div>
+             <Select
+                label="Item Type *"
+                id="itemType"
+                name="itemType"
+                value={formData.itemType}
+                onChange={handleChange}
+                required
+                disabled={isLoading}
+                error={!formData.itemType && error ? 'Item Type is required' : undefined}
+            >
+                <option value="" disabled>Select Type</option>
+                {complianceItemTypes.map(type => (
+                    <option key={type} value={type}>{type}</option>
+                ))}
+            </Select>
 
-            {/* Authority */}
-            <div>
-                <label htmlFor="authority" className="block text-sm font-medium text-gray-700">Issuing Authority</label>
-                <input
-                    type="text"
-                    id="authority"
-                    name="authority"
-                    value={formData.authority}
-                    onChange={handleChange}
-                    className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    disabled={isLoading}
-                />
-            </div>
+            <Input
+                label="Issuing Authority"
+                id="authority"
+                name="authority"
+                value={formData.authority}
+                onChange={handleChange}
+                disabled={isLoading}
+            />
 
-             {/* License Number */}
-             <div>
-                <label htmlFor="licenseNumber" className="block text-sm font-medium text-gray-700">License/Cert Number</label>
-                <input
-                    type="text"
-                    id="licenseNumber"
-                    name="licenseNumber"
-                    value={formData.licenseNumber}
-                    onChange={handleChange}
-                    className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    disabled={isLoading}
-                />
-            </div>
+             <Input
+                label="License/Cert Number"
+                id="licenseNumber"
+                name="licenseNumber"
+                value={formData.licenseNumber}
+                onChange={handleChange}
+                disabled={isLoading}
+            />
 
-            {/* Issue Date */}
-            <div>
-                <label htmlFor="issueDate" className="block text-sm font-medium text-gray-700">Issue Date</label>
-                <input
-                    type="date"
-                    id="issueDate"
-                    name="issueDate"
-                    value={formData.issueDate}
-                    onChange={handleChange}
-                    className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    disabled={isLoading}
-                />
-            </div>
+            <Input
+                label="Issue Date"
+                type="date"
+                id="issueDate"
+                name="issueDate"
+                value={formData.issueDate}
+                onChange={handleChange}
+                disabled={isLoading}
+            />
 
-             {/* Expiration Date */}
-             <div>
-                <label htmlFor="expirationDate" className="block text-sm font-medium text-gray-700">Expiration Date</label>
-                <input
-                    type="date"
-                    id="expirationDate"
-                    name="expirationDate"
-                    value={formData.expirationDate}
-                    onChange={handleChange}
-                    className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    disabled={isLoading}
-                />
-            </div>
+             <Input
+                label="Expiration Date"
+                type="date"
+                id="expirationDate"
+                name="expirationDate"
+                value={formData.expirationDate}
+                onChange={handleChange}
+                disabled={isLoading}
+            />
 
-             {/* Status Select */}
-             <div>
-                <label htmlFor="status" className="block text-sm font-medium text-gray-700">Status *</label>
-                <select
-                    id="status"
-                    name="status"
-                    value={formData.status}
-                    onChange={handleChange}
-                    required
-                    className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    disabled={isLoading}
-                >
-                    {complianceStatuses.map(status => (
-                        <option key={status} value={status}>{status}</option>
-                    ))}
-                </select>
-            </div>
+             <Select
+                label="Status *"
+                id="status"
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                required
+                disabled={isLoading}
+            >
+                {complianceStatuses.map(status => (
+                    <option key={status} value={status}>{status}</option>
+                ))}
+            </Select>
 
 
             {/* Action Buttons */}
-            <div className="flex justify-end space-x-3 pt-4">
-                <button
+            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                <Button
                     type="button"
+                    variant="outline"
                     onClick={onCancel}
                     disabled={isLoading}
-                    className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 disabled:opacity-50"
                 >
                     Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                     type="submit"
-                    disabled={isLoading}
-                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                    variant="primary"
+                    disabled={isLoading || isFetchingInitialData}
                 >
                     {isLoading ? 'Saving...' : (itemId ? 'Update Item' : 'Add Item')}
-                </button>
+                </Button>
             </div>
         </form>
     );
