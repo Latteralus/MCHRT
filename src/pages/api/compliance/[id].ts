@@ -44,7 +44,7 @@ const checkAccess = async (
 
     if (userRole === 'Employee') {
         // Employee can only access their own items (check via linked userId)
-        if (employee.userId === userId) {
+        if (employee!.userId === userId) {
             return { allowed: true, item, employee: employee! }; // Conforms to AccessCheckResult
         }
     }
