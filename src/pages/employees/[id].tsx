@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import Link from 'next/link'; // Import Link
 import axios from 'axios';
 // import MainLayout from '@/components/layouts/MainLayout'; // Applied via _app.tsx
 
@@ -92,9 +93,17 @@ const EmployeeDetailPage: React.FC = () => {
       </Head>
       <div>
         {/* TODO: Add Breadcrumbs or back link */}
-        <h2>Employee Details</h2>
-
-        {/* TODO: Add Edit button */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h2>Employee Details</h2>
+          {/* Add Edit button */}
+          {employee && ( // Only show button if employee data is loaded
+            <Link href={`/employees/${employee.id}/edit`} passHref>
+              <button className="btn btn-outline"> {/* Assuming btn classes exist */}
+                <i className="fas fa-edit" style={{ marginRight: '0.5rem' }}></i> Edit
+              </button>
+            </Link>
+          )}
+        </div>
 
         <div style={detailStyles}>
           <div style={itemStyles}>

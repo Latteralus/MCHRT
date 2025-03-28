@@ -29,9 +29,9 @@
 ## Phase 3: Employee Management Module
 - [/] Build employee list page with filtering (Basic page created)
 - [/] Create employee detail page (Basic page created)
-- [ ] Implement employee CRUD forms
-- [ ] Add department assignment functionality
-- [ ] Create profile page for self-service
+- [x] Implement employee CRUD forms (Basic new/edit pages created)
+- [x] Add department assignment functionality (Dropdown added to forms)
+- [x] Create profile page for self-service (Basic page structure created)
 - [ ] Implement RBAC for employee data access
 
 ## Phase 4: Attendance & Leave Management
@@ -374,7 +374,7 @@ MCHRT/
 │   │   ├── 500.tsx             # Server error page
 │   │   ├── index.tsx           # Dashboard/home page
 │   │   ├── login.tsx           # Login page
-│   │   ├── profile.tsx         # User profile page
+│   │   ├── profile.tsx         # User profile page (Created)
 │   │   │
 │   │   ├── api/                # API routes
 │   │   │   ├── auth/
@@ -449,7 +449,10 @@ MCHRT/
 │   │   │
 │   │   ├── employees/
 │   │   │   ├── index.tsx              # Employee list
-│   │   │   └── [id].tsx               # Employee details
+│   │   │   ├── new.tsx                # Add new employee page
+│   │   │   └── [id]/
+│   │   │       ├── index.tsx          # Employee details (assuming [id].tsx moved here or duplicated)
+│   │   │       └── edit.tsx           # Edit employee page
 │   │   │
 │   │   ├── leave/
 │   │   │   ├── index.tsx              # Leave requests list
@@ -549,7 +552,7 @@ MCHRT/
 
 ---
 
-## Current Status & Next Steps (As of 2025-03-27 ~5:52 PM MDT)
+## Current Status & Next Steps (As of 2025-03-27 ~7:07 PM MDT)
 
 **Current Focus:** Phase 3 - Employee Management Module
 
@@ -558,15 +561,17 @@ MCHRT/
 - Phase 2: All items completed (Basic API routes implemented, RBAC middleware created and applied as initial wrappers).
 - Phase 3:
   - Basic Employee List page created (`src/pages/employees/index.tsx`).
-  - Basic Employee Detail page created (`src/pages/employees/[id].tsx`).
+  - Basic Employee Detail page created (`src/pages/employees/[id]/index.tsx` or similar).
+  - Implemented basic employee CRUD forms (`src/pages/employees/new.tsx`, `src/pages/employees/[id]/edit.tsx`).
+  - Added department assignment dropdown to CRUD forms.
+  - Created basic profile page structure (`src/pages/profile.tsx`).
 
 **Where We Left Off:**
-- Completed the creation of the basic Employee Detail page.
+- Completed the basic structure and department dropdowns for employee CRUD forms and the initial profile page.
 
 **Next Steps:**
-1.  Implement employee CRUD forms (Step 32).
-2.  Add department assignment functionality (Step 33).
-3.  Create profile page for self-service (Step 34).
-4.  Implement RBAC for employee data access (Step 35).
-5.  Refine RBAC checks within API handlers for more granular permissions (e.g., department scope, self-access) as noted in TODO comments (Relates to Step 27 & 35).
-6.  Continue with subsequent phases (Phase 4 onwards).
+1.  Implement RBAC for employee data access (Step 35). This involves:
+    *   Refining API route middleware (`src/lib/middleware/`) to check roles and potentially department access for employee endpoints.
+    *   Ensuring front-end components conditionally render actions (like edit/delete buttons) based on user permissions.
+2.  Refine RBAC checks within API handlers for more granular permissions (e.g., department scope, self-access) as noted in TODO comments (Relates to Step 27 & 35).
+3.  Continue with subsequent phases (Phase 4 onwards).
