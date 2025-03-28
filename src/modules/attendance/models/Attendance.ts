@@ -14,7 +14,7 @@ interface AttendanceAttributes {
 }
 
 // Define creation attributes (optional fields for creation)
-interface AttendanceCreationAttributes extends Optional<AttendanceAttributes, 'id' | 'createdAt' | 'updatedAt' | 'timeIn' | 'timeOut'> {}
+export interface AttendanceCreationAttributes extends Optional<AttendanceAttributes, 'id' | 'createdAt' | 'updatedAt' | 'timeIn' | 'timeOut'> {}
 
 // Define the Attendance model class
 class Attendance extends Model<AttendanceAttributes, AttendanceCreationAttributes> implements AttendanceAttributes {
