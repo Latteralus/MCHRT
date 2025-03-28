@@ -6,9 +6,7 @@
     "outputDirectory": ".next",
     "regions": ["iad1"],
     "env": {
-      "NODE_ENV": "production",
-      "NEXTAUTH_URL": "${VERCEL_URL}",
-      "DATABASE_URL": "@database_url"
+      "NODE_ENV": "production"
     },
     "headers": [
       {
