@@ -18,7 +18,7 @@ interface EmployeeAttributes {
 
 // Define creation attributes (optional fields for creation)
 // Make ssnEncrypted optional here as it might be set via a setter or hook after encryption
-interface EmployeeCreationAttributes extends Optional<EmployeeAttributes, 'id' | 'createdAt' | 'updatedAt' | 'departmentId' | 'position' | 'hireDate' | 'ssnEncrypted'> {}
+export interface EmployeeCreationAttributes extends Optional<EmployeeAttributes, 'id' | 'createdAt' | 'updatedAt' | 'departmentId' | 'position' | 'hireDate' | 'ssnEncrypted'> {}
 
 // Define the Employee model class
 class Employee extends Model<EmployeeAttributes, EmployeeCreationAttributes> implements EmployeeAttributes {

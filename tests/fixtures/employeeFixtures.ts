@@ -1,6 +1,6 @@
 // tests/fixtures/employeeFixtures.ts
 import { faker } from '@faker-js/faker';
-import Employee from '@/modules/employees/models/Employee'; // Adjust path if needed
+import Employee, { EmployeeCreationAttributes } from '@/modules/employees/models/Employee'; // Adjust path if needed
 // We might need Department and User IDs, but let's assume they are passed in overrides for now.
 // import { createTestDepartment } from './departmentFixtures';
 // import { createTestUser } from './userFixtures';
@@ -32,15 +32,15 @@ export const generateEmployeeData = (overrides: EmployeeOverrides = {}): Partial
     finalHireDate = faker.date.past({ years: 5 });
   }
 
+  // Apply overrides first, then set defaults/calculated values ensuring correct types
   return {
+    ...overrides, // Apply any specific overrides first
     firstName: firstName,
     lastName: lastName,
     ssnEncrypted: overrides.ssnEncrypted ?? fakeSsnEncrypted, // Use override or fake, allows undefined
-    departmentId: overrides.departmentId, // Use override (number | undefined)
-    userId: overrides.userId,           // Use override (number | undefined)
+    // departmentId and userId are handled by the spread if provided in overrides
     position: overrides.position ?? faker.person.jobTitle(), // Use override or fake, allows undefined
-    hireDate: finalHireDate, // Should be Date | undefined
-    ...overrides, // Apply any specific overrides AFTER defaults
+    hireDate: finalHireDate, // Ensure hireDate is Date | undefined, overwriting string from overrides if necessary
   };
 };
 
