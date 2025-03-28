@@ -11,8 +11,8 @@ interface DisplayComplianceItem {
     employeeName: string; // Combine first/last name from included employee data
     itemType: string;
     itemName: string;
-    authority?: string;
-    licenseNumber?: string;
+    authority?: string | null; // Allow null
+    licenseNumber?: string | null; // Allow null
     issueDate?: string; // Format date
     expirationDate?: string; // Format date
     status: string; // 'Active', 'ExpiringSoon', 'Expired', 'PendingReview'
