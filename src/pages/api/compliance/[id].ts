@@ -39,13 +39,13 @@ const checkAccess = async (
     const employee = item.employee; // Now employee is guaranteed non-null here
 
     if (userRole === 'Admin') {
-        return { allowed: true, item, employee }; // Conforms to AccessCheckResult
+        return { allowed: true, item, employee: employee! }; // Conforms to AccessCheckResult
     }
 
     if (userRole === 'Employee') {
         // Employee can only access their own items (check via linked userId)
         if (employee.userId === userId) {
-            return { allowed: true, item, employee }; // Conforms to AccessCheckResult
+            return { allowed: true, item, employee: employee! }; // Conforms to AccessCheckResult
         }
     }
 
