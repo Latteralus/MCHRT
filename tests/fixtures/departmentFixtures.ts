@@ -10,10 +10,11 @@ interface DepartmentOverrides {
 
 // Function to generate raw department data
 export const generateDepartmentData = (overrides: DepartmentOverrides = {}): Partial<Department> => {
+  const defaultName = faker.commerce.department() + ` ${faker.string.uuid().substring(0, 4)}`;
   return {
-    name: overrides.name ?? faker.commerce.department() + ` ${faker.string.uuid().substring(0, 4)}`, // Add suffix for uniqueness
-    managerId: overrides.managerId ?? undefined, // Convert null to undefined
     ...overrides, // Apply any specific overrides (name will be overwritten if provided)
+    name: overrides.name ?? defaultName, // Ensure name is set, potentially overwriting override if it was undefined/null
+    managerId: overrides.managerId ?? undefined, // Ensure managerId is number | undefined, potentially overwriting override
   };
 };
 
