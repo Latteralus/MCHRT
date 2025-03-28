@@ -78,7 +78,7 @@
 
 ## Phase 9: MVP Polish & Deployment
 - [ ] Perform code review and refactoring
-- [ ] Fix identified bugs and issues
+- [x] Fix identified bugs and issues (Login page layout fixed)
 - [ ] Optimize performance
 - [ ] Create demo data for presentation
 - [ ] Set up deployment configuration
@@ -86,19 +86,20 @@
 
 ---
 
-## Current Status & Next Steps (As of 2025-03-28 ~03:20 AM MDT)
+## Current Status & Next Steps (As of 2025-03-28 ~03:28 AM MDT)
 
 **Current Focus:** Phase 8 - Testing & Documentation (Debugging Jest Integration Tests)
 
 **Completed:**
-- Phase 1: All items completed.
+- Phase 1: All items completed. Per-page layout pattern implemented in `_app.tsx` to fix login page layout.
 - Phase 2: All items completed.
 - Phase 3: All items completed.
 - Phase 4: All items completed (excluding deferred testing). `leaveAccrualService.ts` import fixed.
 - Phase 5: Core structure implemented (API routes, basic components). UI integration and refinement pending.
 - Phase 6: All items completed (Dashboard layout, widgets connected, reports page structure, export button). API logic uses placeholders.
 - Phase 7: All items completed (Templates created, basic reminder infrastructure, basic task management interface). Email reminders use placeholders.
-- Phase 8: Unit test for `leaveBalanceService` complete. Basic API integration tests written for core modules, but blocked by a persistent Jest initialization error. `tests/db-setup.ts` Umzug configuration fixed.
+- Phase 8: Unit test for `leaveBalanceService` complete. Basic API integration tests written for core modules, but blocked by a persistent Jest initialization error. `tests/db-setup.ts` Umzug configuration fixed. `AttendanceCreationAttributes` export fixed.
+- Phase 9: Login page layout bug fixed.
 
 **Where We Left Off:**
 - Attempting to run API integration tests (`npm test`).
@@ -113,7 +114,7 @@
 
 ---
 
-## Jest Integration Test Debugging Notes (Updated 2025-03-28 ~03:20 AM MDT)
+## Jest Integration Test Debugging Notes (Updated 2025-03-28 ~03:28 AM MDT)
 
 **Problem:** API integration tests consistently fail with `Sequelize has not been initialized or set.` This error occurs because Sequelize models (e.g., `User`, `Employee`) are being imported and initialized (calling `Model.init`, which uses `getSequelizeInstance`) at the top level of the test files, *before* the `beforeAll` hook in `tests/db-setup.ts` has a chance to create the Sequelize instance using the test configuration and set it via `setSequelizeInstance`.
 
@@ -157,9 +158,9 @@
 
 ---
 
-## Vercel Build Debugging Notes (Updated 2025-03-28 ~03:20 AM MDT)
+## Vercel Build & UI Debugging Notes (Updated 2025-03-28 ~03:28 AM MDT)
 
-**Problem:** Encountered a series of TypeScript and module resolution errors during Vercel builds after recent changes.
+**Problem:** Encountered a series of TypeScript, module resolution, and UI layout errors during Vercel builds and local testing after recent changes.
 
 **Debugging Steps & Fixes:**
 
@@ -205,7 +206,17 @@
     *   Error: `Module '"@/modules/employees/models/Employee"' has no exported member 'Employee'`.
         *   *Fix:* Changed import to default import: `import Employee from '@/modules/employees/models/Employee';`.
 
-**Outcome:** After these fixes, the Vercel build process and local TypeScript checks are expected to succeed regarding these specific issues. The Jest integration test initialization remains the primary blocker.
+7.  **`tests/fixtures/attendanceFixtures.ts` - Build Error:**
+    *   Error: `Module '"'modules/attendance/models/Attendance"'' has no exported member 'AttendanceCreationAttributes'`.
+    *   *Investigation:* Checked `src/modules/attendance/models/Attendance.ts`, found `AttendanceCreationAttributes` interface was not exported.
+    *   *Fix:* Added `export` keyword to the interface definition.
+
+8.  **Login Page Layout (`src/pages/login.tsx`, `src/pages/_app.tsx`) - UI Bug:**
+    *   *Problem:* `MainLayout` (including sidebar) was incorrectly applied to the login page because `_app.tsx` wrapped all components globally.
+    *   *Fix:* Implemented per-page layout pattern in `_app.tsx` using `Component.getLayout`. Defined `getLayout` in `login.tsx` to return the page directly, opting out of `MainLayout`. Updated `login.tsx` component type to `NextPageWithLayout`.
+    *   *Result:* Login page now renders without the sidebar.
+
+**Outcome:** After these fixes, Vercel builds and local TypeScript checks are expected to succeed regarding these specific issues. The login page layout is corrected. The Jest integration test initialization remains the primary blocker.
 
 ---
 
@@ -226,3 +237,4 @@
 *   **BE (Backend):** The server-side of an application, responsible for logic, database interactions, and serving data to the frontend.
 *   **JSDoc:** A markup language used to annotate JavaScript source code files. Tools can process these annotations to produce documentation in formats like HTML.
 *   **E2E (End-to-End) Tests:** A testing methodology used to test application flow from start to end. The purpose is to simulate real user scenarios.
+*   **Per-Page Layouts (Next.js):** A pattern where individual page components can define their own layout structure, allowing flexibility beyond a single global layout defined in `_app.tsx`.

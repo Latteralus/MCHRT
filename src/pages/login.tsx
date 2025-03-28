@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, ReactElement } from 'react'; // Import ReactElement
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import type { NextPageWithLayout } from './_app'; // Import the custom page type
 
-const LoginPage: React.FC = () => {
+const LoginPage: NextPageWithLayout = () => { // Use the custom type
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -145,8 +146,8 @@ const LoginPage: React.FC = () => {
 
 // This page should not use the MainLayout
 // We can define this explicitly if using per-page layouts later
-// LoginPage.getLayout = function getLayout(page: React.ReactElement) {
-//   return page;
-// };
+LoginPage.getLayout = function getLayout(page: ReactElement) { // Use ReactElement type
+  return page; // Return the page without any layout wrapper
+};
 
 export default LoginPage;
