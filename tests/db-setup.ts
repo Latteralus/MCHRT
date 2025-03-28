@@ -2,40 +2,31 @@
 import { Sequelize, QueryInterface } from 'sequelize';
 import { Umzug, SequelizeStorage } from 'umzug'; // Import Umzug and SequelizeStorage from main
 import { setSequelizeInstance, getSequelizeInstance } from '../src/db/mockDbSetup'; // Use relative path
-// Config will be imported inside setupTestDb
 import path from 'path';
 
-// --- Sequelize instance will be created and set in setupTestDb ---
+// --- Create and set the instance SYNCHRONOUSLY ---
+// Use require for config here as well for sync loading
+const dbConfig = require('../src/config/config.js');
+const testConfig = dbConfig.test;
+if (!testConfig) {
+  throw new Error('Test database configuration not found in config/config.js');
+}
+const sequelizeTestInstance = new Sequelize(testConfig);
+setSequelizeInstance(sequelizeTestInstance);
+// --- Instance is now set BEFORE any async operations ---
 
-// Models and associations will be imported inside setupTestDb
+// Models and associations will be imported dynamically AFTER migrations run in setupTestDb.
 
 // --- Umzug instance will be created inside setupTestDb after Sequelize is ready ---
 export const setupTestDb = async () => {
-  // Import config HERE, inside the async function run by beforeAll, using alias
-  const { dbConfig } = await import('../src/config/config'); // Use relative path
-  const testConfig = dbConfig.test;
-  if (!testConfig) {
-      throw new Error('Test database configuration not found in config/config.ts');
+  // Instance is already created and set above
+  // Create and set the instance HERE
+  if (!testConfig) { // Keep check just in case, though require should have failed earlier if config was bad
+      throw new Error('Test database configuration not found in config/config.js');
   }
 
-  // Create and set the instance HERE
-  const sequelizeTestInstance = new Sequelize(testConfig);
-  setSequelizeInstance(sequelizeTestInstance);
+  const sequelize = getSequelizeInstance(); // Get the already created instance
 
-  // Dynamically import models and associations HERE, AFTER instance is set
-  // This ensures models use the correct, initialized Sequelize instance
-  await import('../src/modules/auth/models/User');
-  await import('../src/modules/organization/models/Department');
-  await import('../src/modules/employees/models/Employee');
-  await import('../src/modules/attendance/models/Attendance');
-  await import('../src/modules/leave/models/Leave');
-  await import('../src/modules/leave/models/LeaveBalance');
-  await import('../src/modules/compliance/models/Compliance');
-  await import('../src/modules/documents/models/Document');
-  await import('../src/modules/tasks/models/Task');
-  await import('../src/db/associations'); // Run association logic (relative path already)
-
-  const sequelize = getSequelizeInstance(); // Now we can get the instance safely
   try {
     // Ensure connection is established
     await sequelize.authenticate();
@@ -68,6 +59,20 @@ export const setupTestDb = async () => {
     // Run all migrations using the newly created umzug instance
     await umzug.up();
     console.log('Migrations applied successfully.');
+
+    // Dynamically import models and associations HERE, AFTER migrations ensure tables exist
+    await import('../src/modules/auth/models/User');
+    await import('../src/modules/organization/models/Department');
+    await import('../src/modules/employees/models/Employee');
+    await import('../src/modules/attendance/models/Attendance');
+    await import('../src/modules/leave/models/Leave');
+    await import('../src/modules/leave/models/LeaveBalance');
+    await import('../src/modules/compliance/models/Compliance');
+    await import('../src/modules/documents/models/Document');
+    await import('../src/modules/tasks/models/Task');
+    await import('../src/db/associations'); // Run association logic
+
+    console.log('Models and associations loaded dynamically after migrations.');
   } catch (error) {
     console.error('Error setting up test database:', error);
     throw error; // Re-throw to fail test setup

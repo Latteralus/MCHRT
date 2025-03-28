@@ -1,6 +1,6 @@
 // src/modules/leave/models/LeaveBalance.ts
 import { DataTypes, Model, Optional } from 'sequelize';
-import { getSequelizeInstance } from '../../../db/mockDbSetup'; // Use relative path
+import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the getter function
 import type Employee from '@/modules/employees/models/Employee'; // Import Employee type
 
 // Define the attributes for the LeaveBalance model

@@ -1,30 +1,18 @@
 // jest.config.js
-const { pathsToModuleNameMapper } = require('ts-jest');
-// In the following statement, replace `./tsconfig` with the path to your `tsconfig` file
-// which contains the path mapping (ie the `compilerOptions.paths` option):
-const { compilerOptions } = require('./tsconfig');
+const nextJest = require('next/jest');
 
-/** @type {import('ts-jest').JestConfigWithTsJest} */
-module.exports = {
-  preset: 'ts-jest', // Use the ts-jest preset
-  globalSetup: '<rootDir>/global-setup.ts',
-  globalTeardown: '<rootDir>/global-teardown.ts',
-  // Add more setup options before each test is run (runs AFTER globalSetup)
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'], // For beforeEach hooks like clearing DB
-// Configure ts-jest to use tsconfig paths for transformation
-transform: {
-  '^.+\\.tsx?$': [
-    'ts-jest',
-    {
-      tsconfig: 'tsconfig.json', // Point to your tsconfig
-      // Explicitly add paths mapping for ts-jest transformer
-      paths: {
-        '@/*': ['./src/*']
-      }
-    },
-  ],
-},
-testEnvironment: 'node', // Use 'node' environment for backend/service tests
+// Provide the path to your Next.js app to load next.config.js and .env files in your test environment
+const createJestConfig = nextJest({
+  dir: './',
+});
+
+// Add any custom config to be passed to Jest
+/** @type {import('jest').Config} */
+const customJestConfig = {
+  // Add more setup options before each test is run
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'], // Use the setup file
+  // No need for globalSetup/globalTeardown when using setupFilesAfterEnv for this purpose
+  // No need for preset: 'ts-jest' or manual transform when using next/jest
   testEnvironment: 'node', // Use 'node' environment for backend/service tests
   moduleNameMapper: {
     // Handle module aliases (this should match the paths configuration in tsconfig.json)
@@ -33,7 +21,7 @@ testEnvironment: 'node', // Use 'node' environment for backend/service tests
   // Automatically clear mock calls, instances, contexts and results before every test
   clearMocks: true,
   // Suppress console output during test runs
-  silent: true,
+  silent: true, // Keep this if you prefer less console noise
   // Indicates whether the coverage information should be collected while executing the test
   collectCoverage: true,
   // The directory where Jest should output its coverage files
@@ -48,3 +36,6 @@ testEnvironment: 'node', // Use 'node' environment for backend/service tests
     // Add other exclusions as necessary
   ],
 };
+
+// createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
+module.exports = createJestConfig(customJestConfig);

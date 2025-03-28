@@ -1,19 +1,20 @@
 // tests/api/compliance.test.ts
 import { createMocks, RequestMethod } from 'node-mocks-http';
 import { NextApiRequest, NextApiResponse } from 'next';
-import handler from '@/pages/api/compliance'; // Assuming default export for index route
-import complianceIdHandler from '@/pages/api/compliance/[id]'; // Assuming default export for [id] route
+// Import handlers inside describe block
+// import handler from '@/pages/api/compliance';
+// import complianceIdHandler from '@/pages/api/compliance/[id]';
 // import { setupTestDb, teardownTestDb, clearTestDb } from '../db-setup'; // No longer needed here
 import { Role } from '@/types/roles';
 import { faker } from '@faker-js/faker';
 
-// Import models and fixtures statically
-import User from '@/modules/auth/models/User';
-import Employee from '@/modules/employees/models/Employee';
-import Compliance from '@/modules/compliance/models/Compliance';
-import { createTestUser } from '../fixtures/userFixtures';
-import { createTestEmployee } from '../fixtures/employeeFixtures';
-import { createTestCompliance, generateComplianceData } from '../fixtures/complianceFixtures';
+// Models and fixtures will be imported dynamically
+// import User from '@/modules/auth/models/User';
+// import Employee from '@/modules/employees/models/Employee';
+// import Compliance from '@/modules/compliance/models/Compliance';
+// import { createTestUser } from '../fixtures/userFixtures';
+// import { createTestEmployee } from '../fixtures/employeeFixtures';
+// import { createTestCompliance, generateComplianceData } from '../fixtures/complianceFixtures';
 
 // Mock next-auth session
 jest.mock('next-auth/react', () => ({
@@ -26,8 +27,35 @@ const mockGetSession = getSession as jest.MockedFunction<typeof getSession>;
 
 
 describe('Compliance API Routes', () => {
+  // Declare variables for handlers, models, and fixtures
+  let handler: typeof import('@/pages/api/compliance').default;
+  let complianceIdHandler: typeof import('@/pages/api/compliance/[id]').default;
+  let User: typeof import('@/modules/auth/models/User').default;
+  let Employee: typeof import('@/modules/employees/models/Employee').default;
+  let Compliance: typeof import('@/modules/compliance/models/Compliance').default;
+  let createTestUser: typeof import('../fixtures/userFixtures').createTestUser;
+  let createTestEmployee: typeof import('../fixtures/employeeFixtures').createTestEmployee;
+  let createTestCompliance: typeof import('../fixtures/complianceFixtures').createTestCompliance;
+  let generateComplianceData: typeof import('../fixtures/complianceFixtures').generateComplianceData;
+
+  beforeAll(async () => {
+    // Dynamically import everything AFTER setup in jest.setup.ts runs
+    handler = (await import('@/pages/api/compliance')).default;
+    complianceIdHandler = (await import('@/pages/api/compliance/[id]')).default;
+    User = (await import('@/modules/auth/models/User')).default;
+    Employee = (await import('@/modules/employees/models/Employee')).default;
+    Compliance = (await import('@/modules/compliance/models/Compliance')).default;
+    const userFixtures = await import('../fixtures/userFixtures');
+    createTestUser = userFixtures.createTestUser;
+    const employeeFixtures = await import('../fixtures/employeeFixtures');
+    createTestEmployee = employeeFixtures.createTestEmployee;
+    const complianceFixtures = await import('../fixtures/complianceFixtures');
+    createTestCompliance = complianceFixtures.createTestCompliance;
+    generateComplianceData = complianceFixtures.generateComplianceData;
+  });
 
   // Clear data between tests
+  // Note: jest.setup.ts runs beforeEach(clearTestDb)
   beforeEach(async () => {
     // jest.setup.ts now handles clearing the DB via clearTestDb()
     mockGetSession.mockClear();
@@ -43,7 +71,7 @@ describe('Compliance API Routes', () => {
 
       // 2. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, username: adminUser.username, role: adminUser.role },
+        user: { id: adminUser.id, role: adminUser.role },
         expires: faker.date.future().toISOString(),
       });
 
@@ -98,7 +126,7 @@ describe('Compliance API Routes', () => {
 
       // 3. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, username: adminUser.username, role: adminUser.role },
+        user: { id: adminUser.id, role: adminUser.role },
         expires: faker.date.future().toISOString(),
       });
 
@@ -134,7 +162,7 @@ describe('Compliance API Routes', () => {
         const employee = await createTestEmployee({ userId: user.id });
         const compliancePayload = { employeeId: employee.id, itemType: 'Test', itemName: 'Test Item' };
         mockGetSession.mockResolvedValue({
-          user: { id: user.id, username: user.username, role: user.role },
+          user: { id: user.id, role: user.role },
           expires: faker.date.future().toISOString(),
         });
         const { req, res } = createMocks<NextApiRequest, NextApiResponse>({ method: 'POST', body: compliancePayload });
@@ -154,7 +182,7 @@ describe('Compliance API Routes', () => {
 
       // 2. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, username: adminUser.username, role: adminUser.role },
+        user: { id: adminUser.id, role: adminUser.role },
         expires: faker.date.future().toISOString(),
       });
 
@@ -180,7 +208,7 @@ describe('Compliance API Routes', () => {
         const adminUser = await createTestUser({ role: Role.ADMIN });
         const nonExistentId = 99999;
         mockGetSession.mockResolvedValue({
-          user: { id: adminUser.id, username: adminUser.username, role: adminUser.role },
+          user: { id: adminUser.id, role: adminUser.role },
           expires: faker.date.future().toISOString(),
         });
         const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
@@ -226,7 +254,7 @@ describe('Compliance API Routes', () => {
 
       // 3. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, username: adminUser.username, role: adminUser.role },
+        user: { id: adminUser.id, role: adminUser.role },
         expires: faker.date.future().toISOString(),
       });
 
@@ -261,7 +289,7 @@ describe('Compliance API Routes', () => {
         const item = await createTestCompliance({ employeeId: employee.id });
         const updatePayload = { status: 'Active' };
         mockGetSession.mockResolvedValue({
-          user: { id: user.id, username: user.username, role: user.role },
+          user: { id: user.id, role: user.role },
           expires: faker.date.future().toISOString(),
         });
         const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
@@ -286,7 +314,7 @@ describe('Compliance API Routes', () => {
 
       // 2. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, username: adminUser.username, role: adminUser.role },
+        user: { id: adminUser.id, role: adminUser.role },
         expires: faker.date.future().toISOString(),
       });
 
@@ -312,7 +340,7 @@ describe('Compliance API Routes', () => {
         const employee = await createTestEmployee({ userId: user.id });
         const item = await createTestCompliance({ employeeId: employee.id });
         mockGetSession.mockResolvedValue({
-          user: { id: user.id, username: user.username, role: user.role },
+          user: { id: user.id, role: user.role },
           expires: faker.date.future().toISOString(),
         });
         const { req, res } = createMocks<NextApiRequest, NextApiResponse>({

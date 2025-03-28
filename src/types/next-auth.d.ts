@@ -14,6 +14,8 @@ declare module "next-auth" {
       role?: UserRole;
       /** The user's department ID (if applicable). */
       departmentId?: number | null;
+      /** The user's linked employee ID (if applicable). */
+      employeeId?: number | null;
     } & DefaultSession["user"]; // Keep existing properties like name, email, image
   }
 

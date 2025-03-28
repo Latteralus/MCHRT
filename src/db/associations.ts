@@ -1,12 +1,12 @@
 // Import all models
-import User from '../modules/auth/models/User';
-import Department from '../modules/organization/models/Department';
-import Employee from '../modules/employees/models/Employee';
-import Attendance from '../modules/attendance/models/Attendance';
-import Leave from '../modules/leave/models/Leave';
-import LeaveBalance from '../modules/leave/models/LeaveBalance'; // Import the new model
-import Compliance from '../modules/compliance/models/Compliance';
-import Document from '../modules/documents/models/Document';
+import User from '@/modules/auth/models/User';
+import Department from '@/modules/organization/models/Department';
+import Employee from '@/modules/employees/models/Employee';
+import Attendance from '@/modules/attendance/models/Attendance';
+import Leave from '@/modules/leave/models/Leave';
+import LeaveBalance from '@/modules/leave/models/LeaveBalance'; // Import the new model
+import Compliance from '@/modules/compliance/models/Compliance';
+import Document from '@/modules/documents/models/Document';
 
 // Define associations function
 export const defineAssociations = () => {

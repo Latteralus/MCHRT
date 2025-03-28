@@ -1,8 +1,9 @@
 // tests/api/leave.test.ts
 import { createMocks, RequestMethod } from 'node-mocks-http';
 import { NextApiRequest, NextApiResponse } from 'next';
-import handler from '@/pages/api/leave'; // Assuming default export for index route
-import leaveIdHandler from '@/pages/api/leave/[id]'; // Assuming default export for [id] route
+// Import handlers inside describe block
+// import handler from '@/pages/api/leave';
+// import leaveIdHandler from '@/pages/api/leave/[id]';
 // Import approve/reject handlers if they are separate files
 // import approveHandler from '@/pages/api/leave/[id]/approve';
 // import rejectHandler from '@/pages/api/leave/[id]/reject';
@@ -10,13 +11,13 @@ import leaveIdHandler from '@/pages/api/leave/[id]'; // Assuming default export 
 import { Role } from '@/types/roles';
 import { faker } from '@faker-js/faker';
 
-// Import models and fixtures statically
-import User from '@/modules/auth/models/User';
-import Employee from '@/modules/employees/models/Employee';
-import Leave from '@/modules/leave/models/Leave';
-import { createTestUser } from '../fixtures/userFixtures';
-import { createTestEmployee } from '../fixtures/employeeFixtures';
-import { createTestLeave, generateLeaveData } from '../fixtures/leaveFixtures';
+// Models and fixtures will be imported dynamically
+// import User from '@/modules/auth/models/User';
+// import Employee from '@/modules/employees/models/Employee';
+// import Leave from '@/modules/leave/models/Leave';
+// import { createTestUser } from '../fixtures/userFixtures';
+// import { createTestEmployee } from '../fixtures/employeeFixtures';
+// import { createTestLeave, generateLeaveData } from '../fixtures/leaveFixtures';
 
 // Mock next-auth session
 jest.mock('next-auth/react', () => ({
@@ -29,8 +30,41 @@ const mockGetSession = getSession as jest.MockedFunction<typeof getSession>;
 
 
 describe('Leave API Routes', () => {
+  // Import handlers dynamically after setup
+  let handler: typeof import('@/pages/api/leave').default;
+  let leaveIdHandler: typeof import('@/pages/api/leave/[id]').default;
+  let User: typeof import('@/modules/auth/models/User').default;
+  let Employee: typeof import('@/modules/employees/models/Employee').default;
+  let Leave: typeof import('@/modules/leave/models/Leave').default;
+  let createTestUser: typeof import('../fixtures/userFixtures').createTestUser;
+  let createTestEmployee: typeof import('../fixtures/employeeFixtures').createTestEmployee;
+  let createTestLeave: typeof import('../fixtures/leaveFixtures').createTestLeave;
+  let generateLeaveData: typeof import('../fixtures/leaveFixtures').generateLeaveData;
+  // Import approve/reject handlers if needed
+  // let approveHandler: typeof import('@/pages/api/leave/[id]/approve').default;
+  // let rejectHandler: typeof import('@/pages/api/leave/[id]/reject').default;
+
+
+  beforeAll(async () => {
+    // Dynamically import handlers AFTER setup in jest.setup.ts runs
+    handler = (await import('@/pages/api/leave')).default;
+    leaveIdHandler = (await import('@/pages/api/leave/[id]')).default;
+    User = (await import('@/modules/auth/models/User')).default;
+    Employee = (await import('@/modules/employees/models/Employee')).default;
+    Leave = (await import('@/modules/leave/models/Leave')).default;
+    const userFixtures = await import('../fixtures/userFixtures');
+    createTestUser = userFixtures.createTestUser;
+    const employeeFixtures = await import('../fixtures/employeeFixtures');
+    createTestEmployee = employeeFixtures.createTestEmployee;
+    const leaveFixtures = await import('../fixtures/leaveFixtures');
+    createTestLeave = leaveFixtures.createTestLeave;
+    generateLeaveData = leaveFixtures.generateLeaveData;
+    // approveHandler = (await import('@/pages/api/leave/[id]/approve')).default;
+    // rejectHandler = (await import('@/pages/api/leave/[id]/reject')).default;
+  });
 
   // Clear data between tests
+  // Note: jest.setup.ts runs beforeEach(clearTestDb)
   beforeEach(async () => {
     // jest.setup.ts now handles clearing the DB via clearTestDb()
     mockGetSession.mockClear();
@@ -46,7 +80,7 @@ describe('Leave API Routes', () => {
 
       // 2. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, username: adminUser.username, role: adminUser.role },
+        user: { id: adminUser.id, role: adminUser.role },
         expires: faker.date.future().toISOString(),
       });
 
@@ -100,7 +134,7 @@ describe('Leave API Routes', () => {
 
       // 3. Mock session (assuming employee is logged in)
       mockGetSession.mockResolvedValue({
-        user: { id: user.id, username: user.username, role: user.role, employeeId: employee.id }, // Include employeeId in session user
+        user: { id: user.id, role: user.role, employeeId: employee.id }, // Include employeeId in session user
         expires: faker.date.future().toISOString(),
       });
 
@@ -152,7 +186,7 @@ describe('Leave API Routes', () => {
 
       // 2. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, username: adminUser.username, role: adminUser.role },
+        user: { id: adminUser.id, role: adminUser.role },
         expires: faker.date.future().toISOString(),
       });
 
@@ -179,7 +213,7 @@ describe('Leave API Routes', () => {
         const adminUser = await createTestUser({ role: Role.ADMIN });
         const nonExistentId = 99999;
         mockGetSession.mockResolvedValue({
-          user: { id: adminUser.id, username: adminUser.username, role: adminUser.role },
+          user: { id: adminUser.id, role: adminUser.role },
           expires: faker.date.future().toISOString(),
         });
         const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
@@ -219,7 +253,7 @@ describe('Leave API Routes', () => {
 
       // 3. Mock session (employee logged in)
       mockGetSession.mockResolvedValue({
-        user: { id: user.id, username: user.username, role: user.role, employeeId: employee.id },
+        user: { id: user.id, role: user.role, employeeId: employee.id },
         expires: faker.date.future().toISOString(),
       });
 
@@ -257,7 +291,7 @@ describe('Leave API Routes', () => {
 
         // 3. Mock session (employee1 logged in)
         mockGetSession.mockResolvedValue({
-          user: { id: user1.id, username: user1.username, role: user1.role, employeeId: employee1.id },
+          user: { id: user1.id, role: user1.role, employeeId: employee1.id },
           expires: faker.date.future().toISOString(),
         });
 
@@ -288,7 +322,7 @@ describe('Leave API Routes', () => {
 
       // 2. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, username: adminUser.username, role: adminUser.role },
+        user: { id: adminUser.id, role: adminUser.role },
         expires: faker.date.future().toISOString(),
       });
 
@@ -317,7 +351,7 @@ describe('Leave API Routes', () => {
 
         // 2. Mock session
         mockGetSession.mockResolvedValue({
-          user: { id: user.id, username: user.username, role: user.role, employeeId: employee.id },
+          user: { id: user.id, role: user.role, employeeId: employee.id },
           expires: faker.date.future().toISOString(),
         });
 

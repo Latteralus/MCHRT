@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { getSequelizeInstance } from '../../../db/mockDbSetup'; // Use relative path
+import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the getter function
 
 // Define the attributes for the Employee model
 interface EmployeeAttributes {

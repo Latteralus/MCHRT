@@ -1,19 +1,20 @@
 // tests/api/employees.test.ts
 import { createMocks, RequestMethod } from 'node-mocks-http';
 import { NextApiRequest, NextApiResponse } from 'next';
-import handler from '@/pages/api/employees'; // Assuming default export for index route
-import employeeIdHandler from '@/pages/api/employees/[id]'; // Assuming default export for [id] route
-// import { setupTestDb, teardownTestDb, clearTestDb } from '../db-setup'; // No longer needed here
+// Import handlers inside describe block after setup
+// import handler from '@/pages/api/employees';
+// import employeeIdHandler from '@/pages/api/employees/[id]';
+// import employeeIdHandler from '@/pages/api/employees/[id]';
+import { setupTestDb, teardownTestDb } from '../db-setup'; // Import setup/teardown
 import { Role } from '@/types/roles';
 import { faker } from '@faker-js/faker'; // Import faker
-
-// Import models and fixtures statically
-import User from '@/modules/auth/models/User';
-import Employee from '@/modules/employees/models/Employee';
-import Department from '@/modules/organization/models/Department';
-import { createTestUser, generateUserData } from '../fixtures/userFixtures';
-import { createTestEmployee, generateEmployeeData } from '../fixtures/employeeFixtures';
-import { createTestDepartment } from '../fixtures/departmentFixtures';
+// Models and fixtures will be imported dynamically
+// import User from '@/modules/auth/models/User';
+// import Employee from '@/modules/employees/models/Employee';
+// import Department from '@/modules/organization/models/Department';
+// import { createTestUser, generateUserData } from '../fixtures/userFixtures';
+// import { createTestEmployee, generateEmployeeData } from '../fixtures/employeeFixtures';
+// import { createTestDepartment } from '../fixtures/departmentFixtures';
 
 // Mock next-auth session
 jest.mock('next-auth/react', () => ({
@@ -26,8 +27,38 @@ const mockGetSession = getSession as jest.MockedFunction<typeof getSession>;
 
 
 describe('Employee API Routes', () => {
+  // Declare variables for handlers, models, and fixtures in the describe scope
+  let handler: typeof import('@/pages/api/employees').default;
+  let employeeIdHandler: typeof import('@/pages/api/employees/[id]').default;
+  let User: typeof import('@/modules/auth/models/User').default;
+  let Employee: typeof import('@/modules/employees/models/Employee').default;
+  let Department: typeof import('@/modules/organization/models/Department').default;
+  let createTestUser: typeof import('../fixtures/userFixtures').createTestUser;
+  let generateUserData: typeof import('../fixtures/userFixtures').generateUserData;
+  let createTestEmployee: typeof import('../fixtures/employeeFixtures').createTestEmployee;
+  let generateEmployeeData: typeof import('../fixtures/employeeFixtures').generateEmployeeData;
+  let createTestDepartment: typeof import('../fixtures/departmentFixtures').createTestDepartment;
+
+  beforeAll(async () => {
+    // Dynamically import everything AFTER setup in jest.setup.ts runs
+    handler = (await import('@/pages/api/employees')).default;
+    employeeIdHandler = (await import('@/pages/api/employees/[id]')).default;
+    User = (await import('@/modules/auth/models/User')).default;
+    Employee = (await import('@/modules/employees/models/Employee')).default;
+    Department = (await import('@/modules/organization/models/Department')).default;
+    const userFixtures = await import('../fixtures/userFixtures');
+    createTestUser = userFixtures.createTestUser;
+    generateUserData = userFixtures.generateUserData;
+    const employeeFixtures = await import('../fixtures/employeeFixtures');
+    createTestEmployee = employeeFixtures.createTestEmployee;
+    generateEmployeeData = employeeFixtures.generateEmployeeData;
+    const departmentFixtures = await import('../fixtures/departmentFixtures');
+    createTestDepartment = departmentFixtures.createTestDepartment;
+  });
 
   // Clear data between tests
+  // Note: jest.setup.ts runs beforeEach(clearTestDb)
+  // Note: jest.setup.ts runs beforeAll(setupTestDb) and beforeEach(clearTestDb)
   beforeEach(async () => {
     // jest.setup.ts now handles clearing the DB via clearTestDb()
     // Reset mocks before each test
@@ -44,7 +75,7 @@ describe('Employee API Routes', () => {
 
       // 2. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, username: adminUser.username, role: adminUser.role }, // Use username
+        user: { id: adminUser.id, role: adminUser.role },
         expires: faker.date.future().toISOString(),
       });
 
@@ -111,7 +142,7 @@ describe('Employee API Routes', () => {
 
       // 2. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, username: adminUser.username, role: adminUser.role }, // Use username
+        user: { id: adminUser.id, role: adminUser.role },
         expires: faker.date.future().toISOString(),
       });
 
@@ -157,7 +188,7 @@ describe('Employee API Routes', () => {
 
         // 2. Mock session
         mockGetSession.mockResolvedValue({
-          user: { id: nonAdminUser.id, username: nonAdminUser.username, role: nonAdminUser.role }, // Use username
+          user: { id: nonAdminUser.id, role: nonAdminUser.role },
           expires: faker.date.future().toISOString(),
         });
 
@@ -186,7 +217,7 @@ describe('Employee API Routes', () => {
 
       // 2. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, username: adminUser.username, role: adminUser.role }, // Use username
+        user: { id: adminUser.id, role: adminUser.role },
         expires: faker.date.future().toISOString(),
       });
 
@@ -219,7 +250,7 @@ describe('Employee API Routes', () => {
 
         // 2. Mock session
         mockGetSession.mockResolvedValue({
-          user: { id: adminUser.id, username: adminUser.username, role: adminUser.role }, // Use username
+          user: { id: adminUser.id, role: adminUser.role },
           expires: faker.date.future().toISOString(),
         });
 
@@ -282,7 +313,7 @@ describe('Employee API Routes', () => {
 
       // 3. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, username: adminUser.username, role: adminUser.role }, // Use username
+        user: { id: adminUser.id, role: adminUser.role },
         expires: faker.date.future().toISOString(),
       });
 
@@ -324,7 +355,7 @@ describe('Employee API Routes', () => {
 
         // 2. Mock session
         mockGetSession.mockResolvedValue({
-          user: { id: nonAdminUser.id, username: nonAdminUser.username, role: nonAdminUser.role }, // Use username
+          user: { id: nonAdminUser.id, role: nonAdminUser.role },
           expires: faker.date.future().toISOString(),
         });
 
@@ -350,7 +381,7 @@ describe('Employee API Routes', () => {
 
         // 2. Mock session
         mockGetSession.mockResolvedValue({
-          user: { id: adminUser.id, username: adminUser.username, role: adminUser.role }, // Use username
+          user: { id: adminUser.id, role: adminUser.role },
           expires: faker.date.future().toISOString(),
         });
 
@@ -381,7 +412,7 @@ describe('Employee API Routes', () => {
 
       // 2. Mock session
       mockGetSession.mockResolvedValue({
-        user: { id: adminUser.id, username: adminUser.username, role: adminUser.role },
+        user: { id: adminUser.id, role: adminUser.role },
         expires: faker.date.future().toISOString(),
       });
 
@@ -412,7 +443,7 @@ describe('Employee API Routes', () => {
 
         // 2. Mock session
         mockGetSession.mockResolvedValue({
-          user: { id: nonAdminUser.id, username: nonAdminUser.username, role: nonAdminUser.role },
+          user: { id: nonAdminUser.id, role: nonAdminUser.role },
           expires: faker.date.future().toISOString(),
         });
 
@@ -436,7 +467,7 @@ describe('Employee API Routes', () => {
 
         // 2. Mock session
         mockGetSession.mockResolvedValue({
-          user: { id: adminUser.id, username: adminUser.username, role: adminUser.role },
+          user: { id: adminUser.id, role: adminUser.role },
           expires: faker.date.future().toISOString(),
         });
 
