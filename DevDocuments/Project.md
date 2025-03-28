@@ -70,7 +70,7 @@
 ## Phase 8: Testing & Documentation
 - [/] Create unit tests for critical functions (leaveBalanceService done)
   - `npx jest tests/unit/services/leaveBalanceService.test.ts`
-- [/] Add integration tests for API routes (Basic CRUD tests written for Employees, Attendance, Leave, Compliance, Documents; **Blocked by Jest/Sequelize initialization issue**)
+- [/] Add integration tests for API routes (Basic CRUD tests written for Employees, Attendance, Leave, Compliance, Documents; **Blocked by Jest/Sequelize initialization issue - `db-setup.ts` improved, but core loading order issue likely remains**)
 - [ ] Implement E2E tests for critical user flows
 - [ ] Document database schema
 - [ ] Create API documentation
@@ -86,7 +86,7 @@
 
 ---
 
-## Current Status & Next Steps (As of 2025-03-28 ~01:50 AM MDT)
+## Current Status & Next Steps (As of 2025-03-28 ~03:20 AM MDT)
 
 **Current Focus:** Phase 8 - Testing & Documentation (Debugging Jest Integration Tests)
 
@@ -94,25 +94,26 @@
 - Phase 1: All items completed.
 - Phase 2: All items completed.
 - Phase 3: All items completed.
-- Phase 4: All items completed (excluding deferred testing).
+- Phase 4: All items completed (excluding deferred testing). `leaveAccrualService.ts` import fixed.
 - Phase 5: Core structure implemented (API routes, basic components). UI integration and refinement pending.
 - Phase 6: All items completed (Dashboard layout, widgets connected, reports page structure, export button). API logic uses placeholders.
 - Phase 7: All items completed (Templates created, basic reminder infrastructure, basic task management interface). Email reminders use placeholders.
-- Phase 8: Unit test for `leaveBalanceService` complete. Basic API integration tests written for core modules, but blocked by a persistent Jest initialization error.
+- Phase 8: Unit test for `leaveBalanceService` complete. Basic API integration tests written for core modules, but blocked by a persistent Jest initialization error. `tests/db-setup.ts` Umzug configuration fixed.
 
 **Where We Left Off:**
 - Attempting to run API integration tests (`npm test`).
-- Tests consistently fail with `Sequelize has not been initialized or set.` error, originating from model initialization (`Model.init`) which calls `getSequelizeInstance()` before the instance is set by `tests/db-setup.ts`'s `beforeAll` hook.
+- Tests consistently fail with `Sequelize has not been initialized or set.` error, originating from model initialization (`Model.init`) which calls `getSequelizeInstance()` before the instance is set by `tests/db-setup.ts`'s `beforeAll` hook. The fixes in `db-setup.ts` related to Umzug initialization might help ensure a cleaner setup, but the underlying Jest module loading order issue likely persists.
 
 **Next Steps (Debugging):**
-1.  **Investigate Jest Module Loading:** The core issue seems to be Jest loading/transforming modules (specifically the models) before the `beforeAll` hook in `tests/db-setup.ts` can create and set the Sequelize instance.
-2.  **Alternative Initialization:** Explore alternative Jest setup methods (e.g., `globalSetup`, `setupFilesAfterEnv`) to ensure Sequelize is initialized globally before any test files are processed.
-3.  **Simplify Further:** Temporarily remove `next/jest` wrapper or simplify `jest.config.js` to rule out configuration conflicts.
-4.  **Consult Jest/Sequelize Docs:** Review documentation for best practices regarding asynchronous setup and module mocking/loading order in Jest.
+1.  **Verify `db-setup.ts` Fixes:** Confirm the recent changes to `tests/db-setup.ts` resolve the Umzug-related TypeScript errors and don't introduce new issues during test setup.
+2.  **Investigate Jest Module Loading:** The core issue seems to be Jest loading/transforming modules (specifically the models) before the `beforeAll` hook in `tests/db-setup.ts` can create and set the Sequelize instance.
+3.  **Alternative Initialization:** Explore alternative Jest setup methods (e.g., `globalSetup`, `setupFilesAfterEnv`) to ensure Sequelize is initialized globally before any test files are processed.
+4.  **Simplify Further:** Temporarily remove `next/jest` wrapper or simplify `jest.config.js` to rule out configuration conflicts.
+5.  **Consult Jest/Sequelize Docs:** Review documentation for best practices regarding asynchronous setup and module mocking/loading order in Jest.
 
 ---
 
-## Jest Integration Test Debugging Notes (2025-03-28)
+## Jest Integration Test Debugging Notes (Updated 2025-03-28 ~03:20 AM MDT)
 
 **Problem:** API integration tests consistently fail with `Sequelize has not been initialized or set.` This error occurs because Sequelize models (e.g., `User`, `Employee`) are being imported and initialized (calling `Model.init`, which uses `getSequelizeInstance`) at the top level of the test files, *before* the `beforeAll` hook in `tests/db-setup.ts` has a chance to create the Sequelize instance using the test configuration and set it via `setSequelizeInstance`.
 
@@ -140,6 +141,11 @@
     *   Refactored `tests/api/employees.test.ts` (and subsequently others) to declare model/fixture variables in the `describe` scope and perform dynamic `import()` within `beforeAll`, *after* calling `setupTestDb`.
     *   *Result:* Still failed with `Sequelize has not been initialized or set.`, indicating the models are likely still being processed/imported by Jest before `beforeAll` completes its setup, despite the dynamic import syntax.
 
+5.  **`tests/db-setup.ts` Umzug Configuration:**
+    *   *Problem:* TypeScript errors related to `SequelizeStorage` expecting an instance vs. a function, and incorrect type for `resolve` parameters.
+    *   *Fix:* Moved `Umzug` instantiation inside `setupTestDb` after Sequelize instance is created. Corrected `resolve` parameter type to `import('umzug').MigrationParams<QueryInterface>`.
+    *   *Result:* Resolved TypeScript errors in `tests/db-setup.ts`.
+
 **Conclusion:** The fundamental issue appears to be Jest's module execution order interacting with Sequelize model definitions that rely on a globally available (but asynchronously initialized) instance. The top-level model imports in the test files trigger `Model.init` too early.
 
 **Next Debugging Ideas:**
@@ -151,7 +157,7 @@
 
 ---
 
-## Vercel Build Debugging Notes (2025-03-28 ~03:00 AM MDT)
+## Vercel Build Debugging Notes (Updated 2025-03-28 ~03:20 AM MDT)
 
 **Problem:** Encountered a series of TypeScript and module resolution errors during Vercel builds after recent changes.
 
@@ -183,10 +189,40 @@
     *   Error: `Property 'username' does not exist on type '{...}'` when accessing `session.user.username`.
         *   *Fix:* Removed the fallback access to `session.user.username`.
 
-5.  **`tests/db-setup.ts` - Module Resolution Error:**
+5.  **`tests/db-setup.ts` - Module Resolution & Type Errors:**
     *   Error: `Cannot find module 'umzug/storage/sequelize'`.
         *   *Investigation:* Checked `package.json`, found `umzug` dependency was missing.
         *   *Fix 1:* Installed `umzug` (`npm install umzug@^2.3.0`).
         *   *Fix 2 (Error persisted):* Changed import from `import { SequelizeStorage } from 'umzug/storage/sequelize'` to `import { Umzug, SequelizeStorage } from 'umzug'`.
+    *   Error: `Type '() => Sequelize' is not assignable to type 'SequelizeType'` for `SequelizeStorage`.
+        *   *Fix:* Moved `Umzug` instantiation inside `setupTestDb` after Sequelize instance is created.
+    *   Error: Type incompatibility for `resolve` function parameters.
+        *   *Fix:* Corrected `resolve` parameter type to `import('umzug').MigrationParams<QueryInterface>`.
 
-**Outcome:** After these fixes, the Vercel build process is expected to succeed.
+6.  **`src/modules/leave/services/leaveAccrualService.ts` - Import Error & Typo:**
+    *   Error: Typo `Sea` at start of file.
+        *   *Fix:* Removed typo.
+    *   Error: `Module '"@/modules/employees/models/Employee"' has no exported member 'Employee'`.
+        *   *Fix:* Changed import to default import: `import Employee from '@/modules/employees/models/Employee';`.
+
+**Outcome:** After these fixes, the Vercel build process and local TypeScript checks are expected to succeed regarding these specific issues. The Jest integration test initialization remains the primary blocker.
+
+---
+
+## Definitions
+
+*   **RBAC (Role-Based Access Control):** A security approach that restricts system access to authorized users based on their roles within an organization.
+*   **Sequelize:** A promise-based Node.js ORM (Object-Relational Mapper) for Postgres, MySQL, MariaDB, SQLite, and Microsoft SQL Server. It simplifies database interactions.
+*   **Umzug:** A framework-agnostic migration tool for Node.js, often used with Sequelize to manage database schema changes.
+*   **Next.js:** A React framework for building server-side rendered (SSR) and statically generated web applications.
+*   **NextAuth.js:** An authentication library for Next.js applications, simplifying the implementation of various authentication strategies.
+*   **Jest:** A JavaScript testing framework focusing on simplicity, often used for unit and integration testing.
+*   **MVP (Minimum Viable Product):** A version of a new product that allows a team to collect the maximum amount of validated learning about customers with the least effort.
+*   **ORM (Object-Relational Mapper):** A programming technique for converting data between incompatible type systems using object-oriented programming languages. This creates a "virtual object database" that can be used from within the programming language.
+*   **API (Application Programming Interface):** A set of definitions and protocols for building and integrating application software.
+*   **CRUD (Create, Read, Update, Delete):** The four basic functions of persistent storage.
+*   **UI (User Interface):** The point of human-computer interaction and communication in a device, software application, or website.
+*   **FE (Frontend):** The part of a website or application that the user interacts with directly (client-side).
+*   **BE (Backend):** The server-side of an application, responsible for logic, database interactions, and serving data to the frontend.
+*   **JSDoc:** A markup language used to annotate JavaScript source code files. Tools can process these annotations to produce documentation in formats like HTML.
+*   **E2E (End-to-End) Tests:** A testing methodology used to test application flow from start to end. The purpose is to simulate real user scenarios.

@@ -1,5 +1,5 @@
-Sea// src/modules/leave/services/leaveAccrualService.ts
-import { Employee } from '@/db'; // Import Employee model
+// src/modules/leave/services/leaveAccrualService.ts
+import Employee from '@/modules/employees/models/Employee'; // Import Employee model (default export)
 import { accrueLeaveBalance } from './leaveBalanceService'; // Import the single accrual function
 import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the getter function
 
