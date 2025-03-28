@@ -26,7 +26,7 @@ export const generateAttendanceData = (overrides: AttendanceOverrides): Partial<
   // Ensure timeOut is after timeIn, or potentially undefined/null
   const timeOut = overrides.timeOut !== undefined
     ? overrides.timeOut
-    : faker.helpers.maybe(() => faker.date.between({ from: new Date(timeIn).setHours(new Date(timeIn).getHours() + 4), to: new Date(generatedDate).setHours(18, 0, 0, 0) }), { probability: 0.8 }); // 80% chance of having a timeOut
+    : faker.helpers.maybe(() => faker.date.between({ from: new Date(timeIn), to: new Date(timeIn).setHours(18, 0, 0, 0) }), { probability: 0.8 }); // 80% chance of having a timeOut, ensure 'to' is based on 'timeIn' day
 
   // Determine the final date string, prioritizing override
   const finalDateString = overrides.date

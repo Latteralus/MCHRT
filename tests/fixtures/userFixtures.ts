@@ -11,7 +11,7 @@ export const generateUserData = (overrides: Partial<User> = {}): Partial<User> =
   // but we might need to hash here for direct DB insertion in tests.
   // Consider if your User model handles hashing automatically.
   const hashedPassword = bcrypt.hashSync(password, 10); // Sync for simplicity in fixtures
-  const fakeUsername = faker.internet.userName().toLowerCase() + faker.string.numeric(4); // Ensure uniqueness
+  const fakeUsername = faker.internet.userName().toLowerCase() + faker.string.numeric(4); // Ensure uniqueness (Reverted)
 
   return {
     username: fakeUsername,
@@ -24,19 +24,13 @@ export const generateUserData = (overrides: Partial<User> = {}): Partial<User> =
 // Function to create a user record in the database
 export const createTestUser = async (overrides: Partial<User> = {}): Promise<User> => {
   const userData = generateUserData(overrides);
+  // Simplified: Attempt creation once and let errors propagate
   try {
-    // Use User.create to ensure model hooks (like hashing, if any) are triggered
-    const user = await User.create(userData as User); // Cast needed if generateUserData returns Partial<User>
+    const user = await User.create(userData as User);
     return user;
   } catch (error) {
     console.error("Error creating test user:", error);
-    // If email uniqueness constraint fails, try again with a different email
-    // Check if error is an instance of Error and has the correct name property
-    if (error instanceof Error && error.name === 'SequelizeUniqueConstraintError') {
-        console.warn("Unique constraint violation for email, retrying user creation...");
-        return createTestUser(overrides); // Recursive call - potential infinite loop if always fails, but unlikely with faker
-    }
-    throw error; // Re-throw other errors
+    throw error; // Re-throw any error
   }
 };
 

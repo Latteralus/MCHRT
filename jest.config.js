@@ -21,7 +21,7 @@ const customJestConfig = {
   // Automatically clear mock calls, instances, contexts and results before every test
   clearMocks: true,
   // Suppress console output during test runs
-  silent: true, // Keep this if you prefer less console noise
+  silent: false, // Temporarily disable to see setup logs
   // Indicates whether the coverage information should be collected while executing the test
   collectCoverage: true,
   // The directory where Jest should output its coverage files

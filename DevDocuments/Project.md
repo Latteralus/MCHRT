@@ -68,9 +68,9 @@
 - [x] Add task assignment interface (Model, Service, API, Page, List & Form components created)
 
 ## Phase 8: Testing & Documentation
-- [/] Create unit tests for critical functions (leaveBalanceService done, but failing due to setup issue)
+- [x] Create unit tests for critical functions (`leaveBalanceService` tests now pass)
   - `npx jest tests/unit/services/leaveBalanceService.test.ts`
-- [/] Add integration tests for API routes (Basic CRUD tests written; **Still Blocked by Jest/Sequelize initialization issue**)
+- [/] Add integration tests for API routes (Basic CRUD tests written; Initialization fixed, but full suite run has isolation issues)
 - [ ] Implement E2E tests for critical user flows
 - [ ] Document database schema
 - [ ] Create API documentation
@@ -86,9 +86,9 @@
 
 ---
 
-## Current Status & Next Steps (As of 2025-03-28 ~11:07 AM MDT)
+## Current Status & Next Steps (As of 2025-03-28 ~12:18 PM MDT)
 
-**Current Focus:** Phase 8 - Testing & Documentation (Debugging Jest Integration Tests)
+**Current Focus:** Phase 8 - Testing & Documentation (Running integration tests)
 
 **Completed:**
 - Phase 1: All items completed.
@@ -98,67 +98,54 @@
 - Phase 5: Core structure implemented.
 - Phase 6: All items completed.
 - Phase 7: All items completed.
-- Phase 8: Unit test for `leaveBalanceService` written but failing due to setup. Basic API integration tests written but blocked.
+- Phase 8:
+    - Unit test for `leaveBalanceService` fixed and passing.
+    - Basic API integration tests written.
+    - **Jest/Sequelize initialization issue resolved** by creating Sequelize instance synchronously and using `sync({ force: true })` in `clearTestDb`.
+    - Several API test failures fixed (response format, payload format, fixture dependencies).
 - Phase 9: Login page layout bug fixed. Vercel build errors related to types and imports fixed.
 
 **Where We Left Off:**
-- Attempting to run API integration tests (`npm test`).
-- Tests consistently fail with `Sequelize has not been initialized or set.` error.
-- The error occurs even when using `setupFilesAfterEnv` with `beforeAll` hooks in `jest.setup.ts` and dynamic imports (`import()`) within the test files' `beforeAll` hooks.
-- The root cause appears to be that Jest loads the test files and their static dependencies (API handlers -> models -> `getSequelizeInstance`) *before* the asynchronous database setup (`setupTestDb` called from `jest.setup.ts`'s `beforeAll`) fully completes and sets the Sequelize instance.
+- Running API integration tests (`npm test`).
+- Individual test files (e.g., `employees.test.ts`, `attendance.test.ts`) pass when run in isolation (`npm test <path>`).
+- Running the full test suite (`npm test` or `npm test -- --runInBand`) still results in failures (e.g., `UNIQUE constraint failed`, `FOREIGN KEY constraint failed`, API logic errors).
+- This indicates **test isolation issues** where state from one test file seems to interfere with subsequent files, even when run sequentially in the same process. The `clearTestDb` function using `sync({ force: true })` doesn't seem sufficient to prevent this cross-file interference.
 
-**Next Steps (Debugging):**
-1.  **Confirm Dynamic Import Pattern:** Double-check all API test files (`tests/api/*.test.ts`) ensure *all* imports related to API handlers, models, and fixtures are performed dynamically within a `beforeAll` hook, not statically at the top level.
-2.  **Investigate `jest.setup.ts` Execution:** Add logging within `jest.setup.ts`'s `beforeAll` and the test files' `beforeAll` to confirm the execution order relative to module loading.
-3.  **Simplify `tests/db-setup.ts` Further:** Temporarily remove the dynamic model/association imports from `setupTestDb` entirely to see if the basic instance creation and migration run successfully in `beforeAll` without interference.
-4.  **Manual Mocking:** As a last resort, explore explicitly mocking the Sequelize models (`User`, `Employee`, etc.) using `jest.mock()` at the top of test files and only importing the real implementations within tests after setup.
-5.  **Review `next/jest` Interaction:** Re-evaluate if the `next/jest` wrapper, despite being standard, has specific interactions with asynchronous setup hooks that cause this behavior.
+**Next Steps:**
+1.  **Continue Phase 8:** Proceed with writing further integration tests and documentation, running tests individually or in small groups as needed.
+2.  **(Optional/Deferred) Investigate Full Suite Isolation:** If running the *entire* suite with `npm test` is critical, further investigation is needed. This might involve:
+    *   Deep diving into Jest's execution context and potential memory leaks.
+    *   Exploring alternative test runners or setup strategies (e.g., separate DB files per test suite).
+    *   Ensuring no asynchronous operations are left dangling after tests complete.
 
 ---
 
-## Jest Integration Test Debugging Notes (Updated 2025-03-28 ~11:07 AM MDT)
+## Jest Integration Test Debugging Notes (Updated 2025-03-28 ~12:18 PM MDT)
 
-**Problem:** API integration tests consistently fail with `Sequelize has not been initialized or set.` This error occurs because Sequelize models (e.g., `User`, `Employee`) are being imported and initialized (calling `Model.init`, which uses `getSequelizeInstance`) *before* the asynchronous `setupTestDb` function (called via `beforeAll` in `jest.setup.ts`) has completed its setup and called `setSequelizeInstance`.
+**Problem:** Initial attempts to run integration tests failed due to `Sequelize has not been initialized or set.` errors. Subsequent fixes led to `no such table` errors, and then `UNIQUE constraint failed` or `FOREIGN KEY constraint failed` errors when running the full suite.
 
-**Attempted Fixes:**
+**Root Cause Analysis:**
+1.  **Initialization Error:** Caused by a race condition where model files (calling `getSequelizeInstance` during `Model.init`) were loaded by Jest before the asynchronous `setupTestDb` hook finished creating the Sequelize instance.
+2.  **`no such table` Error:** Occurred when `clearTestDb` (running `beforeEach`) executed before `setupTestDb` (running `beforeAll`) had finished creating tables via migrations or `sync`.
+3.  **Constraint Errors (Full Suite):** Likely caused by inadequate test isolation between files, even with `--runInBand`. The `clearTestDb` function (using either `destroy` or `sync({ force: true })`) doesn't seem to guarantee a perfectly clean slate when multiple test files run sequentially in the same process, leading to leftover data causing unique or foreign key violations in subsequent tests.
 
-1.  **Refactored DB Initialization:** (See previous notes) - Led to the current state where `mockDbSetup.ts` provides `set/getSequelizeInstance`.
-2.  **Configuration File Handling:** (See previous notes) - Resolved issues with Sequelize CLI reading config.
-3.  **Jest Environment:** (See previous notes) - No change.
-4.  **Delayed Imports in Test Files (Initial Attempt):** (See previous notes) - Failed, likely due to incomplete application or other errors masking the result.
-5.  **`tests/db-setup.ts` Umzug Configuration:** (See previous notes) - Resolved TS errors.
-6.  **Jest `globalSetup`/`globalTeardown`:**
-    *   Created `global-setup.ts` to call `setupTestDb` and `global-teardown.ts` to call `teardownTestDb`.
-    *   Configured `jest.config.js` to use these.
-    *   Modified `jest.setup.ts` to only contain `beforeEach(clearTestDb)`.
-    *   Encountered issues resolving path aliases (`@/`) within `globalSetup` context, even with `ts-jest` path mapping configured.
-    *   Reverted alias imports in `db-setup.ts`, `associations.ts`, and models to relative paths for `mockDbSetup`.
-    *   Still failed, with errors indicating the instance/tables set up in `globalSetup` were not available to the test execution context (`beforeEach` failed with `no such table`).
-    *   *Result:* `globalSetup` seems to run in a separate context from the tests and `setupFilesAfterEnv`, making it unsuitable for sharing the initialized Sequelize instance directly. Reverted this approach.
-7.  **`ts-jest` without `next/jest` wrapper:**
-    *   Installed `ts-jest`.
-    *   Modified `jest.config.js` to use `preset: 'ts-jest'` and configure `transform` for `ts-jest`, including `babelConfig: true`.
-    *   Encountered JSX parsing errors because `next/babel` preset was no longer implicitly applied.
-    *   *Result:* Reverted to using `next/jest` wrapper as it handles necessary Babel transforms automatically.
-8.  **`setupFilesAfterEnv` with Dynamic Imports (Revisited):**
-    *   Configured `jest.config.js` to use `next/jest` and `setupFilesAfterEnv: ['<rootDir>/jest.setup.ts']`.
-    *   Ensured `jest.setup.ts` calls `setupTestDb` in `beforeAll`, `teardownTestDb` in `afterAll`, and `clearTestDb` in `beforeEach`.
-    *   Modified all API test files (`tests/api/*.test.ts`) to dynamically import handlers, models, and fixtures using `await import(...)` inside a `beforeAll` hook within the `describe` block.
-    *   *Result:* Still fails with `Sequelize has not been initialized or set.`. The error trace indicates the failure occurs when the dynamic imports within the test file's `beforeAll` trigger model loading before the `setupTestDb` call (from `jest.setup.ts`'s `beforeAll`) has finished.
-9.  **Synchronous Instance Creation in `db-setup.ts`:**
-    *   Modified `tests/db-setup.ts` to create and set the Sequelize instance synchronously at the top level, leaving only async operations (migrations, association imports) in the `setupTestDb` function called by `jest.setup.ts`'s `beforeAll`.
-    *   *Result:* Still fails with `Sequelize has not been initialized or set.`. The error occurs during the `beforeEach` hook when `clearTestDb` tries to access the instance, suggesting the instance set synchronously isn't available or the tables weren't created correctly due to timing. Reverted this approach.
-10. **Simplified `setupTestDb` (Removing Model/Assoc Imports):**
-    *   Modified `tests/db-setup.ts` so `setupTestDb` only creates/sets the instance and runs migrations. Test files dynamically import models/fixtures/handlers in their `beforeAll`.
-    *   *Result:* Still fails with `Sequelize has not been initialized or set.`. Error occurs when test files dynamically import models/handlers in their `beforeAll`, indicating `setupTestDb` hasn't finished.
+**Resolution Steps Taken:**
 
-**Conclusion:** The core problem remains the race condition between Jest loading modules required by the tests (even via dynamic `import()` in `beforeAll`) and the completion of the asynchronous database setup defined in `jest.setup.ts`'s `beforeAll`. The `next/jest` wrapper seems necessary for easy JSX/TS transformation but doesn't inherently solve this setup timing issue. The dynamic imports in the test files' `beforeAll` hooks are still executing before the `beforeAll` hook in `jest.setup.ts` finishes its asynchronous work.
+1.  **Synchronous Instance Creation:** Modified `src/db/mockDbSetup.ts` to create the Sequelize instance synchronously on module load. This resolved the initial `Sequelize has not been initialized` error.
+2.  **Switched to `sync({ force: true })`:** Replaced Umzug migrations with `sequelize.sync({ force: true })` in `setupTestDb` to ensure schema matches models.
+3.  **Refined `clearTestDb`:** Experimented with `destroy` loops vs. `sync({ force: true })` in the `beforeEach` hook. `sync({ force: true })` proved necessary for resetting state reliably *within* a single test file run sequentially, but still insufficient for full suite isolation. Reverted to `destroy` loop and back to `sync({ force: true })` multiple times while debugging related fixture issues. The final state uses `sync({ force: true })`.
+4.  **Ordered Imports:** Ensured models were imported before `sync` and associations after `sync` in `setupTestDb`. Also tried importing associations *before* `sync` in `clearTestDb`, which didn't help. Removed explicit association imports from setup/clear functions as Sequelize handles them via model definitions.
+5.  **Fixture Dependencies:** Modified `employeeFixtures` and `departmentFixtures` to ensure dependent `User` and `Department` records are created if not provided via overrides.
+6.  **Username Uniqueness:** Modified `userFixtures` to use UUIDs for usernames to prevent collisions within a single test file execution. Reverted this while debugging `clearTestDb`, then potentially re-applied (final state uses UUIDs). *Correction: Final state uses faker + random numbers, not UUIDs.*
+7.  **API/Test Logic Fixes:** Corrected assertions and payload formats in `attendance` and `compliance` tests based on actual API behavior (checking correct response property, using correct time formats).
+8.  **Sequential Execution:** Used `jest --runInBand` to prevent parallel file execution, which helped isolate some issues but didn't solve the core state leakage problem between files.
+9.  **Isolated File Testing:** Confirmed that individual test files (e.g., `employees.test.ts`, `attendance.test.ts`) pass when run alone, indicating the core logic within them is sound.
 
-**Next Debugging Ideas:**
+**Conclusion:** The primary blocker (Sequelize initialization) is resolved. Integration tests *can* be written and run successfully in isolation. However, running the *entire suite* reliably fails due to state not being perfectly reset between test files by the current `clearTestDb` implementation.
 
-*   **Isolate `jest.setup.ts`:** Ensure `jest.setup.ts` *only* contains the `beforeAll(setupTestDb)`, `afterAll(teardownTestDb)`, and `beforeEach(clearTestDb)` calls, with `setupTestDb` performing all necessary async setup (instance creation, migrations, model/association loading).
-*   **Investigate `await` in `beforeAll`:** Confirm that Jest correctly awaits the `async` `beforeAll` hook in `jest.setup.ts` before proceeding to the test file's `beforeAll` hook. Add console logs at the start and end of `setupTestDb` and the start of the test file's `beforeAll` to verify timing.
-*   **Manual Mocking:** Explore explicitly mocking the Sequelize models (`User`, `Employee`, etc.) using `jest.mock()` at the top of test files and only importing the real implementations within tests after setup. This is less ideal for integration tests but might be a necessary workaround.
+**Next Steps (Testing):**
+*   Run tests individually (`npm test <path>`) or in small groups during development.
+*   Defer further investigation into full suite isolation issues unless it becomes a critical blocker.
 
 ---
 
@@ -182,7 +169,7 @@
 12. **`src/types/next-auth.d.ts` & Test Mocks:** Added missing `employeeId` to session type definition and removed incorrect `username` from test mocks.
 13. **Sequelize CLI Config:** Created `src/config/config.js` and updated `.sequelizerc` for CLI compatibility. Fixed seeder import issue by using hardcoded role string. Added admin user seeder.
 
-**Outcome:** Vercel builds and local TypeScript checks should now pass. Login page layout is correct. Admin user seeder created. **Jest integration test initialization remains the primary blocker.**
+**Outcome:** Vercel builds and local TypeScript checks pass. Login page layout is correct. Admin user seeder created. **Jest integration tests are unblocked but exhibit isolation issues when running the full suite.**
 
 ---
 

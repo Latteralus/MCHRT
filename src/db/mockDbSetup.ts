@@ -1,15 +1,18 @@
 import { Sequelize } from 'sequelize';
+// Use require for sync loading of config needed at module load time
+const dbConfig = require('../config/config.js');
 
-// This variable will be set externally (e.g., by test setup or main app entry point)
-let sequelizeInstance: Sequelize | null = null;
+console.log('[mockDbSetup] Creating Sequelize instance...');
+const testConfig = dbConfig.test;
+if (!testConfig) {
+  throw new Error('[mockDbSetup] Test database configuration not found in config/config.js');
+}
+// Create the instance synchronously when the module loads
+const sequelizeInstance: Sequelize = new Sequelize(testConfig);
+console.log('[mockDbSetup] Sequelize instance created.');
 
-// Function to SET the instance
-export const setSequelizeInstance = (instance: Sequelize): void => {
-    if (sequelizeInstance) {
-        console.warn('Sequelize instance is being overwritten.');
-    }
-    sequelizeInstance = instance;
-};
+// Remove the setter function as instance is created internally now
+// export const setSequelizeInstance = (instance: Sequelize): void => { ... };
 
 // Function to GET the instance
 export const getSequelizeInstance = (): Sequelize => {

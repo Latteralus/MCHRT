@@ -1,10 +1,17 @@
 // jest.setup.ts
-import { clearTestDb } from './tests/db-setup'; // Adjust path if needed
+import { setupTestDb, teardownTestDb, clearTestDb } from './tests/db-setup'; // Adjust path if needed
 
-// Optional: Clear data before each test for isolation
-// beforeAll and afterAll are now handled by globalSetup/globalTeardown
-// beforeAll and afterAll handle setup/teardown for each test file.
-// beforeAll and afterAll are now handled by globalSetup/globalTeardown
+// Setup the database once before all tests in this file run
+beforeAll(async () => {
+  await setupTestDb();
+});
+
+// Clear data before each test for isolation
 beforeEach(async () => {
   await clearTestDb();
+});
+
+// Teardown the database once after all tests in this file have run
+afterAll(async () => {
+  await teardownTestDb();
 });

@@ -1,6 +1,6 @@
 // src/pages/api/attendance/[id].ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { Attendance, Employee } from '@/db'; // Import Attendance and Employee models
+import { Attendance, Employee, AttendanceAttributes } from '@/db'; // Import Attendance, Employee models and AttendanceAttributes interface
 import { withAuth, AuthenticatedNextApiHandler } from '@/lib/middleware/withAuth';
 // Placeholder: Import authorization middleware if needed (e.g., check if user owns the record or is manager/admin)
 // import { withAttendanceAccess } from '@/lib/middleware/withAttendanceAccess'; // Example
@@ -99,12 +99,31 @@ const handler: AuthenticatedNextApiHandler = async (req, res, session) => {
         }
         // Add date validation if date can be updated
 
-        // Prepare update data
-        const updateData: Partial<Attendance> = {};
-        if (date) updateData.date = date;
-        if (timeIn) updateData.timeIn = timeIn;
-        // Allow setting timeOut to null/undefined to clear it
-        if (timeOut !== undefined) updateData.timeOut = timeOut || null; // Allow clearing timeOut
+        // Prepare update data, converting times to Date objects
+        const updateData: Partial<AttendanceAttributes> = {}; // Use Attributes interface
+        const recordDate = attendanceRecord.date; // Get the date from the existing record
+
+        if (date) {
+             // TODO: Add validation for date format if allowing date updates
+             updateData.date = date;
+        }
+
+        if (timeIn) {
+            const timeInDateTime = new Date(`${recordDate}T${timeIn}Z`); // Combine with record's date
+            if (isNaN(timeInDateTime.getTime())) return res.status(400).json({ message: 'Invalid timeIn value provided.' });
+            updateData.timeIn = timeInDateTime;
+        }
+
+        // Allow setting timeOut to null/undefined to clear it, or update it
+        if (timeOut !== undefined) {
+            if (timeOut === null || timeOut === '') {
+                updateData.timeOut = undefined; // Use undefined to clear, as model expects Date | undefined
+            } else {
+                const timeOutDateTime = new Date(`${recordDate}T${timeOut}Z`); // Combine with record's date
+                if (isNaN(timeOutDateTime.getTime())) return res.status(400).json({ message: 'Invalid timeOut value provided.' });
+                updateData.timeOut = timeOutDateTime;
+            }
+        }
 
 
         // Perform the update on the already fetched & authorized record

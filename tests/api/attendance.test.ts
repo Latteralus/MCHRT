@@ -85,13 +85,15 @@ describe('Attendance API Routes', () => {
       // 5. Assert response status and data
       expect(res._getStatusCode()).toBe(200);
       const responseData = res._getJSONData();
-      expect(Array.isArray(responseData)).toBe(true);
-      expect(responseData).toHaveLength(2);
+      // Check the 'records' property for the array (based on API handler return)
+      expect(Array.isArray(responseData.records)).toBe(true);
+      expect(responseData.records).toHaveLength(2);
       // Check if the returned data looks like attendance records
-      expect(responseData[0]).toHaveProperty('id', att1.id);
-      expect(responseData[0]).toHaveProperty('employeeId', employee.id);
-      expect(responseData[1]).toHaveProperty('id', att2.id);
-      expect(responseData[1]).toHaveProperty('date'); // Check if date exists
+      // Access items within the 'records' array
+      expect(responseData.records[0]).toHaveProperty('id', att1.id);
+      expect(responseData.records[0]).toHaveProperty('employeeId', employee.id);
+      expect(responseData.records[1]).toHaveProperty('id', att2.id);
+      expect(responseData.records[1]).toHaveProperty('date'); // Check if date exists
     });
 
     it('should return 401 if user is not authenticated', async () => {
@@ -114,8 +116,9 @@ describe('Attendance API Routes', () => {
       const attendancePayload = {
         employeeId: employee.id,
         date: '2024-03-28', // Use a specific date string
-        timeIn: new Date('2024-03-28T08:00:00Z').toISOString(), // Use ISO strings for dates in payload
-        timeOut: new Date('2024-03-28T17:00:00Z').toISOString(),
+        // Send time in HH:MM:SS format as expected by the API validation
+        timeIn: '08:00:00',
+        timeOut: '17:00:00',
       };
 
       // 3. Mock session
@@ -139,9 +142,11 @@ describe('Attendance API Routes', () => {
       expect(responseData).toHaveProperty('id');
       expect(responseData).toHaveProperty('employeeId', attendancePayload.employeeId);
       expect(responseData).toHaveProperty('date', attendancePayload.date); // Should match DATEONLY string
-      // Check times (may be returned as ISO strings)
-      expect(new Date(responseData.timeIn).toISOString()).toBe(attendancePayload.timeIn);
-      expect(new Date(responseData.timeOut).toISOString()).toBe(attendancePayload.timeOut);
+      // Check times (API returns ISO strings after saving Date objects)
+      const expectedTimeInISO = new Date(`${attendancePayload.date}T${attendancePayload.timeIn}Z`).toISOString();
+      const expectedTimeOutISO = new Date(`${attendancePayload.date}T${attendancePayload.timeOut}Z`).toISOString();
+      expect(responseData.timeIn).toBe(expectedTimeInISO);
+      expect(responseData.timeOut).toBe(expectedTimeOutISO);
 
 
       // 7. Verify record created in DB
@@ -149,8 +154,11 @@ describe('Attendance API Routes', () => {
       expect(createdRecord).not.toBeNull();
       expect(createdRecord?.employeeId).toBe(attendancePayload.employeeId);
       expect(createdRecord?.date).toBe(attendancePayload.date);
-      expect(createdRecord?.timeIn?.toISOString()).toBe(attendancePayload.timeIn);
-      expect(createdRecord?.timeOut?.toISOString()).toBe(attendancePayload.timeOut);
+      // Check times in DB (compare ISO strings as DB stores Date objects)
+      const expectedTimeInISO_DB = new Date(`${attendancePayload.date}T${attendancePayload.timeIn}Z`).toISOString();
+      const expectedTimeOutISO_DB = new Date(`${attendancePayload.date}T${attendancePayload.timeOut}Z`).toISOString();
+      expect(createdRecord?.timeIn?.toISOString()).toBe(expectedTimeInISO_DB);
+      expect(createdRecord?.timeOut?.toISOString()).toBe(expectedTimeOutISO_DB);
     });
 
     it('should return 401 if user is not authenticated', async () => {
@@ -247,7 +255,7 @@ describe('Attendance API Routes', () => {
 
       // 2. Prepare update data
       const updatePayload = {
-        timeOut: new Date('2024-03-28T16:30:00Z').toISOString(), // Add a timeOut
+        timeOut: '16:30:00', // Send time in HH:MM:SS format
         // Optionally update other fields like timeIn or date if allowed by API
         // date: '2024-03-29', // Example: changing date
       };
@@ -275,14 +283,18 @@ describe('Attendance API Routes', () => {
       expect(responseData).toHaveProperty('employeeId', attendance.employeeId);
       expect(responseData).toHaveProperty('date', attendance.date); // Assuming date wasn't updated
       // Check updated timeOut
-      expect(new Date(responseData.timeOut).toISOString()).toBe(updatePayload.timeOut);
+      // Expect API to return ISO string after saving Date object
+      const expectedTimeOutISO = new Date(`${attendance.date}T${updatePayload.timeOut}Z`).toISOString();
+      expect(responseData.timeOut).toBe(expectedTimeOutISO);
       // Check timeIn remained the same (or was updated if included in payload)
       expect(new Date(responseData.timeIn).toISOString()).toBe(attendance.timeIn?.toISOString());
 
 
       // 7. Verify update in DB
       await attendance.reload();
-      expect(attendance.timeOut?.toISOString()).toBe(updatePayload.timeOut);
+      // Check DB value (should be Date object, compare ISO strings)
+      const expectedTimeOutISO_DB = new Date(`${attendance.date}T${updatePayload.timeOut}Z`).toISOString();
+      expect(attendance.timeOut?.toISOString()).toBe(expectedTimeOutISO_DB);
     });
 
     it('should return 404 if attendance record to update is not found', async () => {

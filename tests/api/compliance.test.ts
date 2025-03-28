@@ -86,14 +86,16 @@ describe('Compliance API Routes', () => {
       // 5. Assert response status and data
       expect(res._getStatusCode()).toBe(200);
       const responseData = res._getJSONData();
-      expect(Array.isArray(responseData)).toBe(true);
-      expect(responseData).toHaveLength(2);
+      // Check the 'items' property for the array
+      expect(Array.isArray(responseData.items)).toBe(true);
+      expect(responseData.items).toHaveLength(2);
       // Check if the returned data looks like compliance items
-      expect(responseData[0]).toHaveProperty('id', item1.id);
-      expect(responseData[0]).toHaveProperty('employeeId', employee.id);
-      expect(responseData[0]).toHaveProperty('itemType', 'License');
-      expect(responseData[1]).toHaveProperty('id', item2.id);
-      expect(responseData[1]).toHaveProperty('itemType', 'Training');
+      // Access items within the 'items' array
+      expect(responseData.items[0]).toHaveProperty('id', item1.id);
+      expect(responseData.items[0]).toHaveProperty('employeeId', employee.id);
+      expect(responseData.items[0]).toHaveProperty('itemType', 'License');
+      expect(responseData.items[1]).toHaveProperty('id', item2.id);
+      expect(responseData.items[1]).toHaveProperty('itemType', 'Training');
     });
 
      it('should return 401 if user is not authenticated', async () => {

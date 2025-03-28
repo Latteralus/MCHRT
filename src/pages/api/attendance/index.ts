@@ -143,20 +143,26 @@ const handler: AuthenticatedNextApiHandler = async (req, res, session) => {
 
         // Basic format/date check (could use a library like date-fns or moment)
         const timeRegex = /^\d{2}:\d{2}(:\d{2})?$/; // HH:MM or HH:MM:SS
-        if (!timeRegex.test(timeIn) || (timeOut && !timeRegex.test(timeOut))) {
+        if (!timeRegex.test(timeIn) || (timeOut && !timeRegex.test(timeOut))) { // Ensure test() is used for regex check
              return res.status(400).json({ message: 'Invalid time format. Use HH:MM or HH:MM:SS.' });
         }
 
-        // Combine date and time for potential DateTime storage if needed, or store separately
-        // Example: const timeInDateTime = new Date(`${date}T${timeIn}`);
-        // Example: const timeOutDateTime = timeOut ? new Date(`${date}T${timeOut}`) : null;
+        // Combine date and time strings to create valid Date objects for the database
+        // Ensure the date string is in YYYY-MM-DD format
+        const timeInDateTime = new Date(`${date}T${timeIn}Z`); // Assume UTC for consistency
+        const timeOutDateTime = timeOut ? new Date(`${date}T${timeOut}Z`) : undefined; // Use undefined instead of null
 
-        // Create record in the database
+        // Validate the created dates
+        if (isNaN(timeInDateTime.getTime()) || (timeOutDateTime && isNaN(timeOutDateTime.getTime()))) {
+            return res.status(400).json({ message: 'Invalid date or time value provided.' });
+        }
+
+        // Create record in the database using Date objects
         const newRecord = await Attendance.create({
           employeeId: targetEmployeeId,
-          date, // Should match DATEONLY type in model
-          timeIn, // Should match TIME or DATETIME type in model
-          timeOut: timeOut || null, // Store null if not provided, ensure DB column allows null
+          date, // DATEONLY field accepts YYYY-MM-DD string
+          timeIn: timeInDateTime, // Pass Date object
+          timeOut: timeOutDateTime, // Pass Date object or null
         });
 
         res.status(201).json(newRecord);

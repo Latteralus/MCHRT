@@ -2,7 +2,7 @@ import { DataTypes, Model, Optional } from 'sequelize';
 import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the getter function
 
 // Define the attributes for the Attendance model
-interface AttendanceAttributes {
+export interface AttendanceAttributes { // Add export keyword
   id: number;
   employeeId: number; // Foreign key referencing Employee
   date: Date; // The specific date of the attendance record

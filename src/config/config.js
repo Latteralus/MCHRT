@@ -12,7 +12,7 @@ const dbConfig = {
   },
   test: {
     dialect: 'sqlite',
-    storage: ':memory:', // Use in-memory SQLite for tests
+    storage: path.join(process.cwd(), 'local-storage', 'test.sqlite'), // Use file-based SQLite for tests
     logging: false, // Disable logging for tests
   },
   production: {

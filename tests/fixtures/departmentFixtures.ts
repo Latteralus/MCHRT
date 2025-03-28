@@ -1,6 +1,7 @@
 // tests/fixtures/departmentFixtures.ts
 import { faker } from '@faker-js/faker';
 import Department from '@/modules/organization/models/Department'; // Adjust path if needed
+import { createTestUser } from './userFixtures'; // Import user fixture
 
 // Interface for overrides, allowing optional managerId
 interface DepartmentOverrides {
@@ -20,7 +21,24 @@ export const generateDepartmentData = (overrides: DepartmentOverrides = {}): Par
 
 // Function to create a department record in the database
 export const createTestDepartment = async (overrides: DepartmentOverrides = {}): Promise<Department> => {
-  const departmentData = generateDepartmentData(overrides);
+  // Ensure manager user exists if managerId is provided or needed
+  let finalManagerId = overrides.managerId;
+  if (finalManagerId === undefined) {
+      // If no managerId override, create a default manager user for this department
+      // Ensure the user has a role that can be a manager (e.g., DepartmentHead or Admin)
+      const managerUser = await createTestUser({ role: 'DepartmentHead' }); // Adjust role if needed
+      finalManagerId = managerUser.id;
+  } else if (finalManagerId !== null) {
+      // If a managerId IS provided, we assume it should exist.
+      // Optionally, add a check here to find the user and throw if not found,
+      // but for simplicity, we'll rely on the FK constraint to catch issues.
+  }
+
+  // Generate data, ensuring managerId is set correctly
+  const departmentData = generateDepartmentData({
+      ...overrides,
+      managerId: finalManagerId // Use the ensured managerId (can be null if explicitly passed)
+  });
   try {
     // Use Department.create to ensure model hooks are triggered
     const department = await Department.create(departmentData as Department); // Cast needed

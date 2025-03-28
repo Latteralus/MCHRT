@@ -1,9 +1,9 @@
 // tests/fixtures/employeeFixtures.ts
 import { faker } from '@faker-js/faker';
 import Employee, { EmployeeCreationAttributes } from '@/modules/employees/models/Employee'; // Adjust path if needed
-// We might need Department and User IDs, but let's assume they are passed in overrides for now.
-// import { createTestDepartment } from './departmentFixtures';
-// import { createTestUser } from './userFixtures';
+// Import necessary fixtures to ensure dependencies exist
+import { createTestDepartment } from './departmentFixtures';
+import { createTestUser } from './userFixtures';
 
 // Interface for overrides
 interface EmployeeOverrides {
@@ -46,8 +46,27 @@ export const generateEmployeeData = (overrides: EmployeeOverrides = {}): Partial
 
 // Function to create an employee record in the database
 export const createTestEmployee = async (overrides: EmployeeOverrides = {}): Promise<Employee> => {
-  const employeeData = generateEmployeeData(overrides); // hireDate is Date | undefined here
+  // Ensure dependencies exist before generating final data
+  let finalUserId = overrides.userId;
+  if (finalUserId === undefined) {
+    // If no userId override, create a default user for this employee
+    const user = await createTestUser({});
+    finalUserId = user.id;
+  }
 
+  let finalDepartmentId = overrides.departmentId;
+  if (finalDepartmentId === undefined) {
+    // If no departmentId override, create a default department
+    const dept = await createTestDepartment({});
+    finalDepartmentId = dept.id;
+  }
+
+  // Generate data, ensuring the required IDs are now set
+  const employeeData = generateEmployeeData({
+    ...overrides, // Pass original overrides
+    userId: finalUserId, // Ensure userId is set
+    departmentId: finalDepartmentId, // Ensure departmentId is set
+  }); // hireDate is Date | undefined here
   // Prepare data specifically for the create method, matching EmployeeCreationAttributes
   // and handling DATEONLY formatting.
   // We use 'any' temporarily for the intermediate object to allow string assignment for hireDate.
@@ -60,6 +79,8 @@ export const createTestEmployee = async (overrides: EmployeeOverrides = {}): Pro
   // Now dataForCreate.hireDate is string | undefined
 
   try {
+    // Log the data just before attempting creation
+    console.log('[createTestEmployee] Attempting to create employee with data:', JSON.stringify(dataForCreate, null, 2));
     // Use Employee.create with the prepared data.
     // Sequelize's create method should accept the string for DATEONLY.
     // We cast to EmployeeCreationAttributes which expects Date | undefined for hireDate,
