@@ -35,13 +35,13 @@
 - [x] Implement RBAC for employee data access (Backend API route secured)
 
 ## Phase 4: Attendance & Leave Management
-- [ ] Create attendance entry form
-- [ ] Build attendance list view
-- [ ] Implement attendance filtering and reporting
-- [ ] Create leave request form
-- [ ] Build leave request list view
-- [ ] Implement basic approval workflow
-- [ ] Add leave balance tracking
+- [x] Create attendance entry form (FE Component + Page + API Integration)
+- [x] Build attendance list view (FE Component + Page + API Integration)
+- [/] Implement attendance filtering and reporting (API filtering done; Reporting TBD)
+- [x] Create leave request form (FE Component + Page + API Integration)
+- [x] Build leave request list view (FE Component + Page + API Integration)
+- [x] Implement basic approval workflow (Backend API routes + FE Integration)
+- [/] Add leave balance tracking (Model, DB, Service, API Integration done; Accrual TBD)
 
 ## Phase 5: Compliance & Document Management
 - [ ] Build license/certification tracking interface
@@ -552,31 +552,40 @@ MCHRT/
 
 ---
 
-## Current Status & Next Steps (As of 2025-03-27 ~8:02 PM MDT)
+## Current Status & Next Steps (As of 2025-03-27 ~8:29 PM MDT)
 
-**Current Focus:** Phase 4 - Attendance & Leave Management
+**Current Focus:** Completing Phase 4 - Attendance & Leave Management
 
 **Completed:**
 - Phase 1: All items completed.
 - Phase 2: All items completed.
 - Phase 3: All items completed.
-  - [x] Employee List page (Basic)
-  - [x] Employee Detail page (Basic)
-  - [x] Employee CRUD forms (Basic)
-  - [x] Department assignment in forms
-  - [x] Profile page structure (Basic)
-  - [x] RBAC for employee data access (Backend API route `/api/employees/[id]` secured via `withEmployeeAccess` middleware; `userId` added to Employee model and DB).
+
+**Phase 4 Progress:**
+- **Attendance:**
+    - Created frontend components (`AttendanceForm`, `AttendanceList`) and pages (`/attendance/record`, `/attendance/index`).
+    - Implemented backend API routes (`/api/attendance`, `/api/attendance/[id]`) for CRUD with refined authorization and filtering.
+    - Integrated frontend form/list with backend APIs.
+- **Leave Management:**
+    - Created frontend components (`LeaveRequestForm`, `LeaveRequestList`) and pages (`/leave/request`, `/leave/index`).
+    - Implemented backend API routes (`/api/leave`, `/api/leave/[id]`) for CRUD with refined authorization.
+    - Implemented backend API routes for approval/rejection (`/api/leave/[id]/approve`, `/api/leave/[id]/reject`) with refined authorization.
+    - Integrated frontend form/list with backend APIs (including approve/reject actions).
+- **Leave Balance:**
+    - Created `LeaveBalance` model and database table.
+    - Created `leaveBalanceService` (get/check/deduct/accrue).
+    - Integrated balance check/deduction into API routes.
+    - Created API endpoint (`/api/employees/[id]/leave-balance`) to view balances.
+    - Created frontend component (`LeaveBalanceDisplay`) and integrated into employee detail page.
 
 **Where We Left Off:**
-- Completed Phase 3 by implementing backend RBAC for individual employee API access.
+- Core frontend and backend for Attendance and Leave are functional and integrated. Basic leave balance viewing and deduction are implemented.
 
-**Next Steps:**
-1.  Begin **Phase 4: Attendance & Leave Management**. Tasks include:
-    *   Create attendance entry form.
-    *   Build attendance list view.
-    *   Implement attendance filtering and reporting.
-    *   Create leave request form.
-    *   Build leave request list view.
-    *   Implement basic approval workflow.
-    *   Add leave balance tracking.
-2.  **Note:** Frontend components still need RBAC checks to conditionally render UI elements (e.g., edit/delete buttons). This can be addressed as part of frontend refinement or during specific feature implementation.
+**Next Steps (To Complete Phase 4):**
+1.  **Implement Leave Accrual:** Create mechanism/service/job to periodically accrue leave balances (e.g., monthly/pay period).
+2.  **Frontend RBAC:** Implement conditional rendering in frontend based on roles (e.g., hide approve/reject buttons, filter options).
+3.  **Reporting:** Define and implement specific reporting features (e.g., attendance summaries, leave usage reports).
+4.  **Testing:** Add tests for API routes and services.
+
+**Once Phase 4 is complete:**
+- Proceed to **Phase 5: Compliance & Document Management**.

@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link'; // Import Link
 import axios from 'axios';
+import LeaveBalanceDisplay from '@/components/leave/LeaveBalance'; // Import the balance component
 // import MainLayout from '@/components/layouts/MainLayout'; // Applied via _app.tsx
 
 // Define the EmployeeData interface again (or move to a shared types file)
@@ -127,6 +128,9 @@ const EmployeeDetailPage: React.FC = () => {
           </div>
           {/* Add more fields as needed */}
         </div>
+
+        {/* Display Leave Balances */}
+        {employee && <LeaveBalanceDisplay employeeId={employee.id} />}
 
         {/* TODO: Add tabs for related info (Attendance, Leave, Compliance, Documents) */}
       </div>

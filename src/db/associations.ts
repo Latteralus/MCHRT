@@ -4,6 +4,7 @@ import Department from '@/modules/organization/models/Department';
 import Employee from '@/modules/employees/models/Employee';
 import Attendance from '@/modules/attendance/models/Attendance';
 import Leave from '@/modules/leave/models/Leave';
+import LeaveBalance from '@/modules/leave/models/LeaveBalance'; // Import the new model
 import Compliance from '@/modules/compliance/models/Compliance';
 import Document from '@/modules/documents/models/Document';
 
@@ -82,6 +83,18 @@ export const defineAssociations = () => {
   });
   // Optional: A User can approve/reject multiple Leave records
   // User.hasMany(Leave, { foreignKey: 'approverId', as: 'approvedLeaves' });
+
+  // Employee <-> LeaveBalance Associations
+  // An Employee can have multiple LeaveBalance records (one per type)
+  Employee.hasMany(LeaveBalance, {
+    foreignKey: 'employeeId',
+    as: 'leaveBalances', // Allows Employee.getLeaveBalances()
+  });
+  // A LeaveBalance record belongs to one Employee
+  LeaveBalance.belongsTo(Employee, {
+    foreignKey: 'employeeId',
+    as: 'employee', // Allows LeaveBalance.getEmployee()
+  });
 
   // Employee <-> Compliance Associations
   // A Compliance item belongs to one Employee

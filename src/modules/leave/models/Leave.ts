@@ -1,5 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import { sequelize } from '@/db/mockDbSetup'; // Adjust path as needed
+import type Employee from '@/modules/employees/models/Employee'; // Import Employee type
+import type User from '@/modules/auth/models/User'; // Import User type
 
 // Define possible leave types and statuses (consider using enums)
 type LeaveType = 'Vacation' | 'Sick' | 'Personal' | 'Bereavement' | 'Other';
@@ -43,7 +45,11 @@ class Leave extends Model<LeaveAttributes, LeaveCreationAttributes> implements L
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
-  // Define associations here later
+  // Associations (these properties are populated by Sequelize 'include')
+  public readonly employee?: Employee; // Added based on association 'as: employee'
+  public readonly approver?: User; // Added based on association 'as: approver'
+
+  // Define associations function (called from src/db/associations.ts)
   // public static associate(models: any) {
   //   Leave.belongsTo(models.Employee, { foreignKey: 'employeeId', as: 'employee' });
   //   Leave.belongsTo(models.User, { foreignKey: 'approverId', as: 'approver' });

@@ -6,6 +6,7 @@ import Department from '@/modules/organization/models/Department';
 import Employee from '@/modules/employees/models/Employee';
 import Attendance from '@/modules/attendance/models/Attendance';
 import Leave from '@/modules/leave/models/Leave';
+import LeaveBalance from '@/modules/leave/models/LeaveBalance'; // Import LeaveBalance model
 import Compliance from '@/modules/compliance/models/Compliance';
 import Document from '@/modules/documents/models/Document';
 
@@ -16,6 +17,7 @@ const models = {
   Employee,
   Attendance,
   Leave,
+  LeaveBalance, // Add LeaveBalance
   Compliance,
   Document,
 };
@@ -37,6 +39,7 @@ export {
   Employee,
   Attendance,
   Leave,
+  LeaveBalance, // Add LeaveBalance
   Compliance,
   Document,
 };
