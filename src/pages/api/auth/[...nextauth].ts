@@ -1,7 +1,7 @@
 import NextAuth, { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-// import bcrypt from 'bcrypt'; // Will be used later for password comparison
-// import { findUserByUsername } from '@/modules/auth/services/authService'; // Placeholder for actual user lookup
+import bcrypt from 'bcrypt'; // Import bcrypt for password comparison
+import User from '@/modules/auth/models/User'; // Import the User model
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -17,29 +17,32 @@ export const authOptions: NextAuthOptions = {
         // Add logic here to look up the user from the credentials supplied
         console.log('Authorize attempt with:', credentials?.username); // Log attempt
 
-        // --- Placeholder User Lookup ---
-        // Replace this with actual database lookup and password verification
-        // const user = await findUserByUsername(credentials?.username);
-        // if (user && credentials?.password && await bcrypt.compare(credentials.password, user.passwordHash)) {
-
-        // --- Hardcoded User for MVP ---
-        if (credentials?.username === 'admin' && credentials?.password === 'password') {
-          console.log('Hardcoded admin user authorized.');
-          // Return user object required by NextAuth
-          // The object returned will be encoded in the JWT/session.
-          // Ensure sensitive data like passwordHash is NOT included here.
-          return {
-            id: 1, // Use a unique ID (number type)
-            name: 'Admin User', // Or user.name
-            // email: user.email, // Not required for login per docs
-            role: 'Admin', // Add custom properties like role
-            // Add other non-sensitive user properties needed in the session
-          };
-        } else {
-          console.log('Authorization failed for:', credentials?.username);
-          // If you return null then an error will be displayed advising the user to check their details.
+        // --- Database User Lookup ---
+        if (!credentials?.username || !credentials?.password) {
+          console.log('Authorization failed: Missing username or password.');
           return null;
-          // You can also Reject this callback with an Error thus the user will be sent to the error page with the error message as a query parameter
+        }
+
+        try {
+          const user = await User.findOne({ where: { username: credentials.username } });
+
+          if (user && await bcrypt.compare(credentials.password, user.passwordHash)) {
+            console.log(`User '${credentials.username}' authorized successfully.`);
+            // Return user object required by NextAuth, excluding sensitive data
+            return {
+              id: user.id,
+              name: user.username, // Use username as name for now, or fetch from Employee if linked
+              role: user.role,
+              departmentId: user.departmentId, // Include departmentId if available and needed
+              // Add other non-sensitive user properties needed in the session
+            };
+          } else {
+            console.log(`Authorization failed for user: '${credentials.username}'. Invalid credentials.`);
+            return null;
+          }
+        } catch (error) {
+          console.error('Error during authorization:', error);
+          return null; // Return null on error to prevent login
         }
       }
     })
