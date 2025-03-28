@@ -1,6 +1,7 @@
 // src/pages/api/leave/[id]/approve.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { Leave, Employee, User, sequelize } from '@/db'; // Import models and sequelize instance
+import { Leave, Employee, User } from '@/db'; // Import models
+import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the instance getter
 import { withAuth, AuthenticatedNextApiHandler } from '@/lib/middleware/withAuth';
 import { deductLeaveBalance } from '@/modules/leave/services/leaveBalanceService'; // Import balance deduction function
 import { calculateLeaveDuration } from '@/lib/dates/durationUtil'; // Import duration calculation
@@ -57,7 +58,7 @@ const handler: AuthenticatedNextApiHandler = async (req, res, session): Promise<
     }
 
     // Use a transaction to ensure atomicity
-    const transaction = await sequelize.transaction();
+    const transaction = await getSequelizeInstance().transaction();
 
     try {
       // Update the leave request status within the transaction
@@ -68,7 +69,7 @@ const handler: AuthenticatedNextApiHandler = async (req, res, session): Promise<
         comments: req.body.comments || leaveRequest.comments || null // Optional: Allow adding comments
       }, { transaction });
 // Deduct leave balance within the same transaction
-const amountToDeduct = calculateLeaveDuration(leaveRequest.startDate, leaveRequest.endDate);
+const amountToDeduct = calculateLeaveDuration(leaveRequest.startDate.toISOString(), leaveRequest.endDate.toISOString());
  if (amountToDeduct <= 0) {
      // This should ideally not happen if dates were validated on submission, but good check
      throw new Error('Invalid leave duration calculated for deduction.');
@@ -76,7 +77,6 @@ const amountToDeduct = calculateLeaveDuration(leaveRequest.startDate, leaveReque
 await deductLeaveBalance(
     leaveRequest.employeeId,
     leaveRequest.leaveType,
-          leaveRequest.leaveType,
           amountToDeduct,
           transaction
       );
