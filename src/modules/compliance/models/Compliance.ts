@@ -45,6 +45,9 @@ class Compliance extends Model<ComplianceAttributes, ComplianceCreationAttribute
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
+  // Explicitly declare associated model property (helps with TS inference sometimes)
+  public employee?: Employee;
+
   // Define associations here later
   // public static associate(models: any) {
   //   Compliance.belongsTo(models.Employee, { foreignKey: 'employeeId', as: 'employee' });
