@@ -51,8 +51,8 @@ const checkAccess = async (
 
     if (userRole === 'DepartmentHead') {
         // Dept Head can access items of employees in their department
-        if (employee.departmentId === userDepartmentId) {
-            return { allowed: true, item, employee }; // Conforms to AccessCheckResult
+        if (employee!.departmentId === userDepartmentId) {
+            return { allowed: true, item, employee: employee! }; // Conforms to AccessCheckResult
         }
     }
 
