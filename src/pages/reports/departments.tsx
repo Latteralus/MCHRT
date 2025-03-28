@@ -1,35 +1,96 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { GetServerSideProps } from 'next';
 import { getSession } from 'next-auth/react';
+import axios from 'axios'; // Import axios
 import MainLayout from '@/components/layouts/MainLayout';
 import Head from 'next/head';
-// Placeholder: Import department selection component or data fetching
+import DepartmentSelect from '@/components/common/DepartmentSelect'; // Import the select component
+
+// Define the structure for the report data fetched from the API
+interface DepartmentReportData {
+    departmentId: number;
+    departmentName: string;
+    employeeCount: number;
+    averageAttendanceRate: number;
+    pendingLeaveRequests: number;
+}
 
 interface DepartmentReportsPageProps {
     currentUserRole: string | null;
-    userDepartmentId?: number | null; // Pass department ID if user is a Dept Head
+    userDepartmentId?: number | null; // Passed from getServerSideProps
 }
 
-const DepartmentReportsPage: React.FC<DepartmentReportsPageProps> = ({ currentUserRole, userDepartmentId }) => {
+// Simple component to display the fetched report data
+const DepartmentReportDisplay: React.FC<{ data: DepartmentReportData }> = ({ data }) => (
+    <div className="mt-4 p-4 border rounded bg-gray-50">
+        <h2 className="text-xl font-semibold mb-3">Report for: {data.departmentName} (ID: {data.departmentId})</h2>
+        <ul className="list-disc list-inside space-y-1">
+            <li>Total Employees: {data.employeeCount}</li>
+            <li>Average Attendance Rate: {data.averageAttendanceRate.toFixed(1)}%</li>
+            <li>Pending Leave Requests: {data.pendingLeaveRequests}</li>
+            {/* Add more data points as the API evolves */}
+        </ul>
+    </div>
+);
 
-    // TODO: Fetch and display department-specific reports based on role/selection
-    // - Admins might select a department.
-    // - Dept Heads see their own department.
+
+const DepartmentReportsPage: React.FC<DepartmentReportsPageProps> = ({ currentUserRole, userDepartmentId }) => {
+    const [selectedDeptId, setSelectedDeptId] = useState<string | null>(userDepartmentId ? userDepartmentId.toString() : null);
+    const [reportData, setReportData] = useState<DepartmentReportData | null>(null);
+    const [loading, setLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
+
+    // Fetch report data when selectedDeptId changes
+    useEffect(() => {
+        if (!selectedDeptId) {
+            setReportData(null); // Clear previous report if no department is selected
+            return;
+        }
+
+        const fetchReportData = async () => {
+            setLoading(true);
+            setError(null);
+            setReportData(null); // Clear previous data
+            try {
+                const response = await axios.get(`/api/reports/department/${selectedDeptId}`);
+                setReportData(response.data);
+            } catch (err: any) {
+                console.error(`Error fetching report for department ${selectedDeptId}:`, err);
+                setError(err.response?.data?.message || err.message || 'Failed to load department report.');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchReportData();
+    }, [selectedDeptId]); // Re-run effect when selectedDeptId changes
 
     let content = <p>You do not have permission to view department reports.</p>;
 
     if (currentUserRole === 'Admin') {
         content = (
             <div>
-                <p className="mb-4">Select a department to view its report.</p>
-                {/* TODO: Add Department Select dropdown */}
+                <p className="mb-2">Select a department to view its report:</p>
+                <DepartmentSelect
+                    value={selectedDeptId ?? ''}
+                    onChange={(value) => setSelectedDeptId(value)}
+                    placeholder="Choose a department..."
+                    className="mb-4 max-w-xs" // Add some styling
+                />
+                {/* Display Loading / Error / Report Data */}
+                {loading && <p className="text-gray-500">Loading report...</p>}
+                {error && <p className="text-red-600">Error: {error}</p>}
+                {reportData && <DepartmentReportDisplay data={reportData} />}
             </div>
         );
-    } else if (currentUserRole === 'DepartmentHead' && userDepartmentId) {
+    } else if (currentUserRole === 'DepartmentHead' && userDepartmentId) { // Corrected operator
          content = (
             <div>
-                <p className="mb-4">Displaying report for your department (ID: {userDepartmentId}).</p>
-                {/* TODO: Fetch and display report data for userDepartmentId */}
+                {/* Dept Head sees their own report directly */}
+                {loading && <p className="text-gray-500">Loading report for your department...</p>}
+                {error && <p className="text-red-600">Error: {error}</p>}
+                {reportData && <DepartmentReportDisplay data={reportData} />}
+                 {!reportData && !loading && !error && <p>No report data available.</p>} {/* Fallback - Corrected operators */}
             </div>
         );
     }
@@ -40,8 +101,8 @@ const DepartmentReportsPage: React.FC<DepartmentReportsPageProps> = ({ currentUs
             <Head>
                 <title>Department Reports - Mountain Care HR</title>
             </Head>
-            <div className="container mx-auto p-4">
-                <h1 className="text-2xl font-semibold mb-4">Department Reports</h1>
+            <div className="p-8"> {/* Consistent padding */}
+                <h1 className="text-3xl font-bold text-gray-900 mb-6">Department Reports</h1>
                 {content}
             </div>
         </MainLayout>
@@ -55,25 +116,23 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         return { redirect: { destination: '/login', permanent: false } };
     }
 
-    const currentUserRole = session.user?.role as string | null;
-    const userDepartmentId = session.user?.departmentId as number | undefined | null;
+    // Ensure user object and properties exist before accessing
+    const currentUserRole = session.user?.role as string | null ?? null;
+    const userDepartmentId = session.user?.departmentId as number | undefined | null ?? null;
 
     // Allow Admins and Department Heads to access this page
-    if (currentUserRole !== 'Admin' && currentUserRole !== 'DepartmentHead') {
+    if (currentUserRole !== 'Admin' && currentUserRole !== 'DepartmentHead') { // Corrected operator
          return {
-            // Redirect or show a 'forbidden' message appropriate for your app
-            // For simplicity, redirecting to dashboard
-             redirect: { destination: '/', permanent: false },
-             // Or: props: { currentUserRole: null, userDepartmentId: null } and handle in component
+             redirect: { destination: '/', permanent: false }, // Redirect non-authorized users
          };
     }
 
-    // TODO: Fetch list of departments if Admin role for selection dropdown
+    // No need to fetch departments server-side anymore, the component handles it
 
     return {
         props: {
             currentUserRole,
-            userDepartmentId: userDepartmentId ?? null,
+            userDepartmentId, // Pass it as number | null
         },
     };
 };

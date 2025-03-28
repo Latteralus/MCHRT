@@ -25,7 +25,7 @@ interface ComplianceAttributes {
 }
 
 // Define creation attributes (optional fields for creation)
-interface ComplianceCreationAttributes extends Optional<ComplianceAttributes, 'id' | 'createdAt' | 'updatedAt' | 'authority' | 'licenseNumber' | 'issueDate' | 'expirationDate' | 'status'> {
+export interface ComplianceCreationAttributes extends Optional<ComplianceAttributes, 'id' | 'createdAt' | 'updatedAt' | 'authority' | 'licenseNumber' | 'issueDate' | 'expirationDate' | 'status'> {
   // Status might default based on dates or require manual setting
 }
 

@@ -1,25 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
-// Assuming MainLayout is applied via _app.tsx, otherwise import it here
-// import MainLayout from '@/components/layouts/MainLayout';
-import axios from 'axios'; // Using axios for data fetching
+import axios from 'axios';
+import { GetServerSideProps } from 'next'; // Import GetServerSideProps
+import { getSession } from 'next-auth/react'; // Import getSession
+import MainLayout from '@/components/layouts/MainLayout'; // Assuming MainLayout is needed
+import Icon from '@/components/ui/Icon'; // Assuming Icon component exists
 
-// Define an interface for the Employee data structure (matching the API response)
-// Excludes sensitive data like ssnEncrypted
+// Define an interface for the Employee data structure
 interface EmployeeData {
   id: number;
   firstName: string;
   lastName: string;
   position?: string;
-  hireDate?: string; // Dates might be strings from JSON
+  hireDate?: string;
   departmentId?: number;
   createdAt?: string;
   updatedAt?: string;
-  // Add department name if included via API later
-  // department?: { name: string };
 }
 
-const EmployeeListPage: React.FC = () => {
+// Add props interface to accept userRole
+interface EmployeeListPageProps {
+    userRole: string | null;
+}
+
+const EmployeeListPage: React.FC<EmployeeListPageProps> = ({ userRole }) => {
   const [employees, setEmployees] = useState<EmployeeData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +34,6 @@ const EmployeeListPage: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        // Use relative path for API endpoint
         const response = await axios.get<EmployeeData[]>('/api/employees');
         setEmployees(response.data);
       } catch (err: any) {
@@ -42,92 +45,111 @@ const EmployeeListPage: React.FC = () => {
     };
 
     fetchEmployees();
-  }, []); // Empty dependency array means this runs once on mount
+  }, []);
 
-  // Basic table styling (can be moved to CSS modules/global CSS)
-  const tableStyles: React.CSSProperties = {
-    width: '100%',
-    borderCollapse: 'collapse',
-    marginTop: '1rem',
-  };
-  const thStyles: React.CSSProperties = {
-    border: '1px solid var(--gray-300)',
-    padding: '0.75rem',
-    textAlign: 'left',
-    backgroundColor: 'var(--gray-100)',
-    fontWeight: 600,
-  };
-  const tdStyles: React.CSSProperties = {
-    border: '1px solid var(--gray-300)',
-    padding: '0.75rem',
-  };
+  // Determine if the current user can export
+  const canExport = userRole === 'Admin' || userRole === 'DepartmentHead';
+
+  // Basic table styling (consider moving to CSS)
+  const tableStyles: React.CSSProperties = { /* ... existing styles ... */ };
+  const thStyles: React.CSSProperties = { /* ... existing styles ... */ };
+  const tdStyles: React.CSSProperties = { /* ... existing styles ... */ };
 
   return (
-    <>
+    // Apply MainLayout here if not done globally in _app.tsx
+    <MainLayout>
       <Head>
         <title>Employees - Mountain Care HR</title>
       </Head>
-      <div>
-        <h2>Employee List</h2>
+      <div className="p-8"> {/* Use consistent padding */}
+        <div className="flex justify-between items-center mb-6">
+            <h1 className="text-3xl font-bold text-gray-900">Employee List</h1>
+            {/* Conditionally render Export Button */}
+            {canExport && ( // Corrected operator
+                 <a
+                    href="/api/employees/export"
+                    download // Optional: Suggests filename, but API header takes precedence
+                    className="btn btn-outline bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-gray-100 transition-colors flex items-center gap-2"
+                 >
+                    <Icon iconName="fas fa-download" /> {/* Assuming Font Awesome */}
+                    Export CSV
+                 </a>
+            )}
+        </div>
+
 
         {/* TODO: Add Filtering Controls */}
-        <div style={{ marginBottom: '1rem', display: 'flex', gap: '1rem' }}>
-          <input type="text" placeholder="Filter by name..." disabled />
-          <select disabled>
+        <div className="mb-4 flex gap-4">
+          <input type="text" placeholder="Filter by name..." disabled className="border p-2 rounded text-sm" title="Filter by name" /> {/* Added title */}
+          <select disabled className="border p-2 rounded text-sm bg-white" title="Filter by department"> {/* Added title */}
             <option value="">Filter by department...</option>
             {/* Populate departments dynamically later */}
           </select>
         </div>
 
-        {loading && <p>Loading employees...</p>}
-        {error && <p style={{ color: 'var(--danger)' }}>Error: {error}</p>}
+        {loading && <p className="text-gray-500">Loading employees...</p>}
+        {error && <p className="text-red-600">Error: {error}</p>}
 
-        {!loading && !error && (
-          <table style={tableStyles}>
-            <thead>
-              <tr>
-                <th style={thStyles}>ID</th>
-                <th style={thStyles}>First Name</th>
-                <th style={thStyles}>Last Name</th>
-                <th style={thStyles}>Position</th>
-                <th style={thStyles}>Hire Date</th>
-                {/* Add Department later */}
-                <th style={thStyles}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {employees.length > 0 ? (
-                employees.map((emp) => (
-                  <tr key={emp.id}>
-                    <td style={tdStyles}>{emp.id}</td>
-                    <td style={tdStyles}>{emp.firstName}</td>
-                    <td style={tdStyles}>{emp.lastName}</td>
-                    <td style={tdStyles}>{emp.position || 'N/A'}</td>
-                    <td style={tdStyles}>{emp.hireDate ? new Date(emp.hireDate).toLocaleDateString() : 'N/A'}</td>
-                    <td style={tdStyles}>
-                      {/* TODO: Add View/Edit/Delete links/buttons */}
-                      <button disabled>View</button>
+        {!loading && !error && ( // Corrected operators
+          <div className="overflow-x-auto bg-white shadow rounded-lg"> {/* Added container for better styling */}
+            <table className="min-w-full divide-y divide-gray-200"> {/* Use Tailwind for table */}
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">First Name</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Name</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Position</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hire Date</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {employees.length > 0 ? (
+                  employees.map((emp) => (
+                    <tr key={emp.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{emp.id}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{emp.firstName}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{emp.lastName}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{emp.position || 'N/A'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{emp.hireDate ? new Date(emp.hireDate).toLocaleDateString() : 'N/A'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        {/* TODO: Add View/Edit/Delete links/buttons */}
+                        <button disabled className="text-indigo-600 hover:text-indigo-900 disabled:opacity-50">View</button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
+                      No employees found.
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={6} style={{ ...tdStyles, textAlign: 'center' }}>
-                    No employees found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
-    </>
+    </MainLayout>
   );
 };
 
-// If using per-page layouts, ensure MainLayout is applied:
-// EmployeeListPage.getLayout = function getLayout(page: React.ReactElement) {
-//   return <MainLayout>{page}</MainLayout>;
-// };
+// Fetch session data server-side to get the user's role
+export const getServerSideProps: GetServerSideProps = async (context) => {
+    const session = await getSession(context);
+
+    // Redirect if not logged in
+    if (!session) {
+        return { redirect: { destination: '/login', permanent: false } };
+    }
+
+    // Pass the role to the page component
+    return {
+        props: {
+            userRole: session.user?.role ?? null, // Pass role or null
+        },
+    };
+};
+
 
 export default EmployeeListPage;

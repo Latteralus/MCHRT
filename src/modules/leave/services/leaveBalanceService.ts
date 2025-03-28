@@ -40,16 +40,26 @@ export const getLeaveBalance = async (employeeId: number, leaveType: string): Pr
   }
 };
 
+// Define the signature for the getLeaveBalance function for dependency injection
+type GetBalanceFn = (employeeId: number, leaveType: string) => Promise<LeaveBalance | null>;
+
+
 /**
  * Checks if an employee has sufficient leave balance for a requested amount.
  *
  * @param employeeId The ID of the employee.
  * @param leaveType The type of leave.
  * @param requestedAmount The amount of leave requested (in the same unit as balance, e.g., hours/days).
+ * @param getBalanceFn Optional function to fetch balance (for testing/dependency injection). Defaults to actual getLeaveBalance.
  * @returns True if the balance is sufficient, false otherwise.
  */
-export const checkLeaveBalance = async (employeeId: number, leaveType: string, requestedAmount: number): Promise<boolean> => {
-    const balanceRecord = await getLeaveBalance(employeeId, leaveType);
+export const checkLeaveBalance = async (
+   employeeId: number,
+   leaveType: string,
+   requestedAmount: number,
+   getBalanceFn: GetBalanceFn = getLeaveBalance // Default to the actual function
+): Promise<boolean> => {
+    const balanceRecord = await getBalanceFn(employeeId, leaveType); // Use the injected/default function
     if (!balanceRecord) {
         // Handle error case - perhaps insufficient permissions or invalid employee
         console.warn(`Could not retrieve balance for employee ${employeeId}, type ${leaveType} during check.`);
@@ -68,6 +78,7 @@ export const checkLeaveBalance = async (employeeId: number, leaveType: string, r
  * @param leaveType The type of leave.
  * @param amountToDeduct The amount to deduct.
  * @param transaction Optional Sequelize transaction object.
+ * @param getBalanceFn Optional function to fetch balance (for testing/dependency injection). Defaults to actual getLeaveBalance.
  * @returns The updated leave balance record.
  * @throws Error if balance is insufficient or update fails.
  */
@@ -75,13 +86,15 @@ export const deductLeaveBalance = async (
     employeeId: number,
     leaveType: string,
     amountToDeduct: number,
-    transaction?: any // Pass Sequelize transaction object here
+    transaction?: any, // Pass Sequelize transaction object here
+    // Optional getBalanceFn should come AFTER other optional params
+    getBalanceFn: GetBalanceFn = getLeaveBalance
 ): Promise<LeaveBalance> => {
     if (amountToDeduct <= 0) {
         throw new Error('Amount to deduct must be positive.');
     }
 
-    const balanceRecord = await getLeaveBalance(employeeId, leaveType);
+    const balanceRecord = await getBalanceFn(employeeId, leaveType); // Use the injected/default function
     if (!balanceRecord) {
         throw new Error(`Leave balance record not found for employee ${employeeId}, type ${leaveType}.`);
     }
@@ -118,13 +131,15 @@ export const accrueLeaveBalance = async (
     employeeId: number,
     leaveType: string,
     amountToAccrue: number,
-    transaction?: any // Pass Sequelize transaction object here
+    transaction?: any, // Pass Sequelize transaction object here
+    // Optional getBalanceFn should come AFTER other optional params
+    getBalanceFn: GetBalanceFn = getLeaveBalance
 ): Promise<LeaveBalance> => {
      if (amountToAccrue <= 0) {
         throw new Error('Amount to accrue must be positive.');
     }
 
-    const balanceRecord = await getLeaveBalance(employeeId, leaveType);
+    const balanceRecord = await getBalanceFn(employeeId, leaveType); // Use the injected/default function
      if (!balanceRecord) {
         throw new Error(`Leave balance record not found for employee ${employeeId}, type ${leaveType}. Cannot accrue.`);
     }

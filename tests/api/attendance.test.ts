@@ -1,0 +1,360 @@
+// tests/api/attendance.test.ts
+import { createMocks, RequestMethod } from 'node-mocks-http';
+import { NextApiRequest, NextApiResponse } from 'next';
+import handler from '@/pages/api/attendance'; // Assuming default export for index route
+import attendanceIdHandler from '@/pages/api/attendance/[id]'; // Assuming default export for [id] route
+import { setupTestDb, teardownTestDb, clearTestDb } from '../db-setup';
+import User from '@/modules/auth/models/User';
+import Employee from '@/modules/employees/models/Employee';
+import Attendance from '@/modules/attendance/models/Attendance';
+import { createTestUser } from '../fixtures/userFixtures';
+import { createTestEmployee } from '../fixtures/employeeFixtures';
+import { createTestAttendance, generateAttendanceData } from '../fixtures/attendanceFixtures';
+import { Role } from '@/types/roles';
+import { faker } from '@faker-js/faker';
+// Mock next-auth session
+jest.mock('next-auth/react', () => ({
+  getSession: jest.fn(),
+}));
+import { getSession } from 'next-auth/react'; // Import the mocked version
+
+// Helper to mock session
+const mockGetSession = getSession as jest.MockedFunction<typeof getSession>;
+
+
+describe('Attendance API Routes', () => {
+  // Setup and teardown database before/after tests
+  beforeAll(async () => {
+    await setupTestDb();
+  });
+
+  afterAll(async () => {
+    await teardownTestDb();
+  });
+
+  // Clear data between tests
+  beforeEach(async () => {
+    await clearTestDb();
+    mockGetSession.mockClear();
+  });
+
+  describe('GET /api/attendance', () => {
+    it('should return a list of attendance records for an authorized user', async () => {
+      // 1. Seed database
+      const adminUser = await createTestUser({ role: Role.ADMIN });
+      const employee = await createTestEmployee({});
+      const att1 = await createTestAttendance({ employeeId: employee.id });
+      const att2 = await createTestAttendance({ employeeId: employee.id });
+
+      // 2. Mock session
+      mockGetSession.mockResolvedValue({
+        user: { id: adminUser.id, username: adminUser.username, role: adminUser.role },
+        expires: faker.date.future().toISOString(),
+      });
+
+      // 3. Mock request/response objects
+      const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+        method: 'GET',
+      });
+
+      // 4. Call the handler
+      await handler(req, res);
+
+      // 5. Assert response status and data
+      expect(res._getStatusCode()).toBe(200);
+      const responseData = res._getJSONData();
+      expect(Array.isArray(responseData)).toBe(true);
+      expect(responseData).toHaveLength(2);
+      // Check if the returned data looks like attendance records
+      expect(responseData[0]).toHaveProperty('id', att1.id);
+      expect(responseData[0]).toHaveProperty('employeeId', employee.id);
+      expect(responseData[1]).toHaveProperty('id', att2.id);
+      expect(responseData[1]).toHaveProperty('date'); // Check if date exists
+    });
+
+    it('should return 401 if user is not authenticated', async () => {
+       mockGetSession.mockResolvedValue(null);
+       const { req, res } = createMocks<NextApiRequest, NextApiResponse>({ method: 'GET' });
+       await handler(req, res);
+       expect(res._getStatusCode()).toBe(401);
+    });
+
+    // TODO: Add tests for filtering (by employeeId, date range), RBAC (employee seeing own, manager seeing dept)
+  });
+
+  describe('POST /api/attendance', () => {
+    it('should create a new attendance record when called by an authorized user', async () => {
+      // 1. Seed database
+      const adminUser = await createTestUser({ role: Role.ADMIN });
+      const employee = await createTestEmployee({});
+
+      // 2. Prepare request data
+      const attendancePayload = {
+        employeeId: employee.id,
+        date: '2024-03-28', // Use a specific date string
+        timeIn: new Date('2024-03-28T08:00:00Z').toISOString(), // Use ISO strings for dates in payload
+        timeOut: new Date('2024-03-28T17:00:00Z').toISOString(),
+      };
+
+      // 3. Mock session
+      mockGetSession.mockResolvedValue({
+        user: { id: adminUser.id, username: adminUser.username, role: adminUser.role },
+        expires: faker.date.future().toISOString(),
+      });
+
+      // 4. Mock request/response objects
+      const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+        method: 'POST',
+        body: attendancePayload,
+      });
+
+      // 5. Call the handler
+      await handler(req, res);
+
+      // 6. Assert response status and data
+      expect(res._getStatusCode()).toBe(201);
+      const responseData = res._getJSONData();
+      expect(responseData).toHaveProperty('id');
+      expect(responseData).toHaveProperty('employeeId', attendancePayload.employeeId);
+      expect(responseData).toHaveProperty('date', attendancePayload.date); // Should match DATEONLY string
+      // Check times (may be returned as ISO strings)
+      expect(new Date(responseData.timeIn).toISOString()).toBe(attendancePayload.timeIn);
+      expect(new Date(responseData.timeOut).toISOString()).toBe(attendancePayload.timeOut);
+
+
+      // 7. Verify record created in DB
+      const createdRecord = await Attendance.findByPk(responseData.id);
+      expect(createdRecord).not.toBeNull();
+      expect(createdRecord?.employeeId).toBe(attendancePayload.employeeId);
+      expect(createdRecord?.date).toBe(attendancePayload.date);
+      expect(createdRecord?.timeIn?.toISOString()).toBe(attendancePayload.timeIn);
+      expect(createdRecord?.timeOut?.toISOString()).toBe(attendancePayload.timeOut);
+    });
+
+    it('should return 401 if user is not authenticated', async () => {
+        const employee = await createTestEmployee({});
+        const attendancePayload = { employeeId: employee.id, date: '2024-03-28' };
+        mockGetSession.mockResolvedValue(null);
+        const { req, res } = createMocks<NextApiRequest, NextApiResponse>({ method: 'POST', body: attendancePayload });
+        await handler(req, res);
+        expect(res._getStatusCode()).toBe(401);
+    });
+
+    // TODO: Add tests for validation errors (missing fields, invalid data), RBAC (employee creating own?)
+  });
+
+  describe('GET /api/attendance/[id]', () => {
+    it('should return a specific attendance record for an authorized user', async () => {
+      // 1. Seed database
+      const adminUser = await createTestUser({ role: Role.ADMIN });
+      const employee = await createTestEmployee({});
+      const attendance = await createTestAttendance({ employeeId: employee.id });
+
+      // 2. Mock session
+      mockGetSession.mockResolvedValue({
+        user: { id: adminUser.id, username: adminUser.username, role: adminUser.role },
+        expires: faker.date.future().toISOString(),
+      });
+
+      // 3. Mock request/response objects
+      const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+        method: 'GET',
+        query: {
+          id: attendance.id.toString(),
+        },
+      });
+
+      // 4. Call the handler
+      await attendanceIdHandler(req, res);
+
+      // 5. Assert response status and data
+      expect(res._getStatusCode()).toBe(200);
+      const responseData = res._getJSONData();
+      expect(responseData).toHaveProperty('id', attendance.id);
+      expect(responseData).toHaveProperty('employeeId', attendance.employeeId);
+      expect(responseData).toHaveProperty('date', attendance.date); // Date should be YYYY-MM-DD string
+      // Compare times by converting potentially returned strings back to Date objects or comparing ISO strings
+      if (attendance.timeIn) {
+        expect(new Date(responseData.timeIn).toISOString()).toBe(attendance.timeIn.toISOString());
+      }
+      if (attendance.timeOut) {
+        expect(new Date(responseData.timeOut).toISOString()).toBe(attendance.timeOut.toISOString());
+      }
+    });
+
+    it('should return 404 if attendance record is not found', async () => {
+        const adminUser = await createTestUser({ role: Role.ADMIN });
+        const nonExistentId = 99999;
+        mockGetSession.mockResolvedValue({
+          user: { id: adminUser.id, username: adminUser.username, role: adminUser.role },
+          expires: faker.date.future().toISOString(),
+        });
+        const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+          method: 'GET',
+          query: { id: nonExistentId.toString() },
+        });
+        await attendanceIdHandler(req, res);
+        expect(res._getStatusCode()).toBe(404);
+    });
+
+     it('should return 401 if user is not authenticated', async () => {
+        const employee = await createTestEmployee({});
+        const attendance = await createTestAttendance({ employeeId: employee.id });
+        mockGetSession.mockResolvedValue(null);
+        const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+          method: 'GET',
+          query: { id: attendance.id.toString() },
+        });
+        await attendanceIdHandler(req, res);
+        expect(res._getStatusCode()).toBe(401);
+    });
+
+    // TODO: Add tests for RBAC (employee seeing own, manager seeing dept)
+  });
+
+  describe('PUT /api/attendance/[id]', () => {
+    it('should update a specific attendance record when called by an authorized user', async () => {
+      // 1. Seed database
+      const adminUser = await createTestUser({ role: Role.ADMIN });
+      const employee = await createTestEmployee({});
+      const attendance = await createTestAttendance({
+        employeeId: employee.id,
+        date: '2024-03-28',
+        timeIn: new Date('2024-03-28T08:00:00Z'),
+      });
+
+      // 2. Prepare update data
+      const updatePayload = {
+        timeOut: new Date('2024-03-28T16:30:00Z').toISOString(), // Add a timeOut
+        // Optionally update other fields like timeIn or date if allowed by API
+        // date: '2024-03-29', // Example: changing date
+      };
+
+      // 3. Mock session
+      mockGetSession.mockResolvedValue({
+        user: { id: adminUser.id, username: adminUser.username, role: adminUser.role },
+        expires: faker.date.future().toISOString(),
+      });
+
+      // 4. Mock request/response objects
+      const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+        method: 'PUT',
+        query: { id: attendance.id.toString() },
+        body: updatePayload,
+      });
+
+      // 5. Call the handler
+      await attendanceIdHandler(req, res);
+
+      // 6. Assert response status and data
+      expect(res._getStatusCode()).toBe(200);
+      const responseData = res._getJSONData();
+      expect(responseData).toHaveProperty('id', attendance.id);
+      expect(responseData).toHaveProperty('employeeId', attendance.employeeId);
+      expect(responseData).toHaveProperty('date', attendance.date); // Assuming date wasn't updated
+      // Check updated timeOut
+      expect(new Date(responseData.timeOut).toISOString()).toBe(updatePayload.timeOut);
+      // Check timeIn remained the same (or was updated if included in payload)
+      expect(new Date(responseData.timeIn).toISOString()).toBe(attendance.timeIn?.toISOString());
+
+
+      // 7. Verify update in DB
+      await attendance.reload();
+      expect(attendance.timeOut?.toISOString()).toBe(updatePayload.timeOut);
+    });
+
+    it('should return 404 if attendance record to update is not found', async () => {
+        const adminUser = await createTestUser({ role: Role.ADMIN });
+        const nonExistentId = 99999;
+        const updatePayload = { timeOut: new Date().toISOString() };
+        mockGetSession.mockResolvedValue({
+          user: { id: adminUser.id, username: adminUser.username, role: adminUser.role },
+          expires: faker.date.future().toISOString(),
+        });
+        const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+          method: 'PUT',
+          query: { id: nonExistentId.toString() },
+          body: updatePayload,
+        });
+        await attendanceIdHandler(req, res);
+        expect(res._getStatusCode()).toBe(404);
+    });
+
+     it('should return 401 if user is not authenticated', async () => {
+        const employee = await createTestEmployee({});
+        const attendance = await createTestAttendance({ employeeId: employee.id });
+        const updatePayload = { timeOut: new Date().toISOString() };
+        mockGetSession.mockResolvedValue(null);
+        const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+          method: 'PUT',
+          query: { id: attendance.id.toString() },
+          body: updatePayload,
+        });
+        await attendanceIdHandler(req, res);
+        expect(res._getStatusCode()).toBe(401);
+    });
+
+    // TODO: Add tests for validation errors, RBAC (employee updating own?)
+  });
+
+  describe('DELETE /api/attendance/[id]', () => {
+    it('should delete a specific attendance record when called by an authorized user', async () => {
+      // 1. Seed database
+      const adminUser = await createTestUser({ role: Role.ADMIN });
+      const employee = await createTestEmployee({});
+      const attendance = await createTestAttendance({ employeeId: employee.id });
+      const attendanceId = attendance.id; // Store ID before deletion
+
+      // 2. Mock session
+      mockGetSession.mockResolvedValue({
+        user: { id: adminUser.id, username: adminUser.username, role: adminUser.role },
+        expires: faker.date.future().toISOString(),
+      });
+
+      // 3. Mock request/response objects
+      const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+        method: 'DELETE',
+        query: { id: attendanceId.toString() },
+      });
+
+      // 4. Call the handler
+      await attendanceIdHandler(req, res);
+
+      // 5. Assert response status
+      expect([200, 204]).toContain(res._getStatusCode()); // Allow 200 OK or 204 No Content
+
+      // 6. Verify record deleted from DB
+      const deletedRecord = await Attendance.findByPk(attendanceId);
+      expect(deletedRecord).toBeNull();
+    });
+
+    it('should return 404 if attendance record to delete is not found', async () => {
+        const adminUser = await createTestUser({ role: Role.ADMIN });
+        const nonExistentId = 99999;
+        mockGetSession.mockResolvedValue({
+          user: { id: adminUser.id, username: adminUser.username, role: adminUser.role },
+          expires: faker.date.future().toISOString(),
+        });
+        const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+          method: 'DELETE',
+          query: { id: nonExistentId.toString() },
+        });
+        await attendanceIdHandler(req, res);
+        expect(res._getStatusCode()).toBe(404);
+    });
+
+     it('should return 401 if user is not authenticated', async () => {
+        const employee = await createTestEmployee({});
+        const attendance = await createTestAttendance({ employeeId: employee.id });
+        mockGetSession.mockResolvedValue(null);
+        const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+          method: 'DELETE',
+          query: { id: attendance.id.toString() },
+        });
+        await attendanceIdHandler(req, res);
+        expect(res._getStatusCode()).toBe(401);
+    });
+
+    // TODO: Add tests for RBAC
+  });
+});

@@ -24,7 +24,7 @@ interface LeaveAttributes {
 }
 
 // Define creation attributes (optional fields for creation)
-interface LeaveCreationAttributes extends Optional<LeaveAttributes, 'id' | 'createdAt' | 'updatedAt' | 'reason' | 'approverId' | 'approvedAt' | 'comments' | 'status'> {
+export interface LeaveCreationAttributes extends Optional<LeaveAttributes, 'id' | 'createdAt' | 'updatedAt' | 'reason' | 'approverId' | 'approvedAt' | 'comments' | 'status'> {
   // Status typically defaults to 'Pending'
 }
 

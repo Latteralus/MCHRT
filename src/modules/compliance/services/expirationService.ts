@@ -2,6 +2,7 @@
 import { Compliance } from '@/db';
 import { Op, literal } from 'sequelize';
 import { sequelize } from '@/db/mockDbSetup'; // For transaction
+import { sendComplianceExpirationReminders } from '@/modules/notifications/services/reminderService'; // Import reminder service
 
 const EXPIRING_SOON_DAYS = 30; // Define threshold for "ExpiringSoon"
 
@@ -74,6 +75,26 @@ export const checkComplianceExpirations = async (): Promise<{ updatedToExpired: 
 
         await transaction.commit();
         console.log('Compliance expiration check completed successfully.');
+
+        // After successful status updates, trigger reminder checks
+        // Run these outside the transaction to avoid locking/long transactions if email sending is slow
+        // Use a separate try/catch for reminders so failure doesn't affect the main function result
+        try {
+            console.log('Triggering compliance reminder checks...');
+            // Run checks concurrently
+            await Promise.all([
+                sendComplianceExpirationReminders(30), // Check for 30 days out
+                sendComplianceExpirationReminders(14), // Check for 14 days out
+                sendComplianceExpirationReminders(7)   // Check for 7 days out
+                // Add more intervals if needed (e.g., 1 day)
+            ]);
+            console.log('Compliance reminder checks completed.');
+        } catch (reminderError) {
+            console.error('Error during compliance reminder sending:', reminderError);
+            // Decide how to handle reminder errors - log, alert, etc.
+            // Don't re-throw here to allow the main function to return successfully
+        }
+
         return { updatedToExpired, updatedToExpiringSoon, revertedToActive };
 
     } catch (error) {

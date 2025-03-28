@@ -1,22 +1,79 @@
-import React from 'react';
-import Card from '@/components/ui/Card'; // Assuming Card component exists
-import Icon from '@/components/ui/Icon'; // Assuming Icon component exists
+import React, { useState, useEffect } from 'react';
+import Card from '@/components/ui/Card';
+import Icon from '@/components/ui/Icon';
+import axios from 'axios'; // Import axios for fetching
 
-// Placeholder: Fetch actual data using hooks (SWR, React Query) or props
-const mockData = {
-    total: 198, // Example data
-    trendPercent: 3.2,
-    trendDirection: 'up' as 'up' | 'down',
-};
+// Define the expected structure for the employee stats part of the API response
+interface EmployeeStatsData {
+    total: number;
+    trendPercent: number;
+    trendDirection: 'up' | 'down';
+}
 
 const EmployeeStats: React.FC = () => {
-    const { total, trendPercent, trendDirection } = mockData; // Use mock data for now
+    const [stats, setStats] = useState<EmployeeStatsData | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            setLoading(true);
+            setError(null);
+            try {
+                // Fetch data from the metrics endpoint
+                const response = await axios.get('/api/dashboard/metrics');
+                // Assuming the API returns the full DashboardMetrics object, extract employeeStats
+                if (response.data && response.data.employeeStats) { // Corrected operator
+                    setStats(response.data.employeeStats);
+                } else {
+                    throw new Error('Invalid data structure received from API');
+                }
+            } catch (err: any) {
+                console.error('Error fetching employee stats:', err);
+                setError(err.response?.data?.message || err.message || 'Failed to load employee statistics.');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchStats();
+    }, []); // Empty dependency array means this runs once on mount
+
+    // Loading State
+    if (loading) {
+        return (
+            <Card className="h-full">
+                <div className="flex flex-col justify-center items-center h-full p-4">
+                    <p className="text-gray-500">Loading stats...</p>
+                    {/* Optional: Add a spinner */}
+                </div>
+            </Card>
+        );
+    }
+
+    // Error State
+    if (error || !stats) {
+        return (
+            <Card className="h-full border-red-200 bg-red-50">
+                <div className="flex flex-col h-full p-4">
+                     <div className="flex items-center text-sm text-red-600 mb-2">
+                        <Icon iconName="fas fa-exclamation-triangle" className="mr-2" />
+                        Error Loading Stats
+                    </div>
+                    <p className="text-xs text-red-700">{error || 'Could not load data.'}</p>
+                </div>
+            </Card>
+        );
+    }
+
+    // Success State - Display fetched data
+    const { total, trendPercent, trendDirection } = stats;
 
     return (
-        <Card className="h-full"> {/* Use Card component */}
-            <div className="flex flex-col h-full p-4"> {/* Adjusted padding */}
+        <Card className="h-full">
+            <div className="flex flex-col h-full p-4">
                 <div className="flex items-center text-sm text-gray-600 mb-2">
-                    <Icon iconName="fas fa-users" className="mr-2 text-teal-600" /> {/* Use Icon component */}
+                    <Icon iconName="fas fa-users" className="mr-2 text-teal-600" />
                     Total Employees
                 </div>
                 <div className="text-3xl font-bold text-gray-900 mb-1">
