@@ -1,6 +1,6 @@
 // src/modules/tasks/models/Task.ts
 import { DataTypes, Model, Optional } from 'sequelize';
-import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the getter function
+import { getSequelizeInstance } from '../../../db/mockDbSetup'; // Use relative path
 import Employee from '@/modules/employees/models/Employee'; // For assignee
 import User from '@/modules/auth/models/User'; // For creator
 

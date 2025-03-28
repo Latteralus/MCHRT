@@ -1,7 +1,7 @@
 // tests/db-setup.ts
 import { Sequelize, QueryInterface } from 'sequelize';
 import { Umzug, SequelizeStorage } from 'umzug'; // Import Umzug and SequelizeStorage from main
-import { setSequelizeInstance, getSequelizeInstance } from '@/db/mockDbSetup'; // Import setter and getter
+import { setSequelizeInstance, getSequelizeInstance } from '../src/db/mockDbSetup'; // Use relative path
 // Config will be imported inside setupTestDb
 import path from 'path';
 
@@ -12,7 +12,7 @@ import path from 'path';
 // --- Umzug instance will be created inside setupTestDb after Sequelize is ready ---
 export const setupTestDb = async () => {
   // Import config HERE, inside the async function run by beforeAll, using alias
-  const { dbConfig } = await import('@/config/config');
+  const { dbConfig } = await import('../src/config/config'); // Use relative path
   const testConfig = dbConfig.test;
   if (!testConfig) {
       throw new Error('Test database configuration not found in config/config.ts');
@@ -24,16 +24,16 @@ export const setupTestDb = async () => {
 
   // Dynamically import models and associations HERE, AFTER instance is set
   // This ensures models use the correct, initialized Sequelize instance
-  await import('@/modules/auth/models/User');
-  await import('@/modules/organization/models/Department');
-  await import('@/modules/employees/models/Employee');
-  await import('@/modules/attendance/models/Attendance');
-  await import('@/modules/leave/models/Leave');
-  await import('@/modules/leave/models/LeaveBalance');
-  await import('@/modules/compliance/models/Compliance');
-  await import('@/modules/documents/models/Document');
-  await import('@/modules/tasks/models/Task');
-  await import('@/db/associations'); // Run association logic
+  await import('../src/modules/auth/models/User');
+  await import('../src/modules/organization/models/Department');
+  await import('../src/modules/employees/models/Employee');
+  await import('../src/modules/attendance/models/Attendance');
+  await import('../src/modules/leave/models/Leave');
+  await import('../src/modules/leave/models/LeaveBalance');
+  await import('../src/modules/compliance/models/Compliance');
+  await import('../src/modules/documents/models/Document');
+  await import('../src/modules/tasks/models/Task');
+  await import('../src/db/associations'); // Run association logic (relative path already)
 
   const sequelize = getSequelizeInstance(); // Now we can get the instance safely
   try {

@@ -3,10 +3,18 @@ import { createMocks, RequestMethod } from 'node-mocks-http';
 import { NextApiRequest, NextApiResponse } from 'next';
 import handler from '@/pages/api/compliance'; // Assuming default export for index route
 import complianceIdHandler from '@/pages/api/compliance/[id]'; // Assuming default export for [id] route
-import { setupTestDb, teardownTestDb, clearTestDb } from '../db-setup';
-// Models and fixtures will be imported inside describe block
+// import { setupTestDb, teardownTestDb, clearTestDb } from '../db-setup'; // No longer needed here
 import { Role } from '@/types/roles';
 import { faker } from '@faker-js/faker';
+
+// Import models and fixtures statically
+import User from '@/modules/auth/models/User';
+import Employee from '@/modules/employees/models/Employee';
+import Compliance from '@/modules/compliance/models/Compliance';
+import { createTestUser } from '../fixtures/userFixtures';
+import { createTestEmployee } from '../fixtures/employeeFixtures';
+import { createTestCompliance, generateComplianceData } from '../fixtures/complianceFixtures';
+
 // Mock next-auth session
 jest.mock('next-auth/react', () => ({
   getSession: jest.fn(),
@@ -18,39 +26,10 @@ const mockGetSession = getSession as jest.MockedFunction<typeof getSession>;
 
 
 describe('Compliance API Routes', () => {
-  // Import models and fixtures inside describe
-  let User: typeof import('@/modules/auth/models/User').default;
-  let Employee: typeof import('@/modules/employees/models/Employee').default;
-  let Compliance: typeof import('@/modules/compliance/models/Compliance').default;
-  let createTestUser: typeof import('../fixtures/userFixtures').createTestUser;
-  let createTestEmployee: typeof import('../fixtures/employeeFixtures').createTestEmployee;
-  let createTestCompliance: typeof import('../fixtures/complianceFixtures').createTestCompliance;
-  let generateComplianceData: typeof import('../fixtures/complianceFixtures').generateComplianceData;
-
-  beforeAll(async () => {
-    // Perform DB setup which initializes Sequelize
-    await setupTestDb();
-
-    // Dynamically import models and fixtures AFTER setup
-    User = (await import('@/modules/auth/models/User')).default;
-    Employee = (await import('@/modules/employees/models/Employee')).default;
-    Compliance = (await import('@/modules/compliance/models/Compliance')).default;
-    const userFixtures = await import('../fixtures/userFixtures');
-    createTestUser = userFixtures.createTestUser;
-    const employeeFixtures = await import('../fixtures/employeeFixtures');
-    createTestEmployee = employeeFixtures.createTestEmployee;
-    const complianceFixtures = await import('../fixtures/complianceFixtures');
-    createTestCompliance = complianceFixtures.createTestCompliance;
-    generateComplianceData = complianceFixtures.generateComplianceData;
-  });
-
-  afterAll(async () => {
-    await teardownTestDb();
-  });
 
   // Clear data between tests
   beforeEach(async () => {
-    await clearTestDb();
+    // jest.setup.ts now handles clearing the DB via clearTestDb()
     mockGetSession.mockClear();
   });
 

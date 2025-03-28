@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the getter function
+import { getSequelizeInstance } from '../../../db/mockDbSetup'; // Use relative path
 import Employee from '@/modules/employees/models/Employee'; // Import Employee model for association typing
 
 // Define possible compliance item statuses (consider using enums)

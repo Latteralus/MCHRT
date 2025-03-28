@@ -1,17 +1,30 @@
 // jest.config.js
-const nextJest = require('next/jest');
+const { pathsToModuleNameMapper } = require('ts-jest');
+// In the following statement, replace `./tsconfig` with the path to your `tsconfig` file
+// which contains the path mapping (ie the `compilerOptions.paths` option):
+const { compilerOptions } = require('./tsconfig');
 
-// Provide the path to your Next.js app to load next.config.js and .env files in your test environment
-const createJestConfig = nextJest({
-  dir: './',
-});
-
-// Add any custom config to be passed to Jest
-/** @type {import('jest').Config} */
-const customJestConfig = {
-  // Add more setup options before each test is run
-  // setupFilesAfterEnv: ['<rootDir>/jest.setup.js'], // Uncomment if you have a setup file
-
+/** @type {import('ts-jest').JestConfigWithTsJest} */
+module.exports = {
+  preset: 'ts-jest', // Use the ts-jest preset
+  globalSetup: '<rootDir>/global-setup.ts',
+  globalTeardown: '<rootDir>/global-teardown.ts',
+  // Add more setup options before each test is run (runs AFTER globalSetup)
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'], // For beforeEach hooks like clearing DB
+// Configure ts-jest to use tsconfig paths for transformation
+transform: {
+  '^.+\\.tsx?$': [
+    'ts-jest',
+    {
+      tsconfig: 'tsconfig.json', // Point to your tsconfig
+      // Explicitly add paths mapping for ts-jest transformer
+      paths: {
+        '@/*': ['./src/*']
+      }
+    },
+  ],
+},
+testEnvironment: 'node', // Use 'node' environment for backend/service tests
   testEnvironment: 'node', // Use 'node' environment for backend/service tests
   moduleNameMapper: {
     // Handle module aliases (this should match the paths configuration in tsconfig.json)
@@ -35,6 +48,3 @@ const customJestConfig = {
     // Add other exclusions as necessary
   ],
 };
-
-// createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
-module.exports = createJestConfig(customJestConfig);

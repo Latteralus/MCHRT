@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the getter function
+import { getSequelizeInstance } from '../../../db/mockDbSetup'; // Use relative path
 
 // Define the attributes for the Document model
 interface DocumentAttributes {

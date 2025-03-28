@@ -5,13 +5,21 @@ import handler from '@/pages/api/documents'; // Assuming default export for inde
 import documentIdHandler from '@/pages/api/documents/[id]'; // Assuming default export for [id] route
 import uploadHandler from '@/pages/api/documents/upload'; // Assuming default export for upload
 // import fileHandler from '@/pages/api/documents/[id]/file'; // Assuming default export for file download - COMMENTED OUT
-import { setupTestDb, teardownTestDb, clearTestDb } from '../db-setup';
-// Models and fixtures will be imported inside describe block
+// import { setupTestDb, teardownTestDb, clearTestDb } from '../db-setup'; // No longer needed here
 import { Role } from '@/types/roles';
 import { faker } from '@faker-js/faker';
 import formidable from 'formidable'; // Import formidable
 import fs from 'fs'; // Import fs for mocking
 import path from 'path'; // Import path for joining paths
+
+// Import models and fixtures statically
+import User from '@/modules/auth/models/User';
+import Employee from '@/modules/employees/models/Employee';
+import Document from '@/modules/documents/models/Document';
+import { createTestUser } from '../fixtures/userFixtures';
+import { createTestEmployee } from '../fixtures/employeeFixtures';
+import { createTestDocument, generateDocumentData } from '../fixtures/documentFixtures';
+
 // Mock next-auth session
 jest.mock('next-auth/react', () => ({
   getSession: jest.fn(),
@@ -56,41 +64,13 @@ const mockFsRename = fs.promises.rename as jest.MockedFunction<typeof fs.promise
 
 
 describe('Document API Routes', () => {
-  // Import models and fixtures inside describe
-  let User: typeof import('@/modules/auth/models/User').default;
-  let Employee: typeof import('@/modules/employees/models/Employee').default;
-  let Document: typeof import('@/modules/documents/models/Document').default;
-  let createTestUser: typeof import('../fixtures/userFixtures').createTestUser;
-  let createTestEmployee: typeof import('../fixtures/employeeFixtures').createTestEmployee;
-  let createTestDocument: typeof import('../fixtures/documentFixtures').createTestDocument;
-  let generateDocumentData: typeof import('../fixtures/documentFixtures').generateDocumentData;
-
-  beforeAll(async () => {
-    // Perform DB setup which initializes Sequelize
-    await setupTestDb();
-
-    // Dynamically import models and fixtures AFTER setup
-    User = (await import('@/modules/auth/models/User')).default;
-    Employee = (await import('@/modules/employees/models/Employee')).default;
-    Document = (await import('@/modules/documents/models/Document')).default;
-    const userFixtures = await import('../fixtures/userFixtures');
-    createTestUser = userFixtures.createTestUser;
-    const employeeFixtures = await import('../fixtures/employeeFixtures');
-    createTestEmployee = employeeFixtures.createTestEmployee;
-    const documentFixtures = await import('../fixtures/documentFixtures');
-    createTestDocument = documentFixtures.createTestDocument;
-    generateDocumentData = documentFixtures.generateDocumentData;
-  });
-
-  afterAll(async () => {
-    await teardownTestDb();
-  });
 
   // Clear data between tests
   beforeEach(async () => {
-    await clearTestDb();
+    // jest.setup.ts now handles clearing the DB via clearTestDb()
     mockGetSession.mockClear();
     // Reset any other mocks (like formidable) if needed
+    // Note: formidable and fs mocks are handled in their respective describe/beforeEach blocks below
   });
 
   describe('GET /api/documents', () => {
