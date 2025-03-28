@@ -26,7 +26,6 @@ const handler: AuthenticatedNextApiHandler = async (req, res, session) => {
         //       - Employee: View own requests
         //       - DepartmentHead: View requests for employees in their department
         //       - Admin: View all requests
-        const { employeeId, status, startDate, endDate, page, limit } = req.query;
 
         console.log('API GET /api/leave - Filters:', req.query);
 
