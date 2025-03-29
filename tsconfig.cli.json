@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json", // Inherit base settings
   "compilerOptions": {
-    "outDir": "./src/config", // Output directly into src/config
+    "outDir": "./config-cli", // Output to a dedicated directory for CLI config
     "rootDir": "./src/config", // Only compile files from src/config
     "module": "commonjs", // Ensure CommonJS output for require()
     "moduleResolution": "node", // Override base config's 'bundler' to be compatible with 'commonjs'

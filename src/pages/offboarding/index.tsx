@@ -1,29 +1,76 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // Import useEffect
 import { GetServerSideProps } from 'next';
 import { getSession } from 'next-auth/react';
 import Head from 'next/head';
 import Link from 'next/link';
+import axios from 'axios'; // Import axios
 
 // Placeholder Imports - Create these components next
 import StatCardSimple from '@/components/ui/StatCardSimple';
 import OffboardingList from '@/components/offboarding/OffboardingList';
 import OffboardingTaskList from '@/components/offboarding/OffboardingTaskList';
 
-// Mock Data (Replace with actual data fetching later)
-const mockOffboardings = [
-  { id: 1, name: 'Michael Rodriguez', exitDate: '4/29/2025', reason: 'Resignation', progress: 45 },
-  { id: 2, name: 'Sandra Williams', exitDate: '4/24/2025', reason: 'Retirement', progress: 70 },
-  { id: 3, name: 'James Thompson', exitDate: '4/30/2025', reason: 'Resignation', progress: 25 },
-];
+// Define interfaces for fetched data (similar to onboarding)
+interface OffboardingStatData {
+    active: number;
+    completedThisMonth: number;
+    overdueTasks: number;
+}
 
-const mockSelectedOffboarding = mockOffboardings[0]; // Default to the first one
+interface OffboardingListItem {
+    id: number;
+    name: string; // Employee name
+    exitDate: string; // Changed from startDate
+    progress: number; // Percentage
+    reason: string; // Make reason required to match child components
+}
+
+// Mock data removed
 
 const OffboardingPage = () => {
-  // State to manage which offboarding process is selected
-  const [selectedOffboardingId, setSelectedOffboardingId] = useState<number | null>(mockSelectedOffboarding?.id ?? null);
+  // State variables for data, loading, and errors
+  const [stats, setStats] = useState<OffboardingStatData>({ active: 0, completedThisMonth: 0, overdueTasks: 0 });
+  const [offboardings, setOffboardings] = useState<OffboardingListItem[]>([]);
+  const [selectedOffboardingId, setSelectedOffboardingId] = useState<number | null>(null);
+  const [loadingStats, setLoadingStats] = useState<boolean>(true);
+  const [loadingList, setLoadingList] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null); // Combined error state
 
-  // Find the selected offboarding details (in real app, might fetch this)
-  const selectedOffboarding = mockOffboardings.find(o => o.id === selectedOffboardingId);
+  // Fetch stats and list on mount
+  useEffect(() => {
+    const fetchData = async () => {
+        setLoadingStats(true);
+        setLoadingList(true);
+        setError(null);
+        try {
+            // Fetch concurrently - Assuming API endpoints exist
+            const statsPromise = axios.get<OffboardingStatData>('/api/offboarding/stats');
+            const listPromise = axios.get<OffboardingListItem[]>('/api/offboarding?status=active'); // Fetch active offboardings
+
+            const [statsResponse, listResponse] = await Promise.all([statsPromise, listPromise]);
+
+            setStats(statsResponse.data);
+            setOffboardings(listResponse.data);
+
+            // Optionally select the first item if list is not empty
+            if (listResponse.data.length > 0 && !selectedOffboardingId) {
+                 setSelectedOffboardingId(listResponse.data[0].id);
+            }
+
+        } catch (err: any) {
+            console.error("Error fetching offboarding data:", err);
+            setError(err.response?.data?.message || "Failed to load offboarding data.");
+        } finally {
+            setLoadingStats(false);
+            setLoadingList(false);
+        }
+    };
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run once on mount
+
+  // Find the selected offboarding details from the fetched list
+  const selectedOffboarding = offboardings.find(o => o.id === selectedOffboardingId);
 
   return (
     <>
@@ -50,7 +97,7 @@ const OffboardingPage = () => {
           <div className="card simple-stat-card">
             <div className="card-body">
               <h4 className="simple-stat-title">ACTIVE OFFBOARDINGS</h4>
-              <p className="simple-stat-value">3</p>
+              <p className="simple-stat-value">{loadingStats ? '...' : stats.active}</p>
             </div>
           </div>
         </div>
@@ -58,7 +105,7 @@ const OffboardingPage = () => {
           <div className="card simple-stat-card">
             <div className="card-body">
               <h4 className="simple-stat-title">COMPLETED THIS MONTH</h4>
-              <p className="simple-stat-value" style={{ color: 'var(--success)' }}>2</p>
+              <p className="simple-stat-value" style={{ color: 'var(--success)' }}>{loadingStats ? '...' : stats.completedThisMonth}</p>
             </div>
           </div>
         </div>
@@ -66,7 +113,7 @@ const OffboardingPage = () => {
           <div className="card simple-stat-card">
             <div className="card-body">
               <h4 className="simple-stat-title">OVERDUE TASKS</h4>
-              <p className="simple-stat-value" style={{ color: 'var(--danger)' }}>4</p>
+              <p className="simple-stat-value" style={{ color: 'var(--danger)' }}>{loadingStats ? '...' : stats.overdueTasks}</p>
             </div>
           </div>
         </div>
@@ -76,11 +123,14 @@ const OffboardingPage = () => {
       <div className="dashboard-grid">
         {/* Left Column: Active Offboardings List */}
         <div className="col-span-4">
-          <OffboardingList
-            offboardings={mockOffboardings}
-            selectedId={selectedOffboardingId}
-            onSelect={setSelectedOffboardingId}
-          />
+          {/* TODO: Handle loading/error state for the list */}
+          {loadingList ? <p>Loading list...</p> : error ? <p className="text-red-500">{error}</p> :
+            <OffboardingList
+                offboardings={offboardings} // Use fetched data
+                selectedId={selectedOffboardingId}
+                onSelect={setSelectedOffboardingId}
+            />
+          }
         </div>
 
         {/* Right Column: Offboarding Tasks */}
@@ -107,10 +157,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     return { redirect: { destination: '/login', permanent: false } };
   }
 
-  // TODO: Fetch initial data if needed (e.g., list of offboardings)
+  // Data fetching moved to client-side useEffect
 
   return {
-    props: { session }, // Pass session or other props
+    props: { userRole: session.user?.role ?? null }, // Pass role if needed by child components
   };
 };
 

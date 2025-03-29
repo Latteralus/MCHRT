@@ -1,8 +1,11 @@
 // src/modules/tasks/services/taskService.ts
 import Task from '@/modules/tasks/models/Task';
 import Employee from '@/modules/employees/models/Employee'; // For validation
-import User from '@/modules/auth/models/User'; // For validation
-
+import User from '@/modules/auth/models/User';
+import { Position } from '@/modules/organization/models/Position'; // For template selection
+import { OnboardingTemplate } from '@/modules/onboarding/models/OnboardingTemplate'; // For fetching templates
+import { OnboardingTemplateItem } from '@/modules/onboarding/models/OnboardingTemplateItem'; // For fetching template items
+import { addDays, format } from 'date-fns'; // For due date calculation
 // Define the structure for data needed to create a task
 interface CreateTaskData {
     title: string;
@@ -88,6 +91,108 @@ export const createTask = async (taskData: CreateTaskData): Promise<Task> => {
         throw new Error('Failed to create task.');
     }
 };
+
+
+/**
+ * Creates standard onboarding tasks for a newly created employee based on their position.
+ * Fetches the appropriate template from the database and creates Task records.
+ *
+ * @param employee - The newly created Employee object (must include id, hireDate, positionId).
+ * @param creatorUserId - The ID of the user who initiated the employee creation.
+ */
+export const createOnboardingTasksForEmployee = async (employee: Employee, creatorUserId: number): Promise<void> => {
+    if (!employee?.id || !employee.hireDate || !employee.positionId) {
+        console.error('Cannot create onboarding tasks: Employee data is incomplete.', employee);
+        return; // Or throw an error
+    }
+
+    let templateCode = 'standard-employee-v1'; // Default template
+
+    try {
+        // Determine template based on position
+        const position = await Position.findByPk(employee.positionId);
+        if (position?.name === 'Compounding Technician') { // Match by name (or use a code if positions had codes)
+            templateCode = 'compounding-tech-v1';
+        }
+        // Add more else if conditions for other position-specific templates
+
+        // Fetch the template and its items from the database
+        const template = await OnboardingTemplate.findOne({
+            where: { templateCode },
+            include: [{
+                model: OnboardingTemplateItem,
+                as: 'items',
+                required: true // Ensure template has items
+            }]
+        });
+
+        if (!template || !template.items || template.items.length === 0) {
+            console.warn(`Onboarding template '${templateCode}' not found or has no items. No tasks created for employee ${employee.id}.`);
+            return;
+        }
+
+        console.log(`Applying onboarding template '${template.name}' for employee ${employee.id}...`);
+
+        // Create tasks based on template items
+        for (const item of template.items) {
+            try {
+                // Calculate Due Date
+                let dueDate: Date | undefined = undefined;
+                if (typeof item.dueDays === 'number') {
+                    // Ensure hireDate is treated as a Date object
+                    const hireDateObj = typeof employee.hireDate === 'string' ? new Date(employee.hireDate) : employee.hireDate;
+                    if (hireDateObj && !isNaN(hireDateObj.getTime())) {
+                         dueDate = addDays(hireDateObj, item.dueDays);
+                    } else {
+                        console.warn(`Invalid hire date for employee ${employee.id}, cannot calculate due date for task: ${item.taskDescription}`);
+                    }
+                }
+
+                // Determine Assignee (Placeholder Logic)
+                let assignedToId: number | undefined = undefined;
+                if (item.responsibleRole === 'Employee') {
+                    assignedToId = employee.id;
+                } else if (item.responsibleRole === 'Manager') {
+                    // TODO: Implement logic to find the actual manager's employee ID
+                    // assignedToId = findManagerEmployeeId(employee.departmentId);
+                    console.warn(`Assignee logic for Manager role not fully implemented for task: ${item.taskDescription}. Assigning to creator ${creatorUserId} as placeholder.`);
+                    assignedToId = creatorUserId; // Placeholder
+                } else if (item.responsibleRole === 'HR' || item.responsibleRole === 'IT') {
+                    // TODO: Implement logic to find a designated HR/IT user/employee ID
+                    // assignedToId = findDesignatedRoleEmployeeId(item.responsibleRole);
+                     console.warn(`Assignee logic for ${item.responsibleRole} role not fully implemented for task: ${item.taskDescription}. Assigning to creator ${creatorUserId} as placeholder.`);
+                    assignedToId = creatorUserId; // Placeholder
+                }
+
+                // Prepare Task Data
+                const taskData: CreateTaskData = {
+                    title: item.taskDescription,
+                    description: item.notes,
+                    dueDate: dueDate ? format(dueDate, 'yyyy-MM-dd') : undefined, // Format for DB if needed, or pass Date obj
+                    assignedToId: assignedToId,
+                    createdById: creatorUserId,
+                    relatedEntityType: 'Onboarding',
+                    relatedEntityId: employee.id,
+                    status: 'Pending',
+                };
+
+                // Create the task using the existing service function
+                await createTask(taskData);
+                console.log(`Created onboarding task: "${item.taskDescription}" for employee ${employee.id}`);
+
+            } catch (taskError) {
+                console.error(`Failed to create onboarding task "${item.taskDescription}" for employee ${employee.id}:`, taskError);
+                // Continue creating other tasks even if one fails
+            }
+        }
+        console.log(`Finished applying onboarding template for employee ${employee.id}.`);
+
+    } catch (error) {
+        console.error(`Failed to create onboarding tasks for employee ${employee.id}:`, error);
+        // Decide if this failure should prevent employee creation or just be logged
+    }
+};
+
 
 // TODO: Add functions for updating, deleting, listing tasks as needed
 // export const updateTask = async (taskId: number, updateData: Partial<CreateTaskData>): Promise<Task> => { ... };

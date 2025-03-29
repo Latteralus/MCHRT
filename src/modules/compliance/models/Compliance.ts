@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { getSequelizeInstance } from '@/db/sequelize'; // Use runtime Sequelize instance
+import { sequelize } from '@/db/sequelize'; // Import instance directly
 import Employee from '@/modules/employees/models/Employee'; // Import Employee model for association typing
 
 // Define possible compliance item statuses (consider using enums)
@@ -114,7 +114,7 @@ Compliance.init(
     },
   },
   {
-    sequelize: getSequelizeInstance(), // Get the instance via the function
+    sequelize: sequelize, // Use the imported instance
     tableName: 'ComplianceItems', // Explicitly define table name
     // Optional: Add indexes here if needed
     // indexes: [{ fields: ['employeeId', 'expirationDate'] }]

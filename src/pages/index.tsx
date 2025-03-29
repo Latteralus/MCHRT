@@ -67,181 +67,32 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ userName }) => {
 
             {/* Main Dashboard Content */}
             <div className="dashboard-content">
-                {/* Stats Row - 4 cards in a row */}
+                {/* Stats Row - Using Widgets */}
                 <div className="dashboard-grid">
                     <div className="col-span-3">
-                        <div className="card stat-card">
-                            <div className="card-body">
-                                <div className="stat-label">
-                                    <i className="fas fa-users"></i> Total Employees
-                                </div>
-                                <div className="stat-value">198</div>
-                                <div className="stat-description">
-                                    <span className="stat-trend trend-up">
-                                        <i className="fas fa-arrow-up"></i> 3.2%
-                                    </span>
-                                    from last month
-                                </div>
-                            </div>
-                        </div>
+                        <EmployeeStats />
                     </div>
                     <div className="col-span-3">
-                        <div className="card stat-card">
-                            <div className="card-body">
-                                <div className="stat-label">
-                                    <i className="fas fa-calendar-check"></i> Attendance Rate
-                                </div>
-                                <div className="stat-value">96.5%</div>
-                                <div className="stat-description">
-                                    <span className="stat-trend trend-up">
-                                        <i className="fas fa-arrow-up"></i> 1.8%
-                                    </span>
-                                    from last month
-                                </div>
-                            </div>
-                        </div>
+                        <AttendanceWidget />
                     </div>
                     <div className="col-span-3">
-                        <div className="card stat-card">
-                            <div className="card-body">
-                                <div className="stat-label">
-                                    <i className="fas fa-hourglass-half"></i> Leave Requests
-                                </div>
-                                <div className="stat-value">12</div>
-                                <div className="stat-description">
-                                    <span className="stat-trend trend-down">
-                                        <i className="fas fa-arrow-down"></i> 2.5%
-                                    </span>
-                                    from last month
-                                </div>
-                            </div>
-                        </div>
+                        <LeaveWidget />
                     </div>
                     <div className="col-span-3">
-                        <div className="card stat-card">
-                            <div className="card-body">
-                                <div className="stat-label">
-                                    <i className="fas fa-clipboard-list"></i> Compliance Rate
-                                </div>
-                                <div className="stat-value">98.2%</div>
-                                <div className="stat-description">
-                                    <span className="stat-trend trend-up">
-                                        <i className="fas fa-arrow-up"></i> 0.7%
-                                    </span>
-                                    from last month
-                                </div>
-                            </div>
-                        </div>
+                        <ComplianceStatsWidget />
                     </div>
                 </div>
 
                 {/* Middle Content - License Operations and Activity Feed */}
                 <div className="dashboard-grid" style={{ marginTop: '1.5rem' }}>
-                    {/* License Operations Section */}
+                    {/* Expiring Compliance Widget */}
                     <div className="col-span-4">
-                        <div className="card">
-                            <div className="card-header">
-                                <h3 className="card-title">License Operations</h3>
-                                <Link href="/compliance" className="action-link">View all <i className="fas fa-chevron-right"></i></Link>
-                            </div>
-                            <div className="card-body">
-                                <div className="license-item">
-                                    <div className="license-item-avatar">EK</div>
-                                    <div className="license-item-info">
-                                        <div className="license-item-name">Ethan Klore</div>
-                                        <div className="license-item-detail">Pharmacist License</div>
-                                    </div>
-                                    <div className="license-status status-danger">7 days</div>
-                                </div>
-                                
-                                <div className="license-item">
-                                    <div className="license-item-avatar">AE</div>
-                                    <div className="license-item-info">
-                                        <div className="license-item-name">Alice Edwards</div>
-                                        <div className="license-item-detail">Pharmacy Tech License</div>
-                                    </div>
-                                    <div className="license-status status-warning">14 days</div>
-                                </div>
-                                
-                                <div className="license-item">
-                                    <div className="license-item-avatar">JL</div>
-                                    <div className="license-item-info">
-                                        <div className="license-item-name">John Lumbridge</div>
-                                        <div className="license-item-detail">Controlled Substance License</div>
-                                    </div>
-                                    <div className="license-status status-warning">21 days</div>
-                                </div>
-                                
-                                <div className="license-item">
-                                    <div className="license-item-avatar">WS</div>
-                                    <div className="license-item-info">
-                                        <div className="license-item-name">William Sharpe</div>
-                                        <div className="license-item-detail">90 Day Review</div>
-                                    </div>
-                                    <div className="license-status status-warning">23 days</div>
-                                </div>
-                                
-                                <div className="license-item">
-                                    <div className="license-item-avatar">WS</div>
-                                    <div className="license-item-info">
-                                        <div className="license-item-name">Washington State</div>
-                                        <div className="license-item-detail">State License Renewal</div>
-                                    </div>
-                                    <div className="license-status status-warning">25 days</div>
-                                </div>
-                            </div>
-                        </div>
+                        <ExpiringComplianceWidget />
                     </div>
                     
-                    {/* Recent Activity Section */}
+                    {/* Activity Feed Widget */}
                     <div className="col-span-8">
-                        <div className="card">
-                            <div className="card-header">
-                                <h3 className="card-title">Recent Activity</h3>
-                                <Link href="/activity" className="action-link">View all <i className="fas fa-chevron-right"></i></Link>
-                            </div>
-                            <div className="card-body">
-                                <div className="activity-item">
-                                    <div className="activity-badge"></div>
-                                    <div className="activity-time">Today, 10:30 AM</div>
-                                    <div className="activity-description">
-                                        <span className="activity-user">Sarah Johnson</span> approved time off request for Emily Chen
-                                    </div>
-                                </div>
-                                
-                                <div className="activity-item">
-                                    <div className="activity-badge"></div>
-                                    <div className="activity-time">Today, 9:45 AM</div>
-                                    <div className="activity-description">
-                                        <span className="activity-user">David Wilson</span> uploaded a new document to the compliance portal
-                                    </div>
-                                </div>
-                                
-                                <div className="activity-item">
-                                    <div className="activity-badge"></div>
-                                    <div className="activity-time">Today, 8:15 AM</div>
-                                    <div className="activity-description">
-                                        <span className="activity-user">Lisa Patel</span> completed onboarding for Mark Thompson
-                                    </div>
-                                </div>
-                                
-                                <div className="activity-item">
-                                    <div className="activity-badge"></div>
-                                    <div className="activity-time">Yesterday, 4:30 PM</div>
-                                    <div className="activity-description">
-                                        <span className="activity-user">James Rodriguez</span> updated the employee handbook
-                                    </div>
-                                </div>
-                                
-                                <div className="activity-item">
-                                    <div className="activity-badge"></div>
-                                    <div className="activity-time">Yesterday, 2:15 PM</div>
-                                    <div className="activity-description">
-                                        <span className="activity-user">Maria Garcia</span> added 3 new training modules to the compliance system
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <ActivityFeed />
                     </div>
                 </div>
 

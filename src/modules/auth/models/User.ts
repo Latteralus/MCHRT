@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { getSequelizeInstance } from '../../../db/sequelize'; // Use relative path
+import { sequelize } from '../../../db/sequelize'; // Import instance directly
 // Define the attributes for the User model
 interface UserAttributes {
   id: number;
@@ -73,7 +73,7 @@ User.init(
     },
   },
   {
-    sequelize: getSequelizeInstance(), // Get the instance via the function
+    sequelize: sequelize, // Use the imported instance
     tableName: 'Users', // Explicitly define table name
     // Optional: Add indexes here if needed
     // indexes: [{ unique: true, fields: ['username'] }]

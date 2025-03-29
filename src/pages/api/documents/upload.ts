@@ -5,7 +5,8 @@ import fs from 'fs';
 import path from 'path';
 import { Document, Employee } from '@/db'; // Import Document and Employee models
 import { withRole, AuthenticatedNextApiHandler, UserRole } from '@/lib/middleware/withRole';
-import { v4 as uuidv4 } from 'uuid'; // For generating unique filenames
+import { v4 as uuidv4 } from 'uuid';
+import { logActivity } from '@/modules/logging/services/activityLogService'; // Import logging service
 
 // Disable Next.js body parsing for this route
 export const config = {
@@ -141,6 +142,25 @@ const handler: AuthenticatedNextApiHandler = async (req, res, session) => {
             description: description,
             version: 1, // Initial version
         });
+
+        // --- Log Activity ---
+        await logActivity(
+            userId,
+            'UPLOAD',
+            `Uploaded document: ${newDocument.title} (ID: ${newDocument.id})`,
+            {
+                entityType: 'Document',
+                entityId: newDocument.id,
+                details: {
+                    filename: newDocument.filePath,
+                    size: newDocument.fileSize,
+                    type: newDocument.fileType,
+                    associatedEmployeeId: newDocument.employeeId,
+                    associatedDepartmentId: newDocument.departmentId,
+                }
+            }
+        );
+        // --- End Log Activity ---
 
         return res.status(201).json({ message: 'File uploaded successfully', document: newDocument });
 

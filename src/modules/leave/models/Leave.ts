@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { getSequelizeInstance } from '@/db/sequelize'; // Use runtime Sequelize instance
+import { sequelize } from '@/db/sequelize'; // Import instance directly
 import type Employee from '@/modules/employees/models/Employee'; // Import Employee type
 import type User from '@/modules/auth/models/User'; // Import User type
 
@@ -125,7 +125,7 @@ Leave.init(
     },
   },
   {
-    sequelize: getSequelizeInstance(), // Get the instance via the function
+    sequelize: sequelize, // Use the imported instance
     tableName: 'Leaves', // Explicitly define table name
     // Optional: Add indexes here if needed
     // indexes: [{ fields: ['employeeId', 'startDate'] }]

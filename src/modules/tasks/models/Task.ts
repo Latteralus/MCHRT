@@ -1,6 +1,6 @@
 // src/modules/tasks/models/Task.ts
 import { DataTypes, Model, Optional } from 'sequelize';
-import { getSequelizeInstance } from '@/db/sequelize'; // Use runtime Sequelize instance
+import { sequelize } from '@/db/sequelize'; // Import instance directly
 import Employee from '@/modules/employees/models/Employee'; // For assignee
 import User from '@/modules/auth/models/User'; // For creator
 
@@ -111,7 +111,7 @@ Task.init(
         },
     },
     {
-        sequelize: getSequelizeInstance(), // Get the instance via the function
+        sequelize: sequelize, // Use the imported instance
         tableName: 'Tasks',
         // Optional: Add indexes
         // indexes: [{ fields: ['assignedToId', 'status'] }, { fields: ['relatedEntityType', 'relatedEntityId'] }]

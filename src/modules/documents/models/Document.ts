@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { getSequelizeInstance } from '@/db/sequelize'; // Use runtime Sequelize instance
+import { sequelize } from '@/db/sequelize'; // Import instance directly
 
 // Define the attributes for the Document model
 interface DocumentAttributes {
@@ -122,7 +122,7 @@ Document.init(
     },
   },
   {
-    sequelize: getSequelizeInstance(), // Get the instance via the function
+    sequelize: sequelize, // Use the imported instance
     tableName: 'Documents', // Explicitly define table name
     // Optional: Add indexes here if needed
     // indexes: [{ fields: ['employeeId'] }, { fields: ['departmentId'] }]

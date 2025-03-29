@@ -4,7 +4,8 @@ import { Leave, Employee, User } from '@/db'; // Import models
 import { getSequelizeInstance } from '@/db/mockDbSetup'; // Import the instance getter
 import { withAuth, AuthenticatedNextApiHandler } from '@/lib/middleware/withAuth';
 import { deductLeaveBalance } from '@/modules/leave/services/leaveBalanceService'; // Import balance deduction function
-import { calculateLeaveDuration } from '@/lib/dates/durationUtil'; // Import duration calculation
+import { calculateLeaveDuration } from '@/lib/dates/durationUtil';
+import { logActivity } from '@/modules/logging/services/activityLogService'; // Import logging service
 // Placeholder: Import role checking middleware or perform checks manually
 // import { withRole } from '@/lib/middleware/withRole';
 
@@ -83,6 +84,14 @@ await deductLeaveBalance(
 
       // If all successful, commit the transaction
       await transaction.commit();
+
+      // Log the approval activity
+      await logActivity(
+          requestingUserId as number,
+          'APPROVE',
+          `Approved leave request ID ${requestId} for Employee ID ${leaveRequest.employeeId}`,
+          { entityType: 'Leave', entityId: requestId }
+      );
 
       // TODO: Trigger notification to the employee?
 

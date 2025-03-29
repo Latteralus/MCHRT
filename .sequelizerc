@@ -1,7 +1,7 @@
 const path = require('path');
 
 module.exports = {
-  'config': path.resolve('src', 'config', 'config.js'), // Point back to the JS config file for CLI
+  'config': path.resolve('config-cli', 'config.js'), // Point to the new CLI-specific JS config location
   'models-path': path.resolve('src', 'db'), // Point to where models are exported (src/db/index.ts)
   'seeders-path': path.resolve('src', 'db', 'seeders'), // Assuming seeders are here
   'migrations-path': path.resolve('migrations')

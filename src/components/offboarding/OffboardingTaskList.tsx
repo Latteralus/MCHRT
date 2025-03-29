@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // Import useEffect
+import axios from 'axios'; // Import axios
 
 // Define the shape of an offboarding process object (matching the one in OffboardingList)
 interface OffboardingProcess {
@@ -22,29 +23,68 @@ interface OffboardingTaskListProps {
   offboarding: OffboardingProcess;
 }
 
-// Mock Task Data (Replace with actual data fetching based on offboarding.id)
-const mockTasks: OffboardingTask[] = [
-  { id: 't1', description: 'Submit Resignation Letter Acknowledgment', completed: true, dueDate: '4/15/2025' },
-  { id: 't2', description: 'Conduct Exit Interview', completed: true, dueDate: '4/20/2025', assignedTo: 'HR Manager' },
-  { id: 't3', description: 'Retrieve Company Assets (Laptop, Phone, Badge)', completed: false, dueDate: '4/29/2025' },
-  { id: 't4', description: 'Disable System Access (Email, VPN, Software)', completed: false, dueDate: '4/29/2025', assignedTo: 'IT Department' },
-  { id: 't5', description: 'Process Final Paycheck', completed: false, dueDate: '5/10/2025', assignedTo: 'Payroll' },
-  { id: 't6', description: 'Update Employee Records', completed: false },
-];
-
-
+// Mock Task Data removed
 const OffboardingTaskList: React.FC<OffboardingTaskListProps> = ({ offboarding }) => {
-  // State to manage task completion (in a real app, this would trigger API calls)
-  const [tasks, setTasks] = useState<OffboardingTask[]>(mockTasks);
+  // State for tasks, loading, and errors
+  const [tasks, setTasks] = useState<OffboardingTask[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState<boolean>(true);
+  const [errorTasks, setErrorTasks] = useState<string | null>(null);
+
+  // Fetch tasks when onboarding ID changes
+  useEffect(() => {
+    if (!offboarding?.id) return; // Don't fetch if no offboarding process is selected
+
+    const fetchTasks = async () => {
+        setLoadingTasks(true);
+        setErrorTasks(null);
+        try {
+            // Assuming tasks are fetched based on employeeId
+            // Adjust endpoint and parameter name if needed (e.g., offboardingId)
+            const response = await axios.get<OffboardingTask[]>(`/api/tasks`, {
+                params: { employeeId: offboarding.id, processType: 'offboarding' } // Assuming API can filter by type
+            });
+            setTasks(response.data);
+        } catch (err: any) {
+            console.error(`Error fetching tasks for offboarding ${offboarding.id}:`, err);
+            setErrorTasks(err.response?.data?.message || "Failed to load tasks.");
+        } finally {
+            setLoadingTasks(false);
+        }
+    };
+
+    fetchTasks();
+  }, [offboarding?.id]); // Dependency on offboarding ID
 
   const handleTaskToggle = (taskId: string) => {
+    // Find the original task before optimistic update
+    const originalTask = tasks.find(task => task.id === taskId);
+    if (!originalTask) return;
+    const newCompletedStatus = !originalTask.completed;
+
+    // Optimistic UI update
     setTasks(currentTasks =>
       currentTasks.map(task =>
-        task.id === taskId ? { ...task, completed: !task.completed } : task
+        task.id === taskId ? { ...task, completed: newCompletedStatus } : task
       )
     );
-    // TODO: Add API call here to update task status in the backend
-    console.log(`Toggled task ${taskId} for ${offboarding.name}`);
+
+    // API Call to Update Task Status
+    axios.put(`/api/tasks/${taskId}`, { completed: newCompletedStatus })
+       .then(response => {
+           console.log(`Task ${taskId} status updated successfully to ${newCompletedStatus}`);
+           // Optional: Update state with response data if needed
+           // setTasks(currentTasks => currentTasks.map(t => t.id === taskId ? response.data : t));
+       })
+       .catch(err => {
+           console.error(`Error updating task ${taskId}:`, err);
+           // Revert optimistic update on error
+           setTasks(prevTasks =>
+               prevTasks.map(task =>
+                   task.id === taskId ? originalTask : task
+               )
+           );
+           alert(`Failed to update task status: ${err.response?.data?.message || err.message}`);
+       });
   };
 
   return (
@@ -56,7 +96,11 @@ const OffboardingTaskList: React.FC<OffboardingTaskListProps> = ({ offboarding }
 
       <h3 className="text-lg font-semibold text-gray-700 mb-4">Offboarding Checklist</h3>
 
-      {tasks.length === 0 ? (
+      {loadingTasks ? (
+          <p className="text-gray-500 text-sm">Loading tasks...</p>
+      ) : errorTasks ? (
+          <p className="text-red-500 text-sm">Error: {errorTasks}</p>
+      ) : tasks.length === 0 ? (
          <p className="text-gray-500 text-sm">No tasks defined for this offboarding process.</p>
       ) : (
         <ul className="space-y-3">

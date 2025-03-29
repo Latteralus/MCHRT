@@ -42,7 +42,14 @@
 │   ├── 006-create-compliance-items.js
 │   ├── 007-create-documents.js
 │   ├── 20250328011956-add-userId-to-employees.js
-│   └── 20250328021601-create-leave-balances.js
+│   ├── 20250328021601-create-leave-balances.js
+│   ├── 20250329031726-create-positions.js          # Added
+│   ├── 20250329034905-create-offboardings.js       # Added
+│   ├── 20250329035946-create-onboarding-templates.js # Added
+│   ├── 20250329040027-create-onboarding-template-items.js # Added
+│   ├── YYYYMMDDHHMMSS-add-status-to-employees.js       # Added
+│   ├── YYYYMMDDHHMMSS-create-task-templates.js         # Added
+│   └── YYYYMMDDHHMMSS-create-offboarding-tasks.js      # Added
 ├── public/
 │   ├── avatar.png
 │   ├── favicon.ico
@@ -114,7 +121,8 @@
 │   │   ├── sequelize.ts
 │   │   └── seeders/
 │   │       ├── 001-admin-user.js
-│   │       └── 002-fake-data.js
+│   │       ├── 002-fake-data.js
+│   │       └── YYYYMMDDHHMMSS-default-offboarding-task-templates.js # Added
 │   ├── lib/
 │   │   ├── api/
 │   │   │   ├── attendance.ts
@@ -157,18 +165,30 @@
 │   │   │   └── services/
 │   │   │       ├── leaveAccrualService.ts
 │   │   │       └── leaveBalanceService.ts
+│   │   ├── logging/                 # Added
+│   │   │   ├── models/              # Added
+│   │   │   │   └── ActivityLog.ts   # Added
+│   │   │   └── services/            # Added
+│   │   │       └── activityLogService.ts # Added
 │   │   ├── notifications/
 │   │   │   └── services/
 │   │   │       └── reminderService.ts
 │   │   ├── offboarding/
+│   │   │   ├── models/              # Added
+│   │   │   │   ├── Offboarding.ts   # Added
+│   │   │   │   ├── TaskTemplate.ts  # Added
+│   │   │   │   └── OffboardingTask.ts # Added
 │   │   │   └── data/
-│   │   │       └── processTemplates.ts
+│   │   │       └── processTemplates.ts # (Consider moving to DB later)
 │   │   ├── onboarding/
-│   │   │   └── data/
-│   │   │       └── checklistTemplates.ts
+│   │   │   ├── models/              # Added
+│   │   │   │   ├── OnboardingTemplate.ts # Added
+│   │   │   │   └── OnboardingTemplateItem.ts # Added
+│   │   │   └── data/                # Removed checklistTemplates.ts
 │   │   ├── organization/
 │   │   │   └── models/
-│   │   │       └── Department.ts
+│   │   │       ├── Department.ts
+│   │   │       └── Position.ts      # Added
 │   │   └── tasks/
 │   │       ├── models/
 │   │       │   └── Task.ts
@@ -195,6 +215,11 @@
 │   │   │   ├── dashboard/
 │   │   │   │   ├── activity.ts
 │   │   │   │   └── metrics.ts
+│   │   │   ├── offboarding/         # Added
+│   │   │   │   └── index.ts         # Added
+│   │   │   ├── onboarding/          # Added
+│   │   │   │   ├── index.ts         # Added
+│   │   │   │   └── stats.ts         # Added
 │   │   │   ├── departments/
 │   │   │   │   ├── [id].ts
 │   │   │   │   └── index.ts
@@ -209,6 +234,8 @@
 │   │   │   │   ├── export.ts
 │   │   │   │   ├── index.ts
 │   │   │   │   └── [id]/       # (Directory exists, contents not listed)
+│   │   │   ├── positions/           # Added
+│   │   │   │   └── index.ts         # Added
 │   │   │   ├── leave/
 │   │   │   │   ├── [id].ts
 │   │   │   │   ├── index.ts
@@ -234,7 +261,8 @@
 │   │   │   ├── index.tsx
 │   │   │   └── request.tsx
 │   │   ├── offboarding/
-│   │   │   └── index.tsx
+│   │   │   ├── index.tsx
+│   │   │   └── new.tsx            # Added
 │   │   ├── onboarding/
 │   │   │   └── index.tsx
 │   │   ├── reports/

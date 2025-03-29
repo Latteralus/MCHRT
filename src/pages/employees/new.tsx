@@ -1,33 +1,47 @@
-import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react'; // Add useEffect here
+import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import axios from 'axios';
+import { format } from 'date-fns'; // Import date-fns for formatting
 
 // Define the EmployeeData interface (consider moving to a shared types file)
+// Define the data structure for a Position (matching API response)
+interface PositionData {
+  id: number;
+  name: string;
+}
+
+// Update EmployeeData interface
 interface NewEmployeeData {
   firstName: string;
   lastName: string;
-  position?: string;
-  hireDate?: string | null; // Allow null for submission
-  departmentId?: number | string; // Allow string for input value
-  // Add other relevant fields needed for creation
+  positionId: number | string; // Changed from position to positionId
+  hireDate?: string | null;
+  departmentId?: number | string;
 }
 
 const NewEmployeePage: React.FC = () => {
   const router = useRouter();
 
+  // Helper function to get today's date in YYYY-MM-DD format
+  const getTodayDateString = () => {
+    return format(new Date(), 'yyyy-MM-dd');
+  };
+
   const [employee, setEmployee] = useState<NewEmployeeData>({
     firstName: '',
     lastName: '',
-    position: '',
-    hireDate: '',
+    positionId: '', // Changed from position
+    hireDate: getTodayDateString(), // Default hireDate to today
     departmentId: '',
   });
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [departments, setDepartments] = useState<{ id: number; name: string }[]>([]);
   const [deptLoadingError, setDeptLoadingError] = useState<string | null>(null);
+  const [positions, setPositions] = useState<PositionData[]>([]); // State for positions
+  const [posLoadingError, setPosLoadingError] = useState<string | null>(null); // State for position loading error
 
   // Fetch departments for the dropdown
   useEffect(() => {
@@ -42,7 +56,22 @@ const NewEmployeePage: React.FC = () => {
       }
     };
     fetchDepartments();
-  }, []); // Run only once on mount
+  }, []);
+
+  // Fetch positions for the dropdown
+  useEffect(() => {
+    const fetchPositions = async () => {
+      setPosLoadingError(null);
+      try {
+        const response = await axios.get<PositionData[]>('/api/positions');
+        setPositions(response.data);
+      } catch (err: any) {
+        console.error('Error fetching positions:', err);
+        setPosLoadingError('Failed to load positions.');
+      }
+    };
+    fetchPositions();
+  }, []);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -55,13 +84,21 @@ const NewEmployeePage: React.FC = () => {
     setSubmitError(null);
 
     try {
-      // Prepare data for submission
+      // Prepare data for submission, ensuring IDs are numbers
       const dataToSubmit = {
-        ...employee,
+        firstName: employee.firstName,
+        lastName: employee.lastName,
+        positionId: parseInt(employee.positionId as string, 10), // Parse positionId
         departmentId: employee.departmentId ? parseInt(employee.departmentId as string, 10) : undefined,
-        // Ensure hireDate is handled correctly if empty or invalid
         hireDate: employee.hireDate || null,
       };
+
+      // Validate positionId again just before submission
+      if (isNaN(dataToSubmit.positionId)) {
+          setSubmitError('Please select a valid position.');
+          setIsSubmitting(false);
+          return;
+      }
 
       // API call to create the employee
       const response = await axios.post('/api/employees', dataToSubmit);
@@ -113,8 +150,8 @@ const NewEmployeePage: React.FC = () => {
         <title>Add New Employee - Mountain Care HR</title>
       </Head>
       <div>
-        <Link href="/employees">
-          <a>&larr; Back to Employee List</a>
+        <Link href="/employees" className="text-blue-600 hover:underline mb-4 inline-block">
+          &larr; Back to Employee List
         </Link>
 
         <h2>Add New Employee</h2>
@@ -147,15 +184,26 @@ const NewEmployeePage: React.FC = () => {
           </div>
 
           <div style={inputGroupStyles}>
-            <label htmlFor="position" style={labelStyles}>Position</label>
-            <input
-              type="text"
-              id="position"
-              name="position"
-              value={employee.position}
-              onChange={handleChange}
-              style={inputStyles}
-            />
+            <label htmlFor="positionId" style={labelStyles}>Position</label>
+            {posLoadingError ? (
+              <p style={{ color: 'var(--danger)' }}>{posLoadingError}</p>
+            ) : (
+              <select
+                id="positionId"
+                name="positionId"
+                value={employee.positionId || ''}
+                onChange={handleChange}
+                style={inputStyles}
+                required // Make position mandatory
+              >
+                <option value="" disabled>-- Select Position --</option>
+                {positions.map(pos => (
+                  <option key={pos.id} value={pos.id}>
+                    {pos.name}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div style={inputGroupStyles}>
@@ -210,7 +258,7 @@ const NewEmployeePage: React.FC = () => {
             >
               {isSubmitting ? 'Creating...' : 'Create Employee'}
             </button>
-            <Link href="/employees" passHref>
+            <Link href="/employees">
               <button type="button" className="btn btn-outline" disabled={isSubmitting}>
                 Cancel
               </button>

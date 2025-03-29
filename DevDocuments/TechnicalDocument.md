@@ -61,13 +61,16 @@ While final designs may vary, below are examples of likely tables in PostgreSQL:
 - id, username, passwordHash, role, departmentId, createdAt, updatedAt (*Note: No email field required for login*)
 
 **Employees**:
-- id, firstName, lastName, ssn (*handle with care*), departmentId, position, hireDate, etc.
+- id, firstName, lastName, ssn (*handle with care*), departmentId, positionId (FK), hireDate, status ('Onboarding', 'Active', 'Terminating', 'Terminated', 'On Leave', 'Vacation'), etc.
 
 **Departments**:
 - id, name (Administration, Human Resources, Operations, Compounding, Shipping), managerId, etc.
+**Positions**:
+- id, name (e.g., 'Manager', 'Pharmacist', 'Pharmacy Technician')
+
 
 **Attendance**:
-- id, employeeId, date, timeIn, timeOut, etc.
+- id, employeeId, date (DATEONLY), timeIn (DATETIME), timeOut (DATETIME), etc.
 
 **Leave**:
 - id, employeeId, startDate, endDate, leaveType, status, etc.
@@ -78,7 +81,25 @@ While final designs may vary, below are examples of likely tables in PostgreSQL:
 **Documents**:
 - id, title, filePath (*path on local server*), ownerId, version, createdAt, updatedAt
 
-Note: Onboarding/offboarding can have their own tables or be integrated into Employees/Tasks tables, depending on the complexity of automation.
+**Offboardings**:
+- id, employeeId (FK, unique), exitDate (DATEONLY), reason (TEXT), status ('Pending', 'InProgress', 'Completed', 'Cancelled'), createdAt, updatedAt
+
+**OnboardingTemplates**:
+- id, templateCode (String, unique), name, description, createdAt, updatedAt
+
+**OnboardingTemplateItems**:
+- id, templateId (FK), taskDescription, responsibleRole, dueDays, notes, createdAt, updatedAt
+
+**ActivityLogs**:
+- id, userId (FK), actionType, entityType, entityId, description, details (JSON), createdAt
+
+**TaskTemplates**:
+- id, description, defaultAssignedRole, createdAt, updatedAt
+
+**OffboardingTasks**:
+- id, offboardingId (FK), description, status ('Pending', 'Completed'), assignedToUserId (FK), assignedRole, createdAt, updatedAt
+
+Note: Onboarding process relies on Tasks linked via relatedEntityType='Onboarding' and relatedEntityId=employeeId. Templates are now stored in the database. Offboarding uses the dedicated `Offboardings` table and automatically generates tasks from `TaskTemplates` into `OffboardingTasks`, also setting the `Employee` status to 'Terminating'.
 
 ### Sequelize Model Management
 
@@ -100,8 +121,8 @@ The MVP aims to provide basic, functional implementations for all modules listed
 - Detail pages for each employee.
 
 ### Onboarding/Offboarding Automation
-- MVP: Basic automation like sending email reminders based on criteria (e.g., license expiry).
-- Future: Custom task assignments, checklists triggered by hiring/termination events, potential e-signatures, etc.
+- MVP: Onboarding templates stored in DB, tasks automatically created on employee creation based on position. Offboarding process initiated via form, sets Employee status to 'Terminating', and automatically creates default tasks based on Task Templates. Email reminders based on criteria (e.g., license expiry).
+- Future: UI for managing templates, more sophisticated task assignment logic (finding manager/HR/IT), potential e-signatures, etc.
 
 ### Attendance Tracking
 - MVP: Basic daily log viewing and entry.
@@ -119,7 +140,7 @@ The MVP aims to provide basic, functional implementations for all modules listed
 ### Document Management
 - Upload documents to the **local server filesystem**, store path references in Postgres.
 - MVP includes upload and **RBAC-controlled viewing** capabilities.
-- Future: Version control, advanced permission checks, auditing (60-day log retention mentioned previously may apply here).
+- Future: Version control, advanced permission checks. Auditing implemented via ActivityLogs table.
 
 ### Reporting & Analytics
 - MVP: Basic data viewing corresponding to core features.
@@ -158,7 +179,7 @@ The MVP aims to provide basic, functional implementations for all modules listed
 
 - **Encryption at Rest**: Use appropriate methods (e.g., Postgres extensions like pgcrypto, application-level encryption, or disk-level encryption) for sensitive fields like SSNs.
 - **Secure Transport**: Enforce HTTPS in production, SSL/TLS for DB connections.
-- **Access Logs & Auditing**: Implement logging (e.g., 60-day retention) to track user actions on sensitive data and documents.
+- **Access Logs & Auditing**: Implemented via `ActivityLogs` table. Retention policy TBD (depends on DB backup/archiving). Tracks key actions like creation, updates, approvals.
 
 ### Role-Based Access Control (RBAC)
 

@@ -1,33 +1,28 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
 import { withErrorHandling } from '@/lib/api/withErrorHandling';
-// import { withRole } from '@/lib/middleware/withRole'; // Optional: Add role check if needed
-
+import { ActivityLog } from '@/modules/logging/models/ActivityLog'; // Import model
+import User from '@/modules/auth/models/User'; // Import User for association
+import { formatDistanceToNow } from 'date-fns'; // For relative time formatting
+// Associations are defined centrally in src/db/sequelize.ts now
 // Define the structure for an activity item
 interface ActivityItem {
     id: number | string; // Use string if IDs are UUIDs
     time: string; // Consider using Date object and formatting on client
     description: string;
     user: string; // User's name or identifier
-    icon: string; // Font Awesome class name (e.g., 'fas fa-user-check')
-    color: string; // Tailwind CSS text color class (e.g., 'text-green-500')
+    actionType?: string; // Type of action (e.g., CREATE, UPDATE, LOGIN)
+    entityType?: string; // Type of entity affected (e.g., Employee, Leave)
+    // icon and color might not be needed if using semantic CSS structure on client
     // Optional: Add link for more details
     // link?: string;
 }
 
-// Placeholder: Mock data generation function
-const generateMockActivities = (count = 5): ActivityItem[] => {
-    const activities: ActivityItem[] = [
-        { id: 1, time: 'Today, 10:30 AM', description: 'approved time off request for Emily Chen', user: 'Sarah Johnson', icon: 'fas fa-calendar-check', color: 'text-green-500' },
-        { id: 2, time: 'Today, 9:45 AM', description: 'uploaded a new document to the compliance portal', user: 'David Wilson', icon: 'fas fa-file-upload', color: 'text-blue-500' },
-        { id: 3, time: 'Today, 8:15 AM', description: 'completed onboarding for Mark Thompson', user: 'Lisa Patel', icon: 'fas fa-user-check', color: 'text-purple-500' },
-        { id: 4, time: 'Yesterday, 4:30 PM', description: 'updated the employee handbook', user: 'James Rodriguez', icon: 'fas fa-file-alt', color: 'text-gray-500' },
-        { id: 5, time: 'Yesterday, 2:15 PM', description: 'added 3 new training modules', user: 'Maria Garcia', icon: 'fas fa-chalkboard-teacher', color: 'text-indigo-500' },
-    ];
-    // Return a slice based on the requested count
-    return activities.slice(0, count);
-};
+// Mock data removed
 
+
+// Associations are defined centrally in src/db/sequelize.ts now
+// defineAssociations(); // Removed local call
 
 const handler = async (req: NextApiRequest, res: NextApiResponse<ActivityItem[] | { message: string }>) => {
     if (req.method !== 'GET') {
@@ -45,13 +40,31 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<ActivityItem[] 
 
     try {
         // --- Fetch Activity Data ---
-        // TODO: Replace with actual logic to fetch recent activities from the database
-        // This might involve querying an 'ActivityLog' table or using a service.
-        // Example: const activities = await ActivityLog.findAll({ limit: 10, order: [['createdAt', 'DESC']] });
-        // Need to map the database result to the ActivityItem structure.
+        const limit = parseInt(req.query.limit as string) || 5; // Default limit
 
-        const limit = parseInt(req.query.limit as string) || 5; // Allow specifying limit via query param
-        const activities = generateMockActivities(limit); // Use mock data for now
+        const logs = await ActivityLog.findAll({
+            limit: limit,
+            order: [['createdAt', 'DESC']],
+            // Ensure actionType and entityType are fetched if they exist on the model
+            attributes: ['id', 'description', 'createdAt', 'userId', 'actionType', 'entityType'], // Add necessary fields
+            include: [{
+                model: User,
+                as: 'user',
+                attributes: ['id', 'username'] // Explicitly fetch id and username
+            }]
+        });
+
+        // Map database logs to the ActivityItem structure expected by the frontend
+        const activities: ActivityItem[] = logs.map(log => ({
+            id: log.id,
+            // Format timestamp to relative time string
+            time: formatDistanceToNow(log.createdAt, { addSuffix: true }),
+            description: log.description,
+            user: log.user?.username || 'System', // Use username or 'System' if user is null
+            actionType: log.actionType, // Map actionType
+            entityType: log.entityType, // Map entityType
+            // icon and color are removed as they are better handled by frontend based on actionType/entityType
+        }));
 
         return res.status(200).json(activities);
 

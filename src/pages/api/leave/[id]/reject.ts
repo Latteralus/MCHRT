@@ -2,6 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { Leave, Employee } from '@/db'; // Import models from central db index
 import { withAuth, AuthenticatedNextApiHandler } from '@/lib/middleware/withAuth';
+import { logActivity } from '@/modules/logging/services/activityLogService'; // Import logging service
 // Placeholder: Import role checking middleware or perform checks manually
 
 // Define the handler logic, wrapped with authentication
@@ -60,6 +61,14 @@ const handler: AuthenticatedNextApiHandler = async (req, res, session): Promise<
       approvedAt: new Date(), // Set the rejection timestamp (using same field for simplicity)
       comments: req.body.comments || null // Optional: Require/allow comments for rejection
     });
+
+    // Log the rejection activity
+    await logActivity(
+        requestingUserId as number,
+        'REJECT',
+        `Rejected leave request ID ${requestId} for Employee ID ${leaveRequest.employeeId}`,
+        { entityType: 'Leave', entityId: requestId, details: { comments: req.body.comments } }
+    );
 
     // TODO: Trigger notification to the employee?
 

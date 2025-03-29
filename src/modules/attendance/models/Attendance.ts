@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { getSequelizeInstance } from '@/db/sequelize'; // Use runtime Sequelize instance
+import { sequelize } from '@/db/sequelize'; // Import instance directly
 
 // Define the attributes for the Attendance model
 export interface AttendanceAttributes { // Add export keyword
@@ -76,7 +76,7 @@ Attendance.init(
     },
   },
   {
-    sequelize: getSequelizeInstance(), // Get the instance via the function
+    sequelize: sequelize, // Use the imported instance (already correct)
     tableName: 'Attendance', // Explicitly define table name
     // Optional: Add indexes here if needed, e.g., for querying by employee and date
     // indexes: [{ fields: ['employeeId', 'date'] }]

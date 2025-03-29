@@ -15,21 +15,26 @@
 ## Phase 2: Database Models & Core API Routes
 - [x] Define User model with roles
 - [x] Define Department model
-- [x] Define Employee model with encryption for SSN (Encryption logic TBD)
+- [x] Define Employee model (Position changed to FK `positionId`)
 - [x] Define Attendance model
 - [x] Define Leave model
 - [x] Define Compliance model
 - [x] Define Document model
-- [x] Create model associations (File created)
-- [x] Create migrations for all models
-- [x] Generate seed data for development (Core models seeded, added admin user seeder)
-- [x] Implement API routes for CRUD operations on all models (Basic implementation)
+- [x] Define Position model # Added
+- [x] Define Offboarding model # Added
+- [x] Define OnboardingTemplate model # Added
+- [x] Define OnboardingTemplateItem model # Added
+- [x] Define ActivityLog model # Added
+- [x] Create model associations (Updated for Position, Offboarding, Onboarding Templates, ActivityLog)
+- [x] Create migrations for all models (Added Position, Offboarding, Onboarding Templates & Items, ActivityLog)
+- [x] Generate seed data for development (Core models, admin user, Positions, Onboarding Templates & Items seeded)
+- [x] Implement API routes for CRUD operations on core models (Added Position, Offboarding, Onboarding stats/list, ActivityLog list)
 - [x] Add RBAC middleware for API routes (Applied to Employees, Attendance, Leave, Documents)
 
 ## Phase 3: Employee Management Module
 - [x] Build employee list page with filtering (Basic page created)
 - [x] Create employee detail page (Basic page created)
-- [x] Implement employee CRUD forms (Basic new/edit pages created)
+- [x] Implement employee CRUD forms (New Employee form updated with Position dropdown, default date)
 - [x] Add department assignment functionality (Dropdown added to forms)
 - [x] Create profile page for self-service (Basic page structure created)
 - [x] Implement RBAC for employee data access (Backend API route secured)
@@ -56,16 +61,18 @@
 
 ## Phase 6: Dashboard & Reporting
 - [x] Create main dashboard matching design (Layout updated, widgets connected to API)
-- [x] Implement key metrics cards (Widgets connected to API)
-- [x] Build activity feed component (Component connected to API)
+- [x] Implement key metrics cards (Widgets connected to API, calculations updated for trends, rates partially implemented)
+- [x] Build activity feed component (Component connected to API, ActivityLog backend implemented)
 - [x] Add department-based views (Report page, select component, and API created)
 - [x] Create basic data export functionality (API confirmed, button added to UI)
 
 ## Phase 7: Onboarding & Offboarding
-- [x] Build basic onboarding checklist templates (Data file created)
-- [x] Create offboarding process templates (Data file created)
-- [/] Implement email reminder functionality (Placeholder utility, service, and trigger integration added)
+- [x] Build basic onboarding checklist templates (Moved to database tables: OnboardingTemplates, OnboardingTemplateItems)
+- [x] Create offboarding process templates (Data file created - Consider moving to DB)
+- [x] Implement automatic onboarding task creation from templates (Added service logic, triggered on employee creation)
 - [x] Add task assignment interface (Model, Service, API, Page, List & Form components created)
+- [x] Implement Offboarding page (FE page created, connected to API, New Offboarding form created & connected)
+- [x] Implement basic Activity Logging (DB table, service, integrated into key APIs)
 
 ## Phase 8: Testing & Documentation
 - [x] Create unit tests for critical functions (`leaveBalanceService` tests now pass)
@@ -78,7 +85,7 @@
 
 ## Phase 9: MVP Polish & Deployment
 - [ ] Perform code review and refactoring
-- [x] Fix identified bugs and issues (Login page layout fixed, Vercel build errors fixed)
+- [x] Fix identified bugs and issues (Login layout, Vercel builds, Link component usage, duplicate imports, API type errors)
 - [ ] Optimize performance
 - [ ] Create demo data for presentation
 - [ ] Set up deployment configuration
@@ -86,37 +93,24 @@
 
 ---
 
-## Current Status & Next Steps (As of 2025-03-28 ~12:18 PM MDT)
+## Current Status & Next Steps (As of 2025-03-28 ~10:50 PM MDT)
 
-**Current Focus:** Phase 8 - Testing & Documentation (Running integration tests)
+**Current Focus:** Phase 8 - Testing & Documentation / Phase 9 - Polish
 
-**Completed:**
-- Phase 1: All items completed.
-- Phase 2: All items completed. Added admin user seeder. Fixed Sequelize CLI config path.
-- Phase 3: All items completed.
-- Phase 4: All items completed (excluding deferred testing).
-- Phase 5: Core structure implemented.
-- Phase 6: All items completed.
-- Phase 7: All items completed.
-- Phase 8:
-    - Unit test for `leaveBalanceService` fixed and passing.
-    - Basic API integration tests written.
-    - **Jest/Sequelize initialization issue resolved** by creating Sequelize instance synchronously and using `sync({ force: true })` in `clearTestDb`.
-    - Several API test failures fixed (response format, payload format, fixture dependencies).
-- Phase 9: Login page layout bug fixed. Vercel build errors related to types and imports fixed.
+**Completed Since Last Update:**
+- **Phase 2 Additions:** Added Position, Offboarding, OnboardingTemplate, OnboardingTemplateItem, ActivityLog models, migrations, associations, and basic API endpoints. Seeded templates/positions.
+- **Phase 3 Updates:** Updated New Employee form (position dropdown, default date).
+- **Phase 6 Updates:** Verified dashboard widgets use API. Implemented Activity Logging backend and connected Activity Feed. Updated dashboard metrics API calculations (trends implemented, rates partially implemented).
+- **Phase 7 Updates:** Moved onboarding templates to DB. Implemented automatic onboarding task creation. Implemented Offboarding page/form frontend and backend API. Updated Offboarding page/task list to use live data.
+- **Phase 9 Updates:** Fixed Next.js Link component usage errors. Fixed duplicate import build error. Fixed API type errors.
 
-**Where We Left Off:**
-- Running API integration tests (`npm test`).
-- Individual test files (e.g., `employees.test.ts`, `attendance.test.ts`) pass when run in isolation (`npm test <path>`).
-- Running the full test suite (`npm test` or `npm test -- --runInBand`) still results in failures (e.g., `UNIQUE constraint failed`, `FOREIGN KEY constraint failed`, API logic errors).
-- This indicates **test isolation issues** where state from one test file seems to interfere with subsequent files, even when run sequentially in the same process. The `clearTestDb` function using `sync({ force: true })` doesn't seem sufficient to prevent this cross-file interference.
-
-**Next Steps:**
-1.  **Continue Phase 8:** Proceed with writing further integration tests and documentation, running tests individually or in small groups as needed.
-2.  **(Optional/Deferred) Investigate Full Suite Isolation:** If running the *entire* suite with `npm test` is critical, further investigation is needed. This might involve:
-    *   Deep diving into Jest's execution context and potential memory leaks.
-    *   Exploring alternative test runners or setup strategies (e.g., separate DB files per test suite).
-    *   Ensuring no asynchronous operations are left dangling after tests complete.
+**Outstanding Items / Next Steps:**
+- **Phase 4:** Add tests for Attendance/Leave APIs/services.
+- **Phase 5:** Implement UI for document metadata management.
+- **Phase 6:** Refine Attendance Rate and Compliance Rate calculations in dashboard metrics API. Implement Compliance trend calculation.
+- **Phase 7:** Refine assignee logic for automatically created onboarding tasks (Manager, HR, IT). Consider moving offboarding templates to DB.
+- **Phase 8:** Continue writing integration tests (dealing with isolation issues). Implement E2E tests. Document DB schema and APIs. Add JSDoc.
+- **Phase 9:** Code review/refactoring. Performance optimization. Create demo data. Deployment config. Document limitations.
 
 ---
 

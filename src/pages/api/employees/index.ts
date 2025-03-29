@@ -1,15 +1,17 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import Employee from '@/modules/employees/models/Employee';
 import { withRole } from '@/lib/middleware/withRole'; // Import withRole
-import { AuthenticatedNextApiHandler } from '@/lib/middleware/withAuth'; // Import handler type
-// import { defineAssociations } from '@/db/associations';
+import { AuthenticatedNextApiHandler, withAuth } from '@/lib/middleware/withAuth'; // Import withAuth too
+import { createOnboardingTasksForEmployee } from '@/modules/tasks/services/taskService';
+import { defineAssociations } from '@/db/associations';
+import { logActivity } from '@/modules/logging/services/activityLogService'; // Import logging service
 
 // TODO: Add more granular authorization (e.g., DepartmentHead can only see/create in their dept)
 // TODO: Add proper error handling and validation
 // TODO: Implement SSN encryption before saving
 
 // Ensure associations are defined
-// defineAssociations();
+defineAssociations(); // Ensure associations are defined for service logic
 
 // Define the core handler logic expecting authentication and session
 const handler: AuthenticatedNextApiHandler = async (req, res, session) => {
@@ -54,11 +56,11 @@ const handler: AuthenticatedNextApiHandler = async (req, res, session) => {
           return res.status(403).json({ message: 'Forbidden: Only Admins can create employees.' });
       }
       try {
-        const { firstName, lastName, ssn, departmentId, position, hireDate } = req.body;
+        const { firstName, lastName, ssn, departmentId, positionId, hireDate } = req.body; // Expect positionId
 
-        // Basic validation
-        if (!firstName || !lastName) {
-          return res.status(400).json({ message: 'First name and last name are required' });
+        // Basic validation (Add positionId check)
+        if (!firstName || !lastName || !positionId) {
+          return res.status(400).json({ message: 'First name, last name, and position are required' });
         }
 
         // TODO: Implement actual SSN encryption here before creating the record
@@ -70,10 +72,39 @@ const handler: AuthenticatedNextApiHandler = async (req, res, session) => {
           lastName,
           ssnEncrypted, // Store the (placeholder) encrypted SSN
           departmentId,
-          position,
+          positionId, // Use positionId
           hireDate
         });
 
+        // --- Trigger Onboarding Task Creation ---
+        // We do this after successfully creating the employee
+        // Use a try-catch to avoid failing the whole request if task creation has issues
+        if (newEmployee && session.user?.id) {
+            try {
+                console.log(`Attempting to create onboarding tasks for employee ${newEmployee.id}...`);
+                // Pass the full newEmployee object as it contains hireDate, positionId etc.
+                await createOnboardingTasksForEmployee(newEmployee, session.user.id as number);
+                console.log(`Successfully triggered onboarding task creation for employee ${newEmployee.id}.`);
+            } catch (taskError) {
+                // Log the error but don't fail the API response for employee creation
+                console.error(`Error triggering onboarding task creation for employee ${newEmployee.id}:`, taskError);
+                // Optionally: Add some flag to the response or log for monitoring
+            }
+        } else {
+             console.warn(`Could not trigger onboarding tasks: Missing newEmployee object or session user ID.`);
+        }
+        // --- End Onboarding Task Creation ---
+
+        // --- Log Activity ---
+        if (newEmployee && session.user?.id) {
+             await logActivity(
+                 session.user.id as number,
+                 'CREATE',
+                 `Created new employee: ${newEmployee.firstName} ${newEmployee.lastName} (ID: ${newEmployee.id})`,
+                 { entityType: 'Employee', entityId: newEmployee.id }
+             );
+        }
+        // --- End Log Activity ---
         // Exclude encrypted SSN from the response
         const { ssnEncrypted: _, ...employeeResponse } = newEmployee.toJSON();
         res.status(201).json(employeeResponse);
@@ -93,4 +124,5 @@ const handler: AuthenticatedNextApiHandler = async (req, res, session) => {
 };
 
 // Wrap the handler with the RBAC middleware, allowing Admins and Department Heads
-export default withRole(['Admin', 'DepartmentHead'], handler);
+// Wrap with auth first, then role check
+export default withAuth(withRole(['Admin', 'DepartmentHead'], handler));

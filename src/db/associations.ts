@@ -7,6 +7,11 @@ import Leave from '@/modules/leave/models/Leave';
 import LeaveBalance from '@/modules/leave/models/LeaveBalance'; // Import the new model
 import Compliance from '@/modules/compliance/models/Compliance';
 import Document from '@/modules/documents/models/Document';
+import { Position } from '@/modules/organization/models/Position';
+import { Offboarding } from '@/modules/offboarding/models/Offboarding';
+import { OnboardingTemplate } from '@/modules/onboarding/models/OnboardingTemplate'; // Import Template model
+import { OnboardingTemplateItem } from '@/modules/onboarding/models/OnboardingTemplateItem';
+import { ActivityLog } from '@/modules/logging/models/ActivityLog'; // Import ActivityLog model
 
 // Define associations function
 export const defineAssociations = () => {
@@ -51,6 +56,18 @@ export const defineAssociations = () => {
   Department.hasMany(Employee, {
     foreignKey: 'departmentId',
     as: 'employees', // Allows Department.getEmployees()
+  });
+
+  // Employee <-> Position Associations
+  // An Employee belongs to one Position
+  Employee.belongsTo(Position, {
+    foreignKey: 'positionId',
+    as: 'position', // Allows Employee.getPosition()
+  });
+  // A Position can have multiple Employees
+  Position.hasMany(Employee, {
+    foreignKey: 'positionId',
+    as: 'employees', // Allows Position.getEmployees()
   });
 
   // Employee <-> Attendance Associations
@@ -108,6 +125,18 @@ export const defineAssociations = () => {
     as: 'complianceItems', // Allows Employee.getComplianceItems()
   });
 
+  // Employee <-> Offboarding Association (One-to-One)
+  // An Employee has one Offboarding process
+  Employee.hasOne(Offboarding, {
+    foreignKey: 'employeeId',
+    as: 'offboardingProcess', // Allows Employee.getOffboardingProcess()
+  });
+  // An Offboarding process belongs to one Employee
+  Offboarding.belongsTo(Employee, {
+    foreignKey: 'employeeId',
+    as: 'employee', // Allows Offboarding.getEmployee()
+  });
+
   // Document Associations
   // A Document belongs to one Owner (User)
   Document.belongsTo(User, {
@@ -132,6 +161,28 @@ export const defineAssociations = () => {
   });
   // Optional: A Department can have multiple Documents associated
   // Department.hasMany(Document, { foreignKey: 'departmentId', as: 'documents' });
+
+  // Onboarding Template <-> Items Association (One-to-Many)
+  OnboardingTemplate.hasMany(OnboardingTemplateItem, {
+    foreignKey: 'templateId',
+    as: 'items', // Allows OnboardingTemplate.getItems()
+  });
+  OnboardingTemplateItem.belongsTo(OnboardingTemplate, {
+    foreignKey: 'templateId',
+    as: 'template', // Allows OnboardingTemplateItem.getTemplate()
+  });
+
+  // User <-> ActivityLog Association (One-to-Many)
+  // A User can perform many actions (logs)
+  User.hasMany(ActivityLog, {
+    foreignKey: 'userId',
+    as: 'activityLogs', // Allows User.getActivityLogs()
+  });
+  // An ActivityLog belongs to one User
+  ActivityLog.belongsTo(User, {
+    foreignKey: 'userId',
+    as: 'user', // Allows ActivityLog.getUser()
+  });
 
   console.log('Sequelize associations defined.');
 };

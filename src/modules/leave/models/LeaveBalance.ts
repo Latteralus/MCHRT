@@ -1,6 +1,6 @@
 // src/modules/leave/models/LeaveBalance.ts
 import { DataTypes, Model, Optional } from 'sequelize';
-import { getSequelizeInstance } from '@/db/sequelize'; // Use runtime Sequelize instance
+import { sequelize } from '@/db/sequelize'; // Import instance directly
 import type Employee from '@/modules/employees/models/Employee'; // Import Employee type
 
 // Define the attributes for the LeaveBalance model
@@ -95,7 +95,7 @@ LeaveBalance.init(
     },
   },
   {
-    sequelize: getSequelizeInstance(), // Get the instance via the function
+    sequelize: sequelize, // Use the imported instance
     tableName: 'LeaveBalances', // Explicitly define table name
     indexes: [
       // Ensure an employee can only have one balance record per leave type

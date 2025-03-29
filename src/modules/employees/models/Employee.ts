@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { getSequelizeInstance } from '../../../db/sequelize'; // Use relative path
+import { sequelize } from '../../../db/sequelize'; // Import instance directly
 // Define the attributes for the Employee model
 interface EmployeeAttributes {
   id: number;
@@ -8,8 +8,9 @@ interface EmployeeAttributes {
   ssnEncrypted?: string; // Store encrypted SSN - Requires encryption logic implementation
   departmentId?: number; // Foreign key to Departments table
   userId?: number; // Foreign key to Users table (for linking login user to employee record)
-  position?: string;
+  positionId: number; // Foreign key to Positions table
   hireDate?: Date;
+  status: 'Onboarding' | 'Active' | 'Terminating' | 'Terminated' | 'On Leave' | 'Vacation'; // Added status field
   // Add other relevant fields like dateOfBirth, contactInfo, address, etc. later
   createdAt?: Date;
   updatedAt?: Date;
@@ -17,7 +18,8 @@ interface EmployeeAttributes {
 
 // Define creation attributes (optional fields for creation)
 // Make ssnEncrypted optional here as it might be set via a setter or hook after encryption
-export interface EmployeeCreationAttributes extends Optional<EmployeeAttributes, 'id' | 'createdAt' | 'updatedAt' | 'departmentId' | 'position' | 'hireDate' | 'ssnEncrypted'> {}
+// positionId is now required for creation, so it's not listed in Optional<>
+export interface EmployeeCreationAttributes extends Optional<EmployeeAttributes, 'id' | 'createdAt' | 'updatedAt' | 'departmentId' | 'hireDate' | 'ssnEncrypted' | 'status'> {} // Added status to Optional
 
 // Define the Employee model class
 class Employee extends Model<EmployeeAttributes, EmployeeCreationAttributes> { // Removed 'implements EmployeeAttributes'
@@ -27,8 +29,9 @@ class Employee extends Model<EmployeeAttributes, EmployeeCreationAttributes> { /
   public ssnEncrypted?: string; // Actual storage field
   public departmentId?: number;
   public userId?: number; // Foreign key to User
-  public position?: string;
+  public positionId!: number; // Foreign key to Position
   public hireDate?: Date;
+  public status!: 'Onboarding' | 'Active' | 'Terminating' | 'Terminated' | 'On Leave' | 'Vacation'; // Added status field
 
   // Timestamps
   public readonly createdAt!: Date;
@@ -95,13 +98,27 @@ Employee.init(
       onUpdate: 'CASCADE',
       onDelete: 'SET NULL', // Or 'RESTRICT' if a User shouldn't be deleted if linked to an Employee
     },
-    position: {
-      type: DataTypes.STRING,
-      allowNull: true,
+    positionId: {
+      type: DataTypes.INTEGER,
+      allowNull: false, // Position is mandatory
+      references: {
+        model: 'Positions', // Assumes a 'Positions' table exists
+        key: 'id',
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'RESTRICT', // Prevent deleting a Position if Employees are assigned
     },
     hireDate: {
       type: DataTypes.DATEONLY, // Use DATEONLY if time is not relevant
       allowNull: true,
+    },
+    status: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: 'Onboarding',
+      validate: {
+        isIn: [['Onboarding', 'Active', 'Terminating', 'Terminated', 'On Leave', 'Vacation']],
+      },
     },
     createdAt: {
       type: DataTypes.DATE,
@@ -115,7 +132,7 @@ Employee.init(
     },
   },
   {
-    sequelize: getSequelizeInstance(), // Get the instance via the function
+    sequelize: sequelize, // Use the imported instance
     tableName: 'Employees', // Explicitly define table name
     // Optional: Add indexes here if needed
     // indexes: [{ fields: ['lastName', 'firstName'] }]

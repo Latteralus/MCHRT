@@ -1,4 +1,4 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
+import type { NextApiRequest, NextApiResponse, NextApiHandler } from 'next'; // Import NextApiHandler
 import { ZodError } from 'zod'; // Assuming Zod is used for validation errors
 // Import custom error types if they exist, e.g.,
 // import { AuthenticationError, AuthorizationError, NotFoundError, ValidationError } from '@/lib/errors/appErrors';
@@ -9,7 +9,7 @@ interface ErrorResponse {
     details?: any; // Optional field for more specific error details (like validation errors)
 }
 
-// Define the type for an API handler function
+// Define the type for the handler *returned* by withErrorHandling
 type ApiHandler<T = any> = (
     req: NextApiRequest,
     res: NextApiResponse<T | ErrorResponse>
@@ -22,7 +22,10 @@ type ApiHandler<T = any> = (
  * @param handler The API handler function to wrap.
  * @returns A new handler function with error handling.
  */
-export function withErrorHandling<T = any>(handler: ApiHandler<T>): ApiHandler<T> {
+// Accept a standard NextApiHandler (or compatible) as input
+export function withErrorHandling<T = any>(
+    handler: NextApiHandler<T> // Changed from ApiHandler<T>
+): ApiHandler<T> { // Return type remains ApiHandler<T> as it *can* send ErrorResponse
     return async (req: NextApiRequest, res: NextApiResponse<T | ErrorResponse>) => {
         try {
             // Execute the original handler
