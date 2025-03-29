@@ -64,7 +64,8 @@ const OnboardingPage = () => {
         }
     };
     fetchData();
-  }, []); // Run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run once on mount, disable warning as selectedOnboardingId is only used for initial conditional set
 
   // Find the selected onboarding details from the fetched list
   const selectedOnboarding = onboardings.find(o => o.id === selectedOnboardingId);

@@ -61,7 +61,7 @@ const AttendanceReportPage: React.FC<AttendanceReportPageProps> = ({ departments
                 // Pass date filters here if implemented
                 />
             </div>
-        </> {/* Close fragment wrapper */}
+        </>
     );
 };
 
