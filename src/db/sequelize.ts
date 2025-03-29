@@ -1,13 +1,34 @@
 import { Sequelize } from 'sequelize';
 import path from 'path';
-import { dbConfig } from '../config/config'; // Import config directly from TS source
+import { dbConfig } from '../config/config'; // Use named import now that config.ts provides it
 
 // Determine the environment
 const env = process.env.NODE_ENV || 'development';
 
 // Get the configuration for the current environment
 // dbConfig is now imported directly above
-const config = dbConfig[env];
+// Define necessary types locally matching the structure in config.ts
+// (Alternatively, export these types from config.ts if needed elsewhere)
+type Dialect = 'mysql' | 'postgres' | 'sqlite' | 'mariadb' | 'mssql';
+interface DbConfigOptions {
+  dialect: Dialect;
+  storage?: string;
+  logging?: boolean | ((sql: string, timing?: number) => void);
+  host?: string;
+  port?: number;
+  database?: string;
+  username?: string;
+  password?: string;
+  dialectOptions?: object;
+}
+interface DbConfigs {
+  development: DbConfigOptions;
+  test: DbConfigOptions;
+  production: DbConfigOptions;
+}
+
+// Get the configuration for the current environment using the named import
+const config = dbConfig[env as keyof DbConfigs];
 
 if (!config) {
   throw new Error(`Database configuration for environment '${env}' not found.`);

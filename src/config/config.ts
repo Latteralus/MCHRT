@@ -62,6 +62,9 @@ const dbConfig: DbConfigs = {
 // Export directly using module.exports for CommonJS compatibility with Sequelize CLI
 module.exports = dbConfig;
 
+// Also provide a named export for ES Module consumers (like our runtime code)
+export { dbConfig };
+
 
 // Keep the test export if needed elsewhere
 export const testExport = 'Hello from config!';
