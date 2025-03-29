@@ -1,8 +1,9 @@
 // src/components/dashboard/widgets/ExpiringComplianceWidget.tsx
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link'; // For linking to compliance page
-// Placeholder: Import API function to fetch expiring items
-// import { fetchExpiringComplianceItems } from '@/lib/api/compliance'; // Adjust path
+import axios from 'axios'; // Import axios
+// Placeholder: If a dedicated API function exists, import it
+// import { fetchExpiringComplianceItems } from '@/lib/api/compliance';
 // Placeholder: Import Card component and utility for date formatting/difference
 import Card from '@/components/ui/Card'; // Assuming Card component is refactored
 import Icon from '@/components/ui/Icon'; // Assuming Icon component exists
@@ -15,18 +16,7 @@ interface ExpiringItem {
     daysUntilExpiry: number; // Calculated difference
 }
 
-// Mock API function
-const mockFetchExpiringItems = async (limit = 5): Promise<ExpiringItem[]> => {
-    console.log(`Mock fetching top ${limit} expiring compliance items...`);
-    await new Promise(resolve => setTimeout(resolve, 600)); // Simulate delay
-    // Return mock data sorted by expiry date
-    return [
-        { id: 1, employeeName: 'Kirk, James', itemName: 'Pharmacist License', expirationDate: '2025-01-14', daysUntilExpiry: 7 }, // Example calculation needed
-        { id: 2, employeeName: 'McCoy, Leonard', itemName: 'Pharmacy Tech License', expirationDate: '2025-01-28', daysUntilExpiry: 21 },
-        { id: 3, employeeName: 'Uhura, Nyota', itemName: 'Controlled Substance License', expirationDate: '2025-02-04', daysUntilExpiry: 28 },
-        // Add more mock items if needed
-    ].slice(0, limit);
-};
+// Mock function removed, will use axios directly
 
 const ExpiringComplianceWidget: React.FC = () => {
     const [items, setItems] = useState<ExpiringItem[]>([]);
@@ -34,16 +24,28 @@ const ExpiringComplianceWidget: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        setIsLoading(true);
-        setError(null);
-        // Replace with actual API call: fetchExpiringComplianceItems
-        mockFetchExpiringItems()
-            .then(data => setItems(data))
-            .catch(err => {
+        const fetchExpiringItems = async () => {
+            setIsLoading(true);
+            setError(null);
+            try {
+                // Fetch data from the compliance endpoint with query parameters
+                const response = await axios.get<ExpiringItem[]>('/api/compliance', {
+                    params: {
+                        expiringSoon: true, // Assuming the API supports this filter
+                        limit: 5            // Limit the results
+                    }
+                });
+                // Assuming the API returns an array matching ExpiringItem[]
+                setItems(response.data);
+            } catch (err: any) {
                 console.error("Failed to fetch expiring compliance items:", err);
-                setError("Could not load expiring items");
-            })
-            .finally(() => setIsLoading(false));
+                setError(err.response?.data?.message || err.message || "Could not load expiring items");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchExpiringItems();
     }, []);
 
     // Helper to determine status class based on days left

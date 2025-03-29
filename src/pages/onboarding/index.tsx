@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios'; // Import axios
 import { GetServerSideProps } from 'next';
 import { getSession } from 'next-auth/react';
 import Head from 'next/head';
@@ -9,21 +10,64 @@ import StatCardSimple from '@/components/ui/StatCardSimple';
 import OnboardingList from '@/components/onboarding/OnboardingList';
 import OnboardingTaskList from '@/components/onboarding/OnboardingTaskList';
 
-// Mock Data (Replace with actual data fetching later)
-const mockOnboardings = [
-  { id: 1, name: 'Jennifer Adams', startDate: '4/14/2025', progress: 65 },
-  { id: 2, name: 'Robert Chen', startDate: '4/1/2025', progress: 90 },
-  { id: 3, name: 'Emily Garcia', startDate: '3/28/2025', progress: 95 },
-];
+// Define interfaces for fetched data
+interface OnboardingStatData {
+    active: number;
+    completedThisMonth: number;
+    overdueTasks: number;
+}
 
-const mockSelectedOnboarding = mockOnboardings[0]; // Default to the first one
+interface OnboardingListItem {
+    id: number;
+    name: string; // Employee name
+    startDate: string;
+    progress: number; // Percentage
+}
+
+// Mock data removed
 
 const OnboardingPage = () => {
-  // State to manage which onboarding process is selected
-  const [selectedOnboardingId, setSelectedOnboardingId] = useState<number | null>(mockSelectedOnboarding?.id ?? null);
+  const [stats, setStats] = useState<OnboardingStatData>({ active: 0, completedThisMonth: 0, overdueTasks: 0 });
+  const [onboardings, setOnboardings] = useState<OnboardingListItem[]>([]);
+  const [selectedOnboardingId, setSelectedOnboardingId] = useState<number | null>(null);
+  const [loadingStats, setLoadingStats] = useState<boolean>(true);
+  const [loadingList, setLoadingList] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null); // Combined error state
 
-  // Find the selected onboarding details (in real app, might fetch this)
-  const selectedOnboarding = mockOnboardings.find(o => o.id === selectedOnboardingId);
+  // Fetch stats and list on mount
+  useEffect(() => {
+    const fetchData = async () => {
+        setLoadingStats(true);
+        setLoadingList(true);
+        setError(null);
+        try {
+            // Fetch concurrently
+            const statsPromise = axios.get<OnboardingStatData>('/api/onboarding/stats');
+            const listPromise = axios.get<OnboardingListItem[]>('/api/onboarding?status=active'); // Fetch active onboardings
+
+            const [statsResponse, listResponse] = await Promise.all([statsPromise, listPromise]);
+
+            setStats(statsResponse.data);
+            setOnboardings(listResponse.data);
+
+            // Optionally select the first item if list is not empty
+            if (listResponse.data.length > 0 && !selectedOnboardingId) {
+                 setSelectedOnboardingId(listResponse.data[0].id);
+            }
+
+        } catch (err: any) {
+            console.error("Error fetching onboarding data:", err);
+            setError(err.response?.data?.message || "Failed to load onboarding data.");
+        } finally {
+            setLoadingStats(false);
+            setLoadingList(false);
+        }
+    };
+    fetchData();
+  }, []); // Run once on mount
+
+  // Find the selected onboarding details from the fetched list
+  const selectedOnboarding = onboardings.find(o => o.id === selectedOnboardingId);
 
   return (
     <>
@@ -50,7 +94,7 @@ const OnboardingPage = () => {
           <div className="card simple-stat-card">
             <div className="card-body">
               <h4 className="simple-stat-title">ACTIVE ONBOARDINGS</h4>
-              <p className="simple-stat-value">3</p>
+              <p className="simple-stat-value">{loadingStats ? '...' : stats.active}</p>
             </div>
           </div>
         </div>
@@ -58,7 +102,7 @@ const OnboardingPage = () => {
           <div className="card simple-stat-card">
             <div className="card-body">
               <h4 className="simple-stat-title">COMPLETED THIS MONTH</h4>
-              <p className="simple-stat-value" style={{ color: 'var(--success)' }}>5</p>
+              <p className="simple-stat-value" style={{ color: 'var(--success)' }}>{loadingStats ? '...' : stats.completedThisMonth}</p>
             </div>
           </div>
         </div>
@@ -66,7 +110,7 @@ const OnboardingPage = () => {
           <div className="card simple-stat-card">
             <div className="card-body">
               <h4 className="simple-stat-title">OVERDUE TASKS</h4>
-              <p className="simple-stat-value" style={{ color: 'var(--danger)' }}>2</p>
+              <p className="simple-stat-value" style={{ color: 'var(--danger)' }}>{loadingStats ? '...' : stats.overdueTasks}</p>
             </div>
           </div>
         </div>
@@ -76,11 +120,14 @@ const OnboardingPage = () => {
       <div className="dashboard-grid">
         {/* Left Column: Active Onboardings List */}
         <div className="col-span-4">
-          <OnboardingList
-            onboardings={mockOnboardings}
-            selectedId={selectedOnboardingId}
-            onSelect={setSelectedOnboardingId}
-          />
+          {/* TODO: Handle loading/error state for the list */}
+          {loadingList ? <p>Loading list...</p> : error ? <p className="text-red-500">{error}</p> :
+            <OnboardingList
+                onboardings={onboardings}
+                selectedId={selectedOnboardingId}
+                onSelect={setSelectedOnboardingId}
+            />
+          }
         </div>
 
         {/* Right Column: Onboarding Tasks */}
@@ -107,10 +154,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     return { redirect: { destination: '/login', permanent: false } };
   }
 
-  // TODO: Fetch initial data if needed (e.g., list of onboardings)
+  // Data fetching moved to client-side useEffect
 
   return {
-    props: { session }, // Pass session or other props
+    props: { userRole: session.user?.role ?? null }, // Pass role if needed by child components
   };
 };
 

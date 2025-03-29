@@ -2,18 +2,25 @@
 import React, { useState } from 'react';
 import { GetServerSideProps } from 'next';
 import { getSession } from 'next-auth/react';
-import MainLayout from '@/components/layouts/MainLayout';
+// MainLayout is applied globally via _app.tsx
 import AttendanceSummaryReport from '@/components/reports/AttendanceSummaryReport';
+import axios from 'axios'; // Import axios for SSR fetch
 // Placeholder: Import function to fetch departments for filter
 // import { fetchDepartmentsForSelect } from '@/lib/api/departments'; // Adjust path
 // Placeholder: Import UI components (Select, DatePicker)
+
+// Define interface for department options
+interface DepartmentOption {
+    id: number;
+    name: string;
+}
 
 interface AttendanceReportPageProps {
     departments: { id: number; name: string }[]; // For filter dropdown
     currentUserRole: string | null;
 }
 
-const AttendanceReportPage: React.FC<AttendanceReportPageProps> = ({ departments, currentUserRole }) => {
+const AttendanceReportPage: React.FC<AttendanceReportPageProps> = ({ departments = [], currentUserRole }) => { // Default departments to empty array
     // State for filters
     const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('');
     // TODO: Add date range state if implementing date filters
@@ -22,7 +29,7 @@ const AttendanceReportPage: React.FC<AttendanceReportPageProps> = ({ departments
     const canFilterByDept = currentUserRole === 'Admin' || currentUserRole === 'Human Resources'; // Adjust roles as needed
 
     return (
-        <MainLayout>
+        <> {/* Add fragment wrapper */}
             <div className="container mx-auto p-4">
                 <h1 className="text-2xl font-semibold mb-4">Attendance Summary Report</h1>
 
@@ -54,7 +61,7 @@ const AttendanceReportPage: React.FC<AttendanceReportPageProps> = ({ departments
                 // Pass date filters here if implemented
                 />
             </div>
-        </MainLayout>
+        </> {/* Close fragment wrapper */}
     );
 };
 
@@ -82,18 +89,19 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     // Fetch department list only if user can filter by department
     if (currentUserRole === 'Admin' || currentUserRole === 'Human Resources') { // Adjust roles
         try {
-            // Placeholder: Fetch departments
             console.log('SSR: Fetching departments for attendance report filter...');
-            // departments = await fetchDepartmentsForSelect();
-            departments = [ // Placeholder data
-                { id: 1, name: 'Compounding' },
-                { id: 2, name: 'Operations' },
-                { id: 3, name: 'Shipping' },
-                { id: 4, name: 'Administration' },
-                { id: 5, name: 'Human Resources' },
-            ];
-        } catch (error) {
-            console.error('SSR Error fetching departments for filter:', error);
+            const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+            const url = new URL('/api/departments', baseUrl);
+            url.searchParams.append('select', 'id,name');
+            url.searchParams.append('sortBy', 'name');
+            url.searchParams.append('sortOrder', 'asc');
+
+            const response = await axios.get<DepartmentOption[]>(url.toString(), {
+                 headers: { Cookie: context.req.headers.cookie || '' }
+            });
+            departments = response.data;
+        } catch (error: any) {
+            console.error('SSR Error fetching departments for filter:', error.message);
         }
     }
 

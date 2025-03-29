@@ -78,9 +78,7 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSuccess, employees = 
           {employees.map(emp => (
             <option key={emp.id} value={emp.id}>{emp.name}</option>
           ))}
-          {/* Example if no employees passed */}
-          {employees.length === 0 && <option value="1">Placeholder Employee 1</option>}
-          {employees.length === 0 && <option value="2">Placeholder Employee 2</option>}
+          {/* If employees array is empty (e.g., due to SSR fetch error), the dropdown will just show "Select Employee" */}
         </select>
       </div>
 

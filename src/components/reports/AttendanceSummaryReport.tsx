@@ -1,7 +1,8 @@
 // src/components/reports/AttendanceSummaryReport.tsx
 import React, { useState, useEffect } from 'react';
-// Placeholder: Import API function to fetch attendance summary data
-// import { fetchAttendanceSummary } from '@/lib/api/reports'; // Adjust path
+import axios from 'axios'; // Import axios
+// Placeholder: If a dedicated API function exists, import it
+// import { fetchAttendanceSummary } from '@/lib/api/reports';
 // Placeholder: Import UI components (Table, Loading, Error)
 
 interface AttendanceSummaryData {
@@ -31,18 +32,15 @@ const AttendanceSummaryReport: React.FC<AttendanceSummaryReportProps> = ({ depar
             setIsLoading(true);
             setError(null);
             try {
-                // Placeholder: Replace with actual API call
                 console.log('Fetching attendance summary for:', { departmentId, startDate, endDate });
-                // const data = await fetchAttendanceSummary({ departmentId, startDate, endDate });
-                // Mock data for now:
-                const mockData: AttendanceSummaryData[] = [
-                    { department: 'Compounding', totalEmployees: 50, presentToday: 45, absentToday: 2, onLeaveToday: 3, averageAttendanceRate: 95.5 },
-                    { department: 'Operations', totalEmployees: 80, presentToday: 78, absentToday: 1, onLeaveToday: 1, averageAttendanceRate: 97.0 },
-                    { department: 'Shipping', totalEmployees: 30, presentToday: 29, absentToday: 0, onLeaveToday: 1, averageAttendanceRate: 96.8 },
-                    { department: 'Administration', totalEmployees: 15, presentToday: 14, absentToday: 0, onLeaveToday: 1, averageAttendanceRate: 98.1 },
-                    { department: 'Human Resources', totalEmployees: 5, presentToday: 5, absentToday: 0, onLeaveToday: 0, averageAttendanceRate: 100.0 },
-                ];
-                setSummaryData(mockData);
+                // Use axios to call the API endpoint
+                const params = {
+                    departmentId: departmentId || undefined,
+                    startDate: startDate || undefined,
+                    endDate: endDate || undefined,
+                };
+                const response = await axios.get<AttendanceSummaryData[]>('/api/reports/attendance-summary', { params });
+                setSummaryData(response.data);
             } catch (err: any) {
                 console.error('Failed to fetch attendance summary:', err);
                 setError(err.message || 'Failed to load attendance summary.');

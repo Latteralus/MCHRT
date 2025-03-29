@@ -3,7 +3,8 @@ import React from 'react';
 import { GetServerSideProps } from 'next';
 import { getSession } from 'next-auth/react';
 import AttendanceForm from '@/components/attendance/AttendanceForm';
-import MainLayout from '@/components/layouts/MainLayout'; // Assuming a main layout exists
+// MainLayout is applied globally via _app.tsx
+import axios from 'axios'; // Import axios for SSR fetch
 // Placeholder: Import function to fetch employees
 // import { fetchEmployeesForSelect } from '@/lib/api/employees'; // Adjust path
 // Placeholder: Import Employee type if needed for props
@@ -14,12 +15,11 @@ interface RecordAttendancePageProps {
 }
 
 const RecordAttendancePage: React.FC<RecordAttendancePageProps> = ({ employees }) => {
+  // MainLayout is applied via _app.tsx, remove wrapper here
   return (
-    <MainLayout>
-      <div className="container mx-auto p-4">
+      <div className="container mx-auto p-4"> {/* Adjust container/padding as needed */}
         <AttendanceForm employees={employees} />
       </div>
-    </MainLayout>
   );
 };
 
@@ -48,19 +48,31 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
   let employees: { id: number; name: string }[] = [];
   try {
-    // Placeholder: Replace with actual API call or direct DB query if appropriate for SSR
     console.log('SSR: Fetching employees for attendance form...');
-    // employees = await fetchEmployeesForSelect(); // Example API call
-    // Or direct DB access (ensure DB connection is handled properly in SSR context)
-    // const employeeRecords = await Employee.findAll({ attributes: ['id', 'firstName', 'lastName'], order: [['lastName', 'ASC']] });
-    // employees = employeeRecords.map(emp => ({ id: emp.id, name: `${emp.lastName}, ${emp.firstName}` }));
+    try {
+        // Construct absolute URL for server-side API call
+        const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'; // Fallback for local dev
+        const url = new URL('/api/employees', baseUrl);
+        url.searchParams.append('select', 'id,firstName,lastName'); // Request specific fields
+        url.searchParams.append('sortBy', 'lastName'); // Sort for dropdown
+        url.searchParams.append('sortOrder', 'asc');
 
-    // Using placeholder data for now
-    employees = [
-      { id: 1, name: 'Doe, John' },
-      { id: 2, name: 'Smith, Jane' },
-      { id: 3, name: 'Williams, Bob' },
-    ];
+        const response = await axios.get<{ id: number; firstName: string; lastName: string }[]>(url.toString(), {
+             // Pass cookies from the incoming request to the API route for authentication
+             headers: {
+                Cookie: context.req.headers.cookie || '',
+             }
+        });
+        // Format name for display
+        employees = response.data.map(emp => ({
+            id: emp.id,
+            name: `${emp.lastName}, ${emp.firstName}`
+        }));
+
+    } catch (error: any) {
+        console.error('SSR Error fetching employees for filter:', error.message);
+        // Keep employees array empty, page can handle this
+    }
 
   } catch (error) {
     console.error('SSR Error fetching employees:', error);

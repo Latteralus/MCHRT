@@ -46,7 +46,7 @@ const LoginPage: NextPageWithLayout = () => {
   return (
     <>
       <Head>
-        <title>Login - Mountain Care HR</title>
+        <title>Login - Mountain Care</title>
       </Head>
       
       <div className="login-container">
@@ -54,7 +54,7 @@ const LoginPage: NextPageWithLayout = () => {
           <div className="login-logo">
             <Image src="/logo.png" alt="Mountain Care Logo" width={150} height={50} priority /> {/* Use next/image */}
           </div>
-          <h1 className="login-title">Mountain Care HR</h1>
+          <h1 className="login-title">Mountain Care</h1>
           
           {error && (
             <div className="alert alert-danger" style={{ marginBottom: '1.5rem' }}>

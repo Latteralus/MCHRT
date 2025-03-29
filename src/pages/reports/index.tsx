@@ -1,44 +1,89 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios'; // Import axios
 import { GetServerSideProps } from 'next';
 import { getSession } from 'next-auth/react';
 import Head from 'next/head';
 import Link from 'next/link'; // Although not used in the static image, might be needed for category links
 
-// Mock data for the table preview
-const mockReportData = [
-  { department: 'Administration', employees: 68, present: 62, absent: 2, leave: 4, attendanceRate: '91.2%' },
-  { department: 'Human Resources', employees: 42, present: 38, absent: 1, leave: 3, attendanceRate: '90.5%' },
-  { department: 'Operations', employees: 24, present: 21, absent: 0, leave: 3, attendanceRate: '87.5%' },
-  { department: 'Compounding', employees: 35, present: 32, absent: 1, leave: 2, attendanceRate: '91.4%' },
-];
+// Define interfaces for fetched data
+interface DepartmentOption {
+    id: number;
+    name: string;
+}
 
-// Calculate totals
-const totals = mockReportData.reduce(
-  (acc, row) => {
-    acc.employees += row.employees;
-    acc.present += row.present;
-    acc.absent += row.absent;
-    acc.leave += row.leave;
-    return acc;
-  },
-  { employees: 0, present: 0, absent: 0, leave: 0 }
-);
-// Basic average calculation for total attendance rate (can be refined)
-const totalAttendanceRate = ((totals.present / totals.employees) * 100).toFixed(1) + '%';
+interface ReportRow {
+    department: string;
+    employees: number;
+    present: number;
+    absent: number;
+    leave: number;
+    attendanceRate: string; // Assuming API returns formatted string
+}
+
+interface ReportData {
+    rows: ReportRow[];
+    totals: {
+        employees: number;
+        present: number;
+        absent: number;
+        leave: number;
+        attendanceRate: string; // Assuming API returns formatted string
+    };
+}
+
+// Mock data removed
 
 
-const ReportsPage = () => {
-  // State for selected report category, filters, etc. - Add later
-  const [selectedReport, setSelectedReport] = useState<string>('Attendance Summary'); // Example state
-  const [departmentFilter, setDepartmentFilter] = useState<string>('All Departments');
-  const [dateRangeFilter, setDateRangeFilter] = useState<string>('Last 30 Days');
+interface ReportsPageProps {
+    departments: DepartmentOption[]; // Passed from SSR
+}
+
+const ReportsPage: React.FC<ReportsPageProps> = ({ departments }) => {
+  const [selectedReport, setSelectedReport] = useState<string>('Attendance Summary');
+  const [departmentFilter, setDepartmentFilter] = useState<string>(''); // Default to empty string for 'All'
+  const [dateRangeFilter, setDateRangeFilter] = useState<string>('Last 30 Days'); // Keep date range simple for now
   const [formatFilter, setFormatFilter] = useState<string>('Table');
+  const [reportData, setReportData] = useState<ReportData | null>(null);
+  const [loadingReport, setLoadingReport] = useState<boolean>(false);
+  const [errorReport, setErrorReport] = useState<string | null>(null);
 
   const reportCategories = {
     'ATTENDANCE & LEAVE': ['Attendance Summary', 'Leave Balance', 'Absence Rate'],
     'EMPLOYEE': ['Employee Directory', 'Headcount by Department', 'Turnover Rate'],
     'COMPLIANCE': ['Certification Status', 'Upcoming Expirations', 'HIPAA Compliance'],
   };
+
+  // Effect to fetch report data when filters change
+  useEffect(() => {
+    // Only fetch if the selected report is Attendance Summary for now
+    if (selectedReport !== 'Attendance Summary') {
+        setReportData(null); // Clear data if report type changes
+        return;
+    }
+
+    const fetchReport = async () => {
+        setLoadingReport(true);
+        setErrorReport(null);
+        try {
+            // TODO: Implement date range parsing based on dateRangeFilter state
+            const params = {
+                departmentId: departmentFilter || undefined,
+                // startDate: ...,
+                // endDate: ...,
+            };
+            const response = await axios.get<ReportData>('/api/reports/attendance-summary', { params });
+            setReportData(response.data);
+        } catch (err: any) {
+            console.error("Error fetching report data:", err);
+            setErrorReport(err.response?.data?.message || "Failed to load report data.");
+            setReportData(null); // Clear data on error
+        } finally {
+            setLoadingReport(false);
+        }
+    };
+
+    fetchReport();
+  }, [selectedReport, departmentFilter, dateRangeFilter]); // Add other filters as dependencies
 
   return (
     <div className="page-container p-8 bg-gray-50 min-h-screen">
@@ -98,12 +143,10 @@ const ReportsPage = () => {
                 onChange={(e) => setDepartmentFilter(e.target.value)}
                 className="w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option>All Departments</option>
-                <option>Nursing</option>
-                <option>Administration</option>
-                <option>Radiology</option>
-                <option>Pediatrics</option>
-                {/* Add more departments */}
+                <option value="">All Departments</option>
+                {departments.map(dept => (
+                    <option key={dept.id} value={dept.id}>{dept.name}</option>
+                ))}
               </select>
             </div>
             <div>
@@ -152,7 +195,7 @@ const ReportsPage = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {mockReportData.map((row) => (
+                  {reportData && reportData.rows.map((row) => (
                     <tr key={row.department}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{row.department}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.employees}</td>
@@ -163,23 +206,29 @@ const ReportsPage = () => {
                     </tr>
                   ))}
                   {/* Total Row */}
-                   <tr className="bg-gray-50 font-semibold">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">Total</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{totals.employees}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{totals.present}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{totals.absent}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{totals.leave}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{totalAttendanceRate}</td>
-                    </tr>
+                  {reportData && (
+                     <tr className="bg-gray-50 font-semibold">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">Total</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{reportData.totals.employees}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{reportData.totals.present}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{reportData.totals.absent}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{reportData.totals.leave}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{reportData.totals.attendanceRate}</td>
+                      </tr>
+                  )}
                 </tbody>
               </table>
             ) : (
-              // Placeholder for Chart or other reports
-              <div className="text-center py-10 text-gray-500">
-                <h3 className="text-lg font-medium mb-2">Report Chart Preview</h3>
-                <p>Data visualization will appear here</p>
-                {/* Add logic to show different previews based on selectedReport */}
-              </div>
+              // Placeholder for Chart or other reports / loading / error states
+              loadingReport ? <p className="text-center py-10 text-gray-500">Loading report data...</p> :
+              errorReport ? <p className="text-center py-10 text-red-500">Error: {errorReport}</p> :
+              !reportData ? <p className="text-center py-10 text-gray-500">Select report options to view data.</p> :
+              formatFilter !== 'Table' ? (
+                  <div className="text-center py-10 text-gray-500">
+                    <h3 className="text-lg font-medium mb-2">Report Chart Preview</h3>
+                    <p>Data visualization will appear here</p>
+                  </div>
+              ) : null // Table is rendered above if format is Table and data exists
             )}
           </div>
 
@@ -200,10 +249,30 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     return { redirect: { destination: '/login', permanent: false } };
   }
 
-  // TODO: Fetch initial data if needed (e.g., list of departments for filter)
+  // Fetch departments for filter dropdown
+  let departments: DepartmentOption[] = [];
+  try {
+      console.log('SSR: Fetching departments for report filter...');
+      const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+      const url = new URL('/api/departments', baseUrl);
+      url.searchParams.append('select', 'id,name'); // Request specific fields
+      url.searchParams.append('sortBy', 'name');
+      url.searchParams.append('sortOrder', 'asc');
+
+      const response = await axios.get<DepartmentOption[]>(url.toString(), {
+           headers: { Cookie: context.req.headers.cookie || '' }
+      });
+      departments = response.data;
+  } catch (error: any) {
+       console.error('SSR Error fetching departments for filter:', error.message);
+       // Proceed with empty departments list
+  }
 
   return {
-    props: { session }, // Pass session or other props
+    props: {
+        departments,
+        session // Pass session if needed by layout/components
+    },
   };
 };
 

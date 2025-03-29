@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios'; // Import axios
 
 // Define the shape of an onboarding process object (matching OnboardingList)
 interface OnboardingProcess {
@@ -21,20 +22,37 @@ interface OnboardingTaskListProps {
   onboarding: OnboardingProcess;
 }
 
-// Mock Task Data (Replace with actual data fetching based on onboarding.id)
-const mockTasks: OnboardingTask[] = [
-  { id: 'ot1', description: 'Complete I-9 Form', completed: true, category: 'Paperwork', dueDate: '4/14/2025' },
-  { id: 'ot2', description: 'Sign Employment Agreement', completed: true, category: 'Paperwork', dueDate: '4/14/2025' },
-  { id: 'ot3', description: 'Set up Workstation & Peripherals', completed: true, category: 'IT Setup' },
-  { id: 'ot4', description: 'Grant System Access (Email, Software)', completed: false, category: 'IT Setup', dueDate: '4/15/2025' },
-  { id: 'ot5', description: 'Attend New Hire Orientation', completed: false, category: 'Training', dueDate: '4/16/2025' },
-  { id: 'ot6', description: 'Introduction to Team Members', completed: false, category: 'Team Intro' },
-  { id: 'ot7', description: 'Review Department Goals & Objectives', completed: false, category: 'Team Intro' },
-];
+// Mock data removed
 
 const OnboardingTaskList: React.FC<OnboardingTaskListProps> = ({ onboarding }) => {
-  // State to manage task completion
-  const [tasks, setTasks] = useState<OnboardingTask[]>(mockTasks);
+  const [tasks, setTasks] = useState<OnboardingTask[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState<boolean>(true);
+  const [errorTasks, setErrorTasks] = useState<string | null>(null);
+
+  // Fetch tasks when onboarding ID changes
+  useEffect(() => {
+    if (!onboarding?.id) return; // Don't fetch if no onboarding process is selected
+
+    const fetchTasks = async () => {
+        setLoadingTasks(true);
+        setErrorTasks(null);
+        try {
+            // Assuming tasks are fetched based on employeeId or a specific onboarding process ID
+            // Adjust endpoint as needed
+            const response = await axios.get<OnboardingTask[]>(`/api/tasks`, {
+                params: { employeeId: onboarding.id } // Or onboardingId=onboarding.id
+            });
+            setTasks(response.data);
+        } catch (err: any) {
+            console.error(`Error fetching tasks for onboarding ${onboarding.id}:`, err);
+            setErrorTasks(err.response?.data?.message || "Failed to load tasks.");
+        } finally {
+            setLoadingTasks(false);
+        }
+    };
+
+    fetchTasks();
+  }, [onboarding?.id]); // Dependency on onboarding ID
 
   const handleTaskToggle = (taskId: string) => {
     setTasks(currentTasks =>
@@ -42,8 +60,27 @@ const OnboardingTaskList: React.FC<OnboardingTaskListProps> = ({ onboarding }) =
         task.id === taskId ? { ...task, completed: !task.completed } : task
       )
     );
-    // TODO: Add API call here to update task status
-    console.log(`Toggled task ${taskId} for ${onboarding.name}`);
+
+    // --- API Call to Update Task Status ---
+    const originalTask = currentTasks.find(task => task.id === taskId);
+    if (!originalTask) return; // Should not happen if state update worked
+
+    const newCompletedStatus = !originalTask.completed;
+
+    // Optimistic update done above, now call API
+    axios.put(`/api/tasks/${taskId}`, { completed: newCompletedStatus })
+       .then(response => {
+           // Optional: Update local state with potentially more complete data from response
+           console.log(`Task ${taskId} status updated successfully to ${newCompletedStatus}`);
+       })
+       .catch(err => {
+           console.error(`Error updating task ${taskId}:`, err);
+           // Revert optimistic update on error
+           setTasks(currentTasks); // Restore previous state
+           // Show error message to user
+           alert(`Failed to update task status: ${err.response?.data?.message || err.message}`);
+       });
+    // --- End API Call ---
   };
 
   return (
@@ -56,7 +93,11 @@ const OnboardingTaskList: React.FC<OnboardingTaskListProps> = ({ onboarding }) =
       <div className="card-body">
         <h3 className="text-lg font-semibold text-gray-700 mb-4">Onboarding Checklist</h3>
 
-        {tasks.length === 0 ? (
+        {loadingTasks ? (
+            <p className="text-gray-500 text-sm">Loading tasks...</p>
+        ) : errorTasks ? (
+            <p className="text-red-500 text-sm">Error: {errorTasks}</p>
+        ) : tasks.length === 0 ? (
            <p className="text-gray-500 text-sm">No tasks defined for this onboarding process.</p>
         ) : (
           <ul className="space-y-3">

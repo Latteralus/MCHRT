@@ -4,7 +4,8 @@ import { getSession } from 'next-auth/react';
 import Head from 'next/head';
 import Link from 'next/link';
 import LeaveRequestList from '@/components/leave/LeaveRequestList';
-import Icon from '@/components/ui/Icon'; // Assuming Icon component exists
+import Icon from '@/components/ui/Icon';
+import axios from 'axios'; // Import axios for SSR fetch
 import Card from '@/components/ui/Card'; // Assuming Card component exists
 
 // Placeholder: Import function to fetch employees for filter dropdown
@@ -134,13 +135,23 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
   const currentUserRole = session.user?.role as string | null; // Get role from session
 
-  // Placeholder: Fetch actual stats from an API endpoint
-  const stats = {
-    available: 14,
-    pending: 2,
-    approved: 8,
-    usedThisYear: 6,
-  };
+  // Fetch actual stats from an API endpoint
+  let stats = { available: 0, pending: 0, approved: 0, usedThisYear: 0 }; // Default stats
+  try {
+      console.log('SSR: Fetching leave stats...');
+      const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+      // Assuming an endpoint exists to fetch stats for the current user
+      const url = new URL('/api/leave/stats', baseUrl);
+
+      const response = await axios.get<typeof stats>(url.toString(), {
+           headers: { Cookie: context.req.headers.cookie || '' }
+      });
+      stats = response.data;
+
+  } catch (error: any) {
+      console.error('SSR Error fetching leave stats:', error.message);
+      // Keep default stats or handle error appropriately
+  }
 
   // Placeholder: Fetch employees if needed for other filters later
   // let employees: { id: number; name: string }[] = [];

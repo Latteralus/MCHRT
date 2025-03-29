@@ -16,8 +16,7 @@ interface EmployeeData {
   departmentId?: number;
   createdAt?: string;
   updatedAt?: string;
-  // Add department details if included via API later
-  // department?: { name: string };
+  // Department name will be fetched separately
 }
 
 const EmployeeDetailPage: React.FC = () => {
@@ -27,6 +26,9 @@ const EmployeeDetailPage: React.FC = () => {
   const [employee, setEmployee] = useState<EmployeeData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [departmentName, setDepartmentName] = useState<string | null>(null);
+  const [deptLoading, setDeptLoading] = useState<boolean>(false);
+  const [deptError, setDeptError] = useState<string | null>(null);
 
   useEffect(() => {
     // Fetch employee data only if the ID is available in the router query
@@ -55,6 +57,30 @@ const EmployeeDetailPage: React.FC = () => {
       setLoading(false);
     }
   }, [id]); // Re-run effect if the ID changes
+
+  // Effect to fetch department name once employee data is available
+  useEffect(() => {
+    if (employee?.departmentId) {
+      const fetchDepartment = async () => {
+        setDeptLoading(true);
+        setDeptError(null);
+        try {
+          const response = await axios.get<{ name: string }>(`/api/departments/${employee.departmentId}`);
+          setDepartmentName(response.data.name);
+        } catch (err: any) {
+          console.error(`Error fetching department ${employee.departmentId}:`, err);
+          setDeptError('Could not load department name.');
+          setDepartmentName(null); // Clear name on error
+        } finally {
+          setDeptLoading(false);
+        }
+      };
+      fetchDepartment();
+    } else {
+      // Reset department name if employee has no department ID
+      setDepartmentName(null);
+    }
+  }, [employee?.departmentId]); // Re-run when departmentId changes
 
   // Basic styling for detail view (can be improved)
   const detailStyles: React.CSSProperties = {
@@ -93,7 +119,11 @@ const EmployeeDetailPage: React.FC = () => {
         <title>{`Employee: ${employee.firstName} ${employee.lastName} - Mountain Care HR`}</title>
       </Head>
       <div>
-        {/* TODO: Add Breadcrumbs or back link */}
+        <div style={{ marginBottom: '1rem' }}>
+             <Link href="/employees" className="text-link">
+                &larr; Back to Employee List
+             </Link>
+        </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <h2>Employee Details</h2>
           {/* Add Edit button */}
@@ -123,8 +153,8 @@ const EmployeeDetailPage: React.FC = () => {
             <span style={labelStyles}>Hire Date:</span> {employee.hireDate ? new Date(employee.hireDate).toLocaleDateString() : 'N/A'}
           </div>
           <div style={itemStyles}>
-            <span style={labelStyles}>Department ID:</span> {employee.departmentId || 'N/A'}
-            {/* TODO: Display Department Name */}
+            <span style={labelStyles}>Department:</span>
+            {deptLoading ? ' Loading...' : (deptError || departmentName || 'N/A')}
           </div>
           {/* Add more fields as needed */}
         </div>

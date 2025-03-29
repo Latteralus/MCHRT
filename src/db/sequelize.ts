@@ -1,16 +1,12 @@
 import { Sequelize } from 'sequelize';
 import path from 'path';
-// Config will be loaded dynamically below using an absolute path
+import { dbConfig } from '../config/config'; // Import config directly from TS source
 
 // Determine the environment
 const env = process.env.NODE_ENV || 'development';
 
 // Get the configuration for the current environment
-// Type assertion needed as dbConfig is imported from JS
-// Type assertion needed as dbConfig is imported from JS
-// Load config dynamically using require and an absolute path relative to project root
-const configPath = path.resolve(process.cwd(), 'src/config/config.js');
-const dbConfig = require(configPath);
+// dbConfig is now imported directly above
 const config = dbConfig[env];
 
 if (!config) {

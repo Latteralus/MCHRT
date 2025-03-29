@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import axios from 'axios';
 import { GetServerSideProps } from 'next';
-import { getSession } from 'next-auth/react';
+import { getSession, useSession } from 'next-auth/react'; // Import useSession for client-side role check
+import Link from 'next/link'; // Import Link
 // MainLayout is applied globally via _app.tsx
 import Icon from '@/components/ui/Icon';
 import Card from '@/components/ui/Card'; // Import Card
@@ -28,6 +29,10 @@ const EmployeeListPage: React.FC<EmployeeListPageProps> = ({ userRole }) => {
   const [employees, setEmployees] = useState<EmployeeData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [nameFilter, setNameFilter] = useState<string>(''); // State for name filter
+
+  // Get session on client-side for dynamic role checks if needed, though userRole prop is primary
+  const { data: session } = useSession();
 
   // Fetch employees when the component mounts
   useEffect(() => {
@@ -35,7 +40,9 @@ const EmployeeListPage: React.FC<EmployeeListPageProps> = ({ userRole }) => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get<EmployeeData[]>('/api/employees');
+        // Add filter parameter if nameFilter is set
+        const params = nameFilter ? { name: nameFilter } : {};
+        const response = await axios.get<EmployeeData[]>('/api/employees', { params });
         setEmployees(response.data);
       } catch (err: any) {
         console.error('Error fetching employees:', err);
@@ -46,10 +53,11 @@ const EmployeeListPage: React.FC<EmployeeListPageProps> = ({ userRole }) => {
     };
 
     fetchEmployees();
-  }, []);
+  }, [nameFilter]); // Re-fetch when nameFilter changes
 
   // Determine if the current user can export
-  const canExport = userRole === 'Admin' || userRole === 'DepartmentHead';
+  const canManage = userRole === 'Admin' || userRole === 'DepartmentHead'; // Combine check for multiple actions
+  const canExport = canManage; // Assuming same roles can export
 
   return (
     <> {/* Single root fragment */}
@@ -75,17 +83,26 @@ const EmployeeListPage: React.FC<EmployeeListPageProps> = ({ userRole }) => {
                     Export CSV
                  </a>
             )}
-            {/* TODO: Add "New Employee" button if needed */}
-            {/* <Link href="/employees/new" className="btn btn-primary">
-                <Icon iconName="fas fa-plus" /> New Employee
-            </Link> */}
+            {/* Enable "New Employee" button if user has permission */}
+            {canManage && (
+                <Link href="/employees/new" className="btn btn-primary">
+                    <Icon iconName="fas fa-plus" /> New Employee
+                </Link>
+            )}
           </div>
       </div>
 
       {/* TODO: Refactor Filtering Controls with semantic classes if needed */}
       <div className="filter-controls" style={{ marginBottom: '1rem', display: 'flex', gap: '1rem' }}> {/* Basic layout */}
         {/* Use form-input class potentially */}
-        <input type="text" placeholder="Filter by name..." disabled title="Filter by name" className="form-input" style={{maxWidth: '250px'}} />
+        <input
+            type="text"
+            placeholder="Filter by name..."
+            value={nameFilter}
+            onChange={(e) => setNameFilter(e.target.value)}
+            className="form-input"
+            style={{maxWidth: '250px'}}
+        />
         <select disabled title="Filter by department" className="form-input" style={{maxWidth: '250px'}}>
           <option value="">Filter by department...</option>
           {/* Populate departments dynamically later */}
@@ -125,17 +142,30 @@ const EmployeeListPage: React.FC<EmployeeListPageProps> = ({ userRole }) => {
                         <td>{emp.lastName}</td>
                         <td>{emp.position || 'N/A'}</td>
                         <td>{emp.hireDate ? new Date(emp.hireDate).toLocaleDateString() : 'N/A'}</td>
-                        <td>
-                          {/* TODO: Add View/Edit/Delete links/buttons */}
-                          {/* Use standard button or semantic class */}
-                          <button disabled className="btn btn-sm btn-outline">View</button> {/* Example */}
+                        <td className="actions-cell" style={{ whiteSpace: 'nowrap' }}> {/* Prevent wrapping */}
+                           <Link href={`/employees/${emp.id}`} className="btn btn-sm btn-outline" style={{ marginRight: '0.5rem' }}>
+                                View
+                           </Link>
+                           {canManage && (
+                               <>
+                                   <Link href={`/employees/${emp.id}/edit`} className="btn btn-sm btn-outline" style={{ marginRight: '0.5rem' }}>
+                                       Edit
+                                   </Link>
+                                   <button
+                                       onClick={() => handleDelete(emp.id)}
+                                       className="btn btn-sm btn-danger-outline"
+                                   >
+                                       Delete
+                                   </button>
+                               </>
+                           )}
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
                       {/* Apply text align via CSS class if available, else inline */}
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '1rem' }}>
+                      <td colSpan={7} style={{ textAlign: 'center', padding: '1rem' }}> {/* Adjusted colspan */}
                         No employees found.
                       </td>
                     </tr>
@@ -149,6 +179,27 @@ const EmployeeListPage: React.FC<EmployeeListPageProps> = ({ userRole }) => {
     </>
   );
 };
+
+  // Handle employee deletion
+  const handleDelete = async (employeeId: number) => {
+    // Basic confirmation dialog
+    if (!window.confirm('Are you sure you want to delete this employee? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await axios.delete(`/api/employees/${employeeId}`);
+      // Remove the employee from the local state to update the UI
+      setEmployees(prevEmployees => prevEmployees.filter(emp => emp.id !== employeeId));
+      // Optionally show a success notification
+      alert('Employee deleted successfully.');
+    } catch (err: any) {
+      console.error('Error deleting employee:', err);
+      setError(err.response?.data?.message || 'Failed to delete employee.');
+      // Optionally show an error notification
+      alert(`Error: ${err.response?.data?.message || 'Failed to delete employee.'}`);
+    }
+  };
 
 // Fetch session data server-side to get the user's role
 export const getServerSideProps: GetServerSideProps = async (context) => {

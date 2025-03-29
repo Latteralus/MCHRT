@@ -7,8 +7,9 @@ import Head from 'next/head';
 import AttendanceList from '@/components/attendance/AttendanceList';
 // MainLayout is applied globally via _app.tsx
 
-// Placeholder: Import function to fetch employees for filter dropdown
-// import { fetchEmployeesForSelect } from '@/lib/api/employees'; // Adjust path
+import axios from 'axios'; // Import axios for SSR fetch
+// Placeholder: If a dedicated lib function exists, use it
+// import { fetchEmployeesForSelect } from '@/lib/api/employees';
 
 interface AttendanceIndexPageProps {
   employees: { id: number; name: string }[]; // For filter dropdown
@@ -118,14 +119,31 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
   let employees: { id: number; name: string }[] = [];
   try {
-    // Placeholder: Fetch employees
     console.log('SSR: Fetching employees for attendance filter...');
-    // employees = await fetchEmployeesForSelect(); // TODO: Implement actual fetch
-    employees = [ // Placeholder data
-      { id: 1, name: 'Doe, John' },
-      { id: 2, name: 'Smith, Jane' },
-      { id: 3, name: 'Williams, Bob' },
-    ];
+    try {
+        // Construct absolute URL for server-side API call
+        const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'; // Fallback for local dev
+        const url = new URL('/api/employees', baseUrl);
+        url.searchParams.append('select', 'id,firstName,lastName'); // Request specific fields
+        url.searchParams.append('sortBy', 'lastName'); // Sort for dropdown
+        url.searchParams.append('sortOrder', 'asc');
+
+        const response = await axios.get<{ id: number; firstName: string; lastName: string }[]>(url.toString(), {
+             // Pass cookies from the incoming request to the API route for authentication
+             headers: {
+                Cookie: context.req.headers.cookie || '',
+             }
+        });
+        // Format name for display
+        employees = response.data.map(emp => ({
+            id: emp.id,
+            name: `${emp.lastName}, ${emp.firstName}`
+        }));
+
+    } catch (error: any) {
+        console.error('SSR Error fetching employees for filter:', error.message);
+        // Keep employees array empty, page can handle this
+    }
   } catch (error) {
     console.error('SSR Error fetching employees for filter:', error);
     // Handle error appropriately, maybe return an error prop

@@ -44,6 +44,7 @@ Seeding requires two steps due to the project using TypeScript models:
     ```bash
     npm run db:seed:all
     ```
+    This command now runs `npm run build:config && npx sequelize-cli db:seed:all`. It first ensures the `src/config/config.js` file is up-to-date, then finds and executes the `up` method in `src/db/seeders/002-fake-data.js`. This script then `require`s the compiled JavaScript models from `./dist-seed` to interact with the database.
     This command runs `sequelize db:seed:all`, which finds and executes the `up` method in `src/db/seeders/002-fake-data.js`. This script then `require`s the compiled JavaScript models from `./dist-seed` to interact with the database.
 
-**Note:** If you modify any TypeScript models (`src/modules/**/*.ts`) or the `src/db/sequelize.ts` file, you **must** re-run `npm run db:seed:compile` before running `npm run db:seed:all` to ensure the seeder uses the latest compiled code.
+**Note:** If you modify any TypeScript models (`src/modules/**/*.ts`) or the `src/db/sequelize.ts` file, you **must** re-run `npm run db:seed:compile` before running `npm run db:seed:all` to ensure the seeder uses the latest compiled model code. The `npm run db:seed:all` command automatically handles rebuilding the `src/config/config.js` file if `src/config/config.ts` changes.

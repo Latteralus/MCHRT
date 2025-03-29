@@ -30,7 +30,7 @@ interface DbConfigs {
 }
 
 
-export const dbConfig: DbConfigs = {
+const dbConfig: DbConfigs = {
   development: {
     dialect: 'sqlite',
     storage: dbPath, // Path to the database file
@@ -59,5 +59,9 @@ export const dbConfig: DbConfigs = {
   }
 };
 
-// Simple export for testing import resolution
+// Export directly using module.exports for CommonJS compatibility with Sequelize CLI
+module.exports = dbConfig;
+
+
+// Keep the test export if needed elsewhere
 export const testExport = 'Hello from config!';

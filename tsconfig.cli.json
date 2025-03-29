@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.json", // Inherit base settings
+  "compilerOptions": {
+    "outDir": "./src/config", // Output directly into src/config
+    "rootDir": "./src/config", // Only compile files from src/config
+    "module": "commonjs", // Ensure CommonJS output for require()
+    "moduleResolution": "node", // Override base config's 'bundler' to be compatible with 'commonjs'
+    "noEmit": false, // Explicitly enable emitting files
+    "declaration": false, // No need for .d.ts files for the CLI config
+    "skipLibCheck": true,
+    "isolatedModules": false // Not needed for this simple compilation
+  },
+  "include": [
+    "src/config/config.ts" // Only compile this specific file
+  ],
+  "exclude": [
+    "node_modules",
+    "**/*.test.ts",
+    "**/*.spec.ts"
+  ]
+}
