@@ -55,17 +55,23 @@ const OnboardingTaskList: React.FC<OnboardingTaskListProps> = ({ onboarding }) =
   }, [onboarding?.id]); // Dependency on onboarding ID
 
   const handleTaskToggle = (taskId: string) => {
+    // Find the task and its intended new status *before* the optimistic update
+    const originalTask = tasks.find(task => task.id === taskId);
+    if (!originalTask) {
+        console.error("Task not found for toggling:", taskId);
+        return; // Task not found in current state, abort
+    }
+    const newCompletedStatus = !originalTask.completed;
+
+    // Optimistic UI update
     setTasks(currentTasks =>
       currentTasks.map(task =>
-        task.id === taskId ? { ...task, completed: !task.completed } : task
+        task.id === taskId ? { ...task, completed: newCompletedStatus } : task
       )
     );
 
     // --- API Call to Update Task Status ---
-    const originalTask = currentTasks.find(task => task.id === taskId);
-    if (!originalTask) return; // Should not happen if state update worked
-
-    const newCompletedStatus = !originalTask.completed;
+    // Use newCompletedStatus determined before the state update
 
     // Optimistic update done above, now call API
     axios.put(`/api/tasks/${taskId}`, { completed: newCompletedStatus })
@@ -76,7 +82,12 @@ const OnboardingTaskList: React.FC<OnboardingTaskListProps> = ({ onboarding }) =
        .catch(err => {
            console.error(`Error updating task ${taskId}:`, err);
            // Revert optimistic update on error
-           setTasks(currentTasks); // Restore previous state
+           // Revert optimistic update on error using the original task state
+           setTasks(prevTasks =>
+               prevTasks.map(task =>
+                   task.id === taskId ? originalTask : task
+               )
+           );
            // Show error message to user
            alert(`Failed to update task status: ${err.response?.data?.message || err.message}`);
        });
