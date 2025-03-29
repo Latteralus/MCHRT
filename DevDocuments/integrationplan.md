@@ -76,10 +76,9 @@ We will tackle the integration module by module, focusing on one major feature a
     *   `[x]` **Attendance Report Page (`/reports/attendance`):** Updated SSR fetch for department filter. `[x]` `AttendanceSummaryReport` component updated to fetch live data.
     *   `[/]` **Department Report Page (`/reports/departments`):** Already used API calls.
 
-*   **J. Settings/Admin Pages (If applicable)**
-    *   Review pages for managing Departments, Users, Roles.
-    *   Ensure data display and updates use API calls.
-
+*   **J. Settings/Admin Pages (If applicable)** - `[N/A - Not Implemented]`
+    *   Review pages for managing Departments, Users, Roles. *(Finding: Dedicated frontend pages for User/Department management do not appear to exist in the current structure, likely outside MVP scope)*
+    *   Ensure data display and updates use API calls. *(N/A as pages don't exist)*
 **5. Testing Strategy:**
 
 *   **Manual Testing:** After integrating each module/page:

@@ -1,18 +1,25 @@
 import React from 'react';
 import Link from 'next/link';
-// Assuming a logo file exists or using a placeholder
-// import logo from '@/public/logo.svg'; // Example path
 import Image from 'next/image';
+import { Role } from '@/types/roles'; // Import Role enum
 
 interface SidebarProps {
   // Add any necessary props, e.g., user info, active path
   userName?: string;
-  userRole?: string;
+  userRole?: Role; // Use Role enum for type safety
   userAvatarUrl?: string;
   activePath?: string;
 }
 
-const menuItems = [
+interface MenuItem {
+  href: string;
+  icon: string;
+  label: string;
+  requiredRole?: Role; // Add optional role requirement
+}
+
+const menuItems: MenuItem[] = [
+  // Standard User Links
   { href: '/', icon: 'fas fa-home', label: 'Dashboard' },
   { href: '/employees', icon: 'fas fa-users', label: 'Employees' },
   { href: '/attendance', icon: 'fas fa-calendar-alt', label: 'Attendance' },
@@ -21,12 +28,17 @@ const menuItems = [
   { href: '/offboarding', icon: 'fas fa-user-minus', label: 'Offboarding' },
   { href: '/compliance', icon: 'fas fa-shield-alt', label: 'Compliance' },
   { href: '/documents', icon: 'fas fa-file-alt', label: 'Documents' },
-  { href: '/settings', icon: 'fas fa-cog', label: 'Settings' },
+  { href: '/reports', icon: 'fas fa-chart-bar', label: 'Reports' }, // Added Reports link
+  { href: '/profile', icon: 'fas fa-cog', label: 'Settings' }, // Added Settings link pointing to profile
+
+  // Admin Section - Moved to bottom
+  { href: '/admin/departments', icon: 'fas fa-building', label: 'Manage Departments', requiredRole: Role.ADMIN },
+  { href: '/admin/users', icon: 'fas fa-user-cog', label: 'Manage Users', requiredRole: Role.ADMIN },
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({
   userName = 'Faith Calkins', // Default placeholder
-  userRole = 'HR Director', // Default placeholder
+  userRole, // Remove default, should come from session/props
   userAvatarUrl = '/images/default-avatar.png', // Default placeholder
   activePath = '/', // Default placeholder
 }) => {
@@ -39,13 +51,15 @@ const Sidebar: React.FC<SidebarProps> = ({
         <span>Mountain Care</span>
       </div>
       <nav className="sidebar-menu">
-        {menuItems.map((item) => (
-          <Link href={item.href} key={item.label} legacyBehavior>
-            <a className={`menu-item ${activePath === item.href ? 'active' : ''}`}>
-              <i className={item.icon}></i>
-              {item.label}
-            </a>
-          </Link>
+        {menuItems
+          .filter(item => !item.requiredRole || item.requiredRole === userRole) // Filter based on role
+          .map((item) => (
+            <Link href={item.href} key={item.label} legacyBehavior>
+              <a className={`menu-item ${activePath === item.href ? 'active' : ''}`}>
+                <i className={item.icon}></i>
+                {item.label}
+              </a>
+            </Link>
         ))}
       </nav>
       <div className="sidebar-footer">
