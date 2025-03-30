@@ -1,10 +1,12 @@
 // src/modules/tasks/services/taskService.ts
-import Task from '@/modules/tasks/models/Task';
-import Employee from '@/modules/employees/models/Employee'; // For validation
-import User from '@/modules/auth/models/User';
-import { Position } from '@/modules/organization/models/Position'; // For template selection
-import { OnboardingTemplate } from '@/modules/onboarding/models/OnboardingTemplate'; // For fetching templates
-import { OnboardingTemplateItem } from '@/modules/onboarding/models/OnboardingTemplateItem'; // For fetching template items
+import {
+    Task,
+    Employee,
+    User,
+    Position,
+    OnboardingTemplate,
+    OnboardingTemplateItem
+} from '@/db'; // Import initialized models from central index
 import { addDays, format } from 'date-fns'; // For due date calculation
 // Define the structure for data needed to create a task
 interface CreateTaskData {

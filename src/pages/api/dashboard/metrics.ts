@@ -1,9 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
-import Employee from '@/modules/employees/models/Employee'; // Corrected import
-import Attendance from '@/modules/attendance/models/Attendance'; // Corrected import
-import Leave from '@/modules/leave/models/Leave'; // Corrected import
-import Compliance from '@/modules/compliance/models/Compliance'; // Corrected import
+import { Employee, Attendance, Leave, Compliance } from '@/db'; // Import initialized models from central index
 import { withErrorHandling } from '@/lib/api/withErrorHandling'; // Assuming this utility exists
 import { withRole } from '@/lib/middleware/withRole';
 import { Op } from 'sequelize'; // Import Op for date comparisons

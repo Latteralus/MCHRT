@@ -75,8 +75,7 @@
 - [x] Implement basic Activity Logging (DB table, service, integrated into key APIs)
 
 ## Phase 8: Testing & Documentation
-- [x] Create unit tests for critical functions (`leaveBalanceService` tests now pass)
-  - `npx jest tests/unit/services/leaveBalanceService.test.ts`
+- [x] Create unit tests for critical functions (`leaveBalanceService` tests now pass) `npx jest tests/unit/services/leaveBalanceService.test.ts`
 - [/] Add integration tests for API routes (Basic CRUD tests written; Initialization fixed, but full suite run has isolation issues)
 - [ ] Implement E2E tests for critical user flows
 - [ ] Document database schema

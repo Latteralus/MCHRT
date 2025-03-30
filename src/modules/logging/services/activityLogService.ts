@@ -1,5 +1,5 @@
-import { ActivityLog, ActivityLogCreationAttributes, ActionType, EntityType } from '@/modules/logging/models/ActivityLog';
-import User from '@/modules/auth/models/User'; // To potentially fetch user name if needed
+import { ActivityLog, User } from '@/db'; // Import initialized models from central index
+import type { ActivityLogCreationAttributes, ActionType, EntityType } from '@/modules/logging/models/ActivityLog'; // Import types separately
 
 /**
  * Logs an activity performed by a user.

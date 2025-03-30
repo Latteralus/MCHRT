@@ -13,8 +13,14 @@ interface DepartmentSelectItem {
  */
 export const fetchDepartmentsForSelect = async (): Promise<DepartmentSelectItem[]> => {
     try {
+        // Construct absolute URL for server-side fetching
+        const baseURL = typeof window === 'undefined'
+            ? process.env.NEXTAUTH_URL // Use NEXTAUTH_URL or NEXT_PUBLIC_APP_URL if set
+            : ''; // Client-side uses relative path
+        const url = `${baseURL}/api/departments`;
+
         // TODO: Create the /api/departments endpoint if it doesn't exist
-        const response = await axios.get('/api/departments');
+        const response = await axios.get(url);
 
         const departments = response.data;
 

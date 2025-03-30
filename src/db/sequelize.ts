@@ -23,7 +23,6 @@ interface DbConfigs {
 // --- Load config using require ---
 // Use require as config.ts uses module.exports
 const dbConfig = require('../config/config') as DbConfigs;
-console.log('[sequelize.ts] Required dbConfig:', JSON.stringify(dbConfig || null));
 
 // --- Determine environment and get config ---
 const env = process.env.NODE_ENV || 'development';
@@ -43,18 +42,13 @@ if (!config) {
 const currentConfig = { ...config }; // Use a mutable copy
 if (currentConfig.dialect === 'sqlite' && currentConfig.storage && currentConfig.storage !== ':memory:' && !path.isAbsolute(currentConfig.storage)) {
     currentConfig.storage = path.join(process.cwd(), currentConfig.storage);
-    console.log(`[sequelize.ts] Resolved SQLite path for env '${env}': ${currentConfig.storage}`);
-} else if (currentConfig.dialect === 'sqlite') {
-    console.log(`[sequelize.ts] Using SQLite path for env '${env}': ${currentConfig.storage}`);
 }
 
 // --- Create and export the Sequelize instance ---
-console.log(`[sequelize.ts] Creating Sequelize instance with options: ${JSON.stringify(currentConfig)}`);
 const sequelize = new Sequelize(currentConfig);
-console.log(`[sequelize.ts] Sequelize instance created.`);
-
-// Import and define associations AFTER instance creation and model imports (implicitly done by models importing sequelize)
-import { defineAssociations } from './associations';
-defineAssociations(); // Ensure associations are set up centrally
 
 export { sequelize }; // Export the instance directly
+
+// Import and define associations AFTER instance is exported
+import { defineAssociations } from './associations';
+defineAssociations(); // Call associations AFTER export

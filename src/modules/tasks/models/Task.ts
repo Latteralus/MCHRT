@@ -1,8 +1,7 @@
 // src/modules/tasks/models/Task.ts
-import { DataTypes, Model, Optional } from 'sequelize';
-import { sequelize } from '@/db/sequelize'; // Import instance directly
-import Employee from '@/modules/employees/models/Employee'; // For assignee
-import User from '@/modules/auth/models/User'; // For creator
+import { DataTypes, Model, Optional, Sequelize } from 'sequelize';
+import type { EmployeeModelClass } from '@/modules/employees/models/Employee'; // For assignee type
+import type { UserModelClass } from '@/modules/auth/models/User'; // For creator type
 
 // Define possible task statuses
 type TaskStatus = 'Pending' | 'InProgress' | 'Completed' | 'Blocked';
@@ -20,17 +19,13 @@ interface TaskAttributes {
     relatedEntityId?: number; // ID of the related entity (e.g., OnboardingProcess ID, ComplianceItem ID)
     createdAt?: Date;
     updatedAt?: Date;
-
-    // Associations (added via include)
-    assignedTo?: Employee;
-    createdBy?: User;
 }
 
 // Define creation attributes (optional fields for creation)
-interface TaskCreationAttributes extends Optional<TaskAttributes, 'id' | 'createdAt' | 'updatedAt' | 'description' | 'dueDate' | 'assignedToId' | 'createdById' | 'relatedEntityType' | 'relatedEntityId' | 'status'> {}
+export interface TaskCreationAttributes extends Optional<TaskAttributes, 'id' | 'createdAt' | 'updatedAt' | 'description' | 'dueDate' | 'assignedToId' | 'createdById' | 'relatedEntityType' | 'relatedEntityId' | 'status'> {}
 
 // Define the Task model class
-class Task extends Model<TaskAttributes, TaskCreationAttributes> { // Removed 'implements TaskAttributes'
+class Task extends Model<TaskAttributes, TaskCreationAttributes> {
     public id!: number;
     public title!: string;
     public description?: string;
@@ -45,77 +40,87 @@ class Task extends Model<TaskAttributes, TaskCreationAttributes> { // Removed 'i
     public readonly createdAt!: Date;
     public readonly updatedAt!: Date;
 
-    // Define associations here later
-    // public static associate(models: any) {
-    //   Task.belongsTo(models.Employee, { foreignKey: 'assignedToId', as: 'assignedTo' });
-    //   Task.belongsTo(models.User, { foreignKey: 'createdById', as: 'createdBy' });
-    // }
+    // Define associations
+    public static associate(models: {
+        Employee: typeof EmployeeModelClass;
+        User: typeof UserModelClass;
+        // Add other models if Task relates to them directly
+    }) {
+      Task.belongsTo(models.Employee, { foreignKey: 'assignedToId', as: 'assignedTo' });
+      Task.belongsTo(models.User, { foreignKey: 'createdById', as: 'createdBy' });
+      // Define other associations if needed (e.g., polymorphic for relatedEntity)
+    }
 }
 
-// Initialize the Task model
-Task.init(
-    {
-        id: {
-            type: DataTypes.INTEGER,
-            autoIncrement: true,
-            primaryKey: true,
+// Export an initializer function
+export const initializeTask = (sequelize: Sequelize) => {
+    Task.init(
+        {
+            id: {
+                type: DataTypes.INTEGER,
+                autoIncrement: true,
+                primaryKey: true,
+            },
+            title: {
+                type: DataTypes.STRING,
+                allowNull: false,
+            },
+            description: {
+                type: DataTypes.TEXT,
+                allowNull: true,
+            },
+            status: {
+                type: DataTypes.ENUM('Pending', 'InProgress', 'Completed', 'Blocked'),
+                allowNull: false,
+                defaultValue: 'Pending',
+            },
+            dueDate: {
+                type: DataTypes.DATEONLY,
+                allowNull: true,
+            },
+            assignedToId: {
+                type: DataTypes.INTEGER,
+                allowNull: true, // Tasks might be unassigned initially
+                references: { model: 'Employees', key: 'id' },
+                onUpdate: 'CASCADE',
+                onDelete: 'SET NULL', // Keep task if employee is deleted, just unassign
+            },
+            createdById: {
+                type: DataTypes.INTEGER,
+                allowNull: true, // System-generated tasks might not have a creator user
+                references: { model: 'Users', key: 'id' },
+                onUpdate: 'CASCADE',
+                onDelete: 'SET NULL',
+            },
+            relatedEntityType: {
+                type: DataTypes.ENUM('Onboarding', 'Offboarding', 'Compliance', 'General'),
+                allowNull: true,
+            },
+            relatedEntityId: {
+                type: DataTypes.INTEGER,
+                allowNull: true,
+            },
+            createdAt: {
+                type: DataTypes.DATE,
+                allowNull: false,
+                defaultValue: DataTypes.NOW,
+            },
+            updatedAt: {
+                type: DataTypes.DATE,
+                allowNull: false,
+                defaultValue: DataTypes.NOW,
+            },
         },
-        title: {
-            type: DataTypes.STRING,
-            allowNull: false,
-        },
-        description: {
-            type: DataTypes.TEXT,
-            allowNull: true,
-        },
-        status: {
-            type: DataTypes.ENUM('Pending', 'InProgress', 'Completed', 'Blocked'),
-            allowNull: false,
-            defaultValue: 'Pending',
-        },
-        dueDate: {
-            type: DataTypes.DATEONLY,
-            allowNull: true,
-        },
-        assignedToId: {
-            type: DataTypes.INTEGER,
-            allowNull: true, // Tasks might be unassigned initially
-            references: { model: 'Employees', key: 'id' },
-            onUpdate: 'CASCADE',
-            onDelete: 'SET NULL', // Keep task if employee is deleted, just unassign
-        },
-        createdById: {
-            type: DataTypes.INTEGER,
-            allowNull: true, // System-generated tasks might not have a creator user
-            references: { model: 'Users', key: 'id' },
-            onUpdate: 'CASCADE',
-            onDelete: 'SET NULL',
-        },
-        relatedEntityType: {
-            type: DataTypes.ENUM('Onboarding', 'Offboarding', 'Compliance', 'General'),
-            allowNull: true,
-        },
-        relatedEntityId: {
-            type: DataTypes.INTEGER,
-            allowNull: true,
-        },
-        createdAt: {
-            type: DataTypes.DATE,
-            allowNull: false,
-            defaultValue: DataTypes.NOW,
-        },
-        updatedAt: {
-            type: DataTypes.DATE,
-            allowNull: false,
-            defaultValue: DataTypes.NOW,
-        },
-    },
-    {
-        sequelize: sequelize, // Use the imported instance
-        tableName: 'Tasks',
-        // Optional: Add indexes
-        // indexes: [{ fields: ['assignedToId', 'status'] }, { fields: ['relatedEntityType', 'relatedEntityId'] }]
-    }
-);
+        {
+            sequelize: sequelize, // Use the passed instance
+            tableName: 'Tasks',
+            // Optional: Add indexes
+            // indexes: [{ fields: ['assignedToId', 'status'] }, { fields: ['relatedEntityType', 'relatedEntityId'] }]
+        }
+    );
 
-export default Task;
+    return Task; // Return the initialized model
+};
+
+// Export the class type itself if needed elsewhere
+export { Task as TaskModelClass };

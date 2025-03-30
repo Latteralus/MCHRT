@@ -1,5 +1,4 @@
-import { Model, DataTypes, Optional } from 'sequelize';
-import { sequelize } from '@/db/sequelize';
+import { Model, DataTypes, Optional, Sequelize } from 'sequelize'; // Added Sequelize import
 
 // Interface for TaskTemplate attributes
 interface TaskTemplateAttributes {
@@ -21,40 +20,53 @@ class TaskTemplate extends Model<TaskTemplateAttributes, TaskTemplateCreationAtt
   // Timestamps
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
+
+  // Define associations
+  public static associate(models: {
+    // Add other models as needed if associations are added later
+  }) {
+    // No direct associations defined for TaskTemplate currently
+  }
 }
 
-TaskTemplate.init(
-  {
-    id: {
-      type: DataTypes.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-    }, // Added comma
-    description: {
-      type: DataTypes.TEXT,
-      allowNull: false,
-    }, // Added comma
-    defaultAssignedRole: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    }, // Added comma
-    createdAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
-    }, // Added comma
-    updatedAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
+// Export an initializer function
+export const initializeTaskTemplate = (sequelize: Sequelize) => {
+  TaskTemplate.init(
+    {
+      id: {
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true,
+      },
+      description: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+      },
+      defaultAssignedRole: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      createdAt: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+      },
+      updatedAt: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+      },
     },
-  },
-  {
-    sequelize,
-    tableName: 'TaskTemplates',
-    timestamps: true,
-  }
-);
+    {
+      sequelize,
+      tableName: 'TaskTemplates',
+      timestamps: true,
+    }
+  );
 
-export { TaskTemplate };
+  return TaskTemplate; // Return the initialized model
+};
+
+// Export the class type itself if needed elsewhere
+export { TaskTemplate as TaskTemplateModelClass };
 export type { TaskTemplateAttributes, TaskTemplateCreationAttributes };

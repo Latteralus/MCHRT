@@ -1,5 +1,8 @@
-import { DataTypes, Model, Optional } from 'sequelize';
-import { sequelize } from '../../../db/sequelize'; // Import instance directly
+import { DataTypes, Model, Optional, Sequelize } from 'sequelize'; // Added Sequelize import
+import type { UserModelClass } from '@/modules/auth/models/User'; // Import User class type for association
+import type { EmployeeModelClass } from '@/modules/employees/models/Employee'; // Import Employee class type for association
+import type { DocumentModelClass } from '@/modules/documents/models/Document'; // Import Document class type for association
+
 // Define the attributes for the Department model
 interface DepartmentAttributes {
   id: number;
@@ -13,6 +16,7 @@ interface DepartmentAttributes {
 export interface DepartmentCreationAttributes extends Optional<DepartmentAttributes, 'id' | 'createdAt' | 'updatedAt' | 'managerId'> {} // Added export
 
 // Define the Department model class
+// Note: We define the class outside the initializer function
 class Department extends Model<DepartmentAttributes, DepartmentCreationAttributes> { // Removed 'implements DepartmentAttributes'
   public id!: number;
   public name!: string;
@@ -22,54 +26,78 @@ class Department extends Model<DepartmentAttributes, DepartmentCreationAttribute
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
-  // Define associations here later
-  // public static associate(models: any) {
-  //   Department.hasMany(models.User, { foreignKey: 'departmentId', as: 'users' });
-  //   Department.belongsTo(models.User, { foreignKey: 'managerId', as: 'manager' });
-  //   Department.hasMany(models.Employee, { foreignKey: 'departmentId', as: 'employees' });
-  // }
+  // Define associations
+  public static associate(models: {
+    User: typeof UserModelClass;
+    Employee: typeof EmployeeModelClass;
+    Document: typeof DocumentModelClass;
+    // Add other models as needed for associations
+  }) {
+    // A Department can have multiple Users
+    Department.hasMany(models.User, {
+      foreignKey: 'departmentId',
+      as: 'users', // Allows Department.getUsers()
+    });
+    // A Department has one Manager (who is a User)
+    Department.belongsTo(models.User, {
+      foreignKey: 'managerId',
+      as: 'manager', // Allows Department.getManager()
+    });
+    // A Department can have multiple Employees
+    Department.hasMany(models.Employee, {
+      foreignKey: 'departmentId',
+      as: 'employees', // Allows Department.getEmployees()
+    });
+    // Optional: A Department can have multiple Documents associated
+    // Department.hasMany(models.Document, { foreignKey: 'departmentId', as: 'documents' });
+  }
 }
 
-// Initialize the Department model
-Department.init(
-  {
-    id: {
-      type: DataTypes.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-    },
-    name: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      unique: true, // Department names should likely be unique
-    },
-    managerId: {
-      type: DataTypes.INTEGER,
-      allowNull: true, // A department might not have a manager assigned initially
-      references: {
-        model: 'Users', // Assumes a 'Users' table exists
-        key: 'id',
+// Export an initializer function
+export const initializeDepartment = (sequelize: Sequelize) => {
+  Department.init(
+    {
+      id: {
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true,
       },
-      onUpdate: 'CASCADE',
-      onDelete: 'SET NULL', // If a manager user is deleted, set the managerId to null
+      name: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        unique: true, // Department names should likely be unique
+      },
+      managerId: {
+        type: DataTypes.INTEGER,
+        allowNull: true, // A department might not have a manager assigned initially
+        references: {
+          model: 'Users', // Assumes a 'Users' table exists
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL', // If a manager user is deleted, set the managerId to null
+      },
+      createdAt: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+      },
+      updatedAt: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+      },
     },
-    createdAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
-    },
-    updatedAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
-    },
-  },
-  {
-    sequelize: sequelize, // Use the imported instance
-    tableName: 'Departments', // Explicitly define table name
-    // Optional: Add indexes here if needed
-    // indexes: [{ unique: true, fields: ['name'] }]
-  }
-);
+    {
+      sequelize: sequelize, // Use the passed instance
+      tableName: 'Departments', // Explicitly define table name
+      // Optional: Add indexes here if needed
+      // indexes: [{ unique: true, fields: ['name'] }]
+    }
+  );
 
-export default Department;
+  return Department; // Return the initialized model
+};
+
+// Export the class type itself if needed elsewhere (e.g., for type hints)
+export { Department as DepartmentModelClass };

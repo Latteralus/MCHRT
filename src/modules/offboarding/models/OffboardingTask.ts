@@ -1,7 +1,6 @@
-import { Model, DataTypes, Optional } from 'sequelize';
-import { sequelize } from '@/db/sequelize';
-import { Offboarding } from './Offboarding'; // Import Offboarding for association
-import User from '@/modules/auth/models/User'; // Import User for association
+import { Model, DataTypes, Optional, Sequelize } from 'sequelize'; // Added Sequelize import
+import type { OffboardingModelClass } from './Offboarding'; // Import Offboarding class type
+import type { UserModelClass } from '@/modules/auth/models/User'; // Import User class type
 
 // Define possible task statuses
 type TaskStatus = 'Pending' | 'Completed';
@@ -35,76 +34,92 @@ class OffboardingTask extends Model<OffboardingTaskAttributes, OffboardingTaskCr
   public readonly updatedAt!: Date;
 
   // Associations (populated by eager loading)
-  public readonly offboarding?: Offboarding;
-  public readonly assignedUser?: User;
+  public readonly offboarding?: OffboardingModelClass; // Use imported class type
+  public readonly assignedUser?: UserModelClass; // Use imported class type
+
+  // Define associations
+  public static associate(models: {
+    Offboarding: typeof OffboardingModelClass;
+    User: typeof UserModelClass;
+    // Add other models as needed
+  }) {
+    // An OffboardingTask belongs to one Offboarding process
+    OffboardingTask.belongsTo(models.Offboarding, {
+      foreignKey: 'offboardingId',
+      as: 'offboarding',
+    });
+    // An OffboardingTask can be assigned to one User
+    OffboardingTask.belongsTo(models.User, {
+      foreignKey: 'assignedToUserId',
+      as: 'assignedUser',
+    });
+  }
 }
 
-OffboardingTask.init(
-  {
-    id: {
-      type: DataTypes.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-    },
-    offboardingId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: Offboarding, // Reference the Offboarding model
-        key: 'id',
+// Export an initializer function
+export const initializeOffboardingTask = (sequelize: Sequelize) => {
+  OffboardingTask.init(
+    {
+      id: {
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true,
       },
-      onDelete: 'CASCADE', // If an offboarding process is deleted, delete its tasks
-    },
-    description: {
-      type: DataTypes.TEXT,
-      allowNull: false,
-    },
-    status: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      defaultValue: 'Pending',
-      validate: {
-        isIn: [['Pending', 'Completed']], // Validate status values
+      offboardingId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'Offboardings', // Use table name for references
+          key: 'id',
+        },
+        onDelete: 'CASCADE', // If an offboarding process is deleted, delete its tasks
+      },
+      description: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+      },
+      status: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: 'Pending',
+        validate: {
+          isIn: [['Pending', 'Completed']], // Validate status values
+        },
+      },
+      assignedToUserId: {
+        type: DataTypes.INTEGER,
+        allowNull: true, // Task might be assigned to a role instead or unassigned initially
+        references: {
+          model: 'Users', // Use table name for references
+          key: 'id',
+        },
+        onDelete: 'SET NULL', // If assigned user is deleted, set task assignment to null
+      },
+      assignedRole: {
+        type: DataTypes.STRING,
+        allowNull: true, // Task might be assigned to a user instead or unassigned initially
+      },
+      createdAt: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+      },
+      updatedAt: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
       },
     },
-    assignedToUserId: {
-      type: DataTypes.INTEGER,
-      allowNull: true, // Task might be assigned to a role instead or unassigned initially
-      references: {
-        model: User, // Reference the User model
-        key: 'id',
-      },
-      onDelete: 'SET NULL', // If assigned user is deleted, set task assignment to null
-    },
-    assignedRole: {
-      type: DataTypes.STRING,
-      allowNull: true, // Task might be assigned to a user instead or unassigned initially
-    },
-    createdAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
-    },
-    updatedAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
-    },
-  },
-  {
-    sequelize,
-    tableName: 'OffboardingTasks',
-    timestamps: true,
-  }
-);
+    {
+      sequelize,
+      tableName: 'OffboardingTasks',
+      timestamps: true,
+    }
+  );
 
-// Define associations after models are initialized
-// OffboardingTask.belongsTo(Offboarding, { foreignKey: 'offboardingId', as: 'offboarding' });
-// Offboarding.hasMany(OffboardingTask, { foreignKey: 'offboardingId', as: 'tasks' }); // Add this in Offboarding.ts if needed
+  return OffboardingTask; // Return the initialized model
+};
 
-// OffboardingTask.belongsTo(User, { foreignKey: 'assignedToUserId', as: 'assignedUser' });
-// User.hasMany(OffboardingTask, { foreignKey: 'assignedToUserId', as: 'assignedOffboardingTasks' }); // Add this in User.ts if needed
-
-
-export { OffboardingTask };
+// Export the class type itself if needed elsewhere
+export { OffboardingTask as OffboardingTaskModelClass };
 export type { OffboardingTaskAttributes, OffboardingTaskCreationAttributes, TaskStatus };

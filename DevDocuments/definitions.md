@@ -1,4 +1,4 @@
-# Project Definitions &amp; Seeding Process
+# Project Definitions & Seeding Process
 
 This document provides definitions for key terms used within the Mountain Care HR project and explains the process for seeding the database with fake data for development purposes.
 
@@ -43,9 +43,11 @@ This seeder generates:
 
 ### How to Run Seeding
 
-Seeding requires two steps due to the project using TypeScript models:
+**Note:** The model initialization pattern has been refactored (using initializer functions and a central `src/db/index.ts`). The seeding process described below relies on compiling TypeScript models to JavaScript (`./dist-seed`) for use by standard Sequelize CLI seeders. This compilation and the seeders themselves likely need adjustment to work with the new model structure (e.g., requiring `dist-seed/db/index.js` and accessing initialized models from there, instead of requiring individual compiled model files).
 
-1.  **Compile Models:** The TypeScript models need to be compiled into JavaScript so the standard Sequelize CLI seeder can use them. A dedicated tsconfig (`tsconfig.seed.json`) is used for this.
+Seeding currently requires two steps:
+
+1.  **Compile Models:** The TypeScript models and the central DB index file need to be compiled into JavaScript so the standard Sequelize CLI seeder can use them. A dedicated tsconfig (`tsconfig.seed.json`) is used for this. **(This step might need verification/adjustment after model refactoring)**.
     ```bash
     npm run db:seed:compile
     ```
@@ -55,7 +57,6 @@ Seeding requires two steps due to the project using TypeScript models:
     ```bash
     npm run db:seed:all
     ```
-    This command now runs `npm run build:config && npx sequelize-cli db:seed:all`. It first ensures the `src/config/config.js` file is up-to-date, then finds and executes the `up` method in `src/db/seeders/002-fake-data.js`. This script then `require`s the compiled JavaScript models from `./dist-seed` to interact with the database.
-    This command runs `sequelize db:seed:all`, which finds and executes the `up` method in `src/db/seeders/002-fake-data.js`. This script then `require`s the compiled JavaScript models from `./dist-seed` to interact with the database.
+    This command now runs `npm run build:config && npx sequelize-cli db:seed:all`. It first ensures the `src/config/config.js` file is up-to-date, then finds and executes the `up` method in the seeder files (like `src/db/seeders/002-fake-data.js`). These scripts then `require` the compiled JavaScript output from `./dist-seed` (likely needing to target `dist-seed/db/index.js`) to interact with the database using the initialized models.
 
-**Note:** If you modify any TypeScript models (`src/modules/**/*.ts`) or the `src/db/sequelize.ts` file, you **must** re-run `npm run db:seed:compile` before running `npm run db:seed:all` to ensure the seeder uses the latest compiled model code. The `npm run db:seed:all` command automatically handles rebuilding the `src/config/config.js` file if `src/config/config.ts` changes.
+**Important:** If you modify any TypeScript models (`src/modules/**/*.ts`) or the central DB initializer (`src/db/index.ts`), you **must** re-run `npm run db:seed:compile` before running `npm run db:seed:all` to ensure the seeder uses the latest compiled code. The `npm run db:seed:all` command automatically handles rebuilding the `src/config/config.js` file if `src/config/config.ts` changes.

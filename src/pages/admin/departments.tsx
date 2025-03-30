@@ -6,7 +6,7 @@ import MainLayout from '@/components/layouts/MainLayout';
 import Table from '@/components/ui/Table';
 import Button from '@/components/ui/Button';
 import Alert from '@/components/ui/Alert';
-import Department from '@/modules/organization/models/Department'; // Corrected default import
+import { Department } from '@/db'; // Import from central db index
 import { withPageAuth } from '@/lib/hoc/withPageAuth'; // Use the page HOC
 import { Role } from '@/types/roles'; // Correct enum name
 
@@ -19,7 +19,8 @@ const fetcher = (url: string) => fetch(url).then((res) => {
 
 const DepartmentsAdminPage = () => {
     const router = useRouter();
-    const { data: departments, error, isLoading, mutate } = useSWR<Department[]>('/api/departments', fetcher);
+    // Assuming API returns data compatible with Department model structure
+    const { data: departments, error, isLoading, mutate } = useSWR<InstanceType<typeof Department>[]>('/api/departments', fetcher); // Use InstanceType
     const [deleteError, setDeleteError] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState<number | null>(null);
 
@@ -62,7 +63,7 @@ const DepartmentsAdminPage = () => {
                 </Link>
             </div>
 
-            <Table<Department>
+            <Table<InstanceType<typeof Department>> // Use InstanceType
                 columns={columns}
                 data={departments || []}
                 isLoading={isLoading}

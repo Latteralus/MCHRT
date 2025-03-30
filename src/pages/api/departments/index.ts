@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import Department from '@/modules/organization/models/Department';
+import { Department } from '@/db'; // Import initialized Department model from central index
 import { withRole } from '@/lib/middleware/withRole';
 import { AuthenticatedNextApiHandler } from '@/lib/middleware/withAuth'; // Correct import source
 // import { defineAssociations } from '@/db/associations'; // Ensure associations are defined

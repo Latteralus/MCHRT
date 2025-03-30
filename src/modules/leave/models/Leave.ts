@@ -1,7 +1,6 @@
-import { DataTypes, Model, Optional } from 'sequelize';
-import { sequelize } from '@/db/sequelize'; // Import instance directly
-import type Employee from '@/modules/employees/models/Employee'; // Import Employee type
-import type User from '@/modules/auth/models/User'; // Import User type
+import { DataTypes, Model, Optional, Sequelize } from 'sequelize'; // Added Sequelize import
+import type { EmployeeModelClass } from '@/modules/employees/models/Employee'; // Import Employee class type
+import type { UserModelClass } from '@/modules/auth/models/User'; // Import User class type
 
 // Define possible leave types and statuses (consider using enums)
 type LeaveType = 'Vacation' | 'Sick' | 'Personal' | 'Bereavement' | 'Other';
@@ -46,90 +45,107 @@ class Leave extends Model<LeaveAttributes, LeaveCreationAttributes> { // Removed
   public readonly updatedAt!: Date;
 
   // Associations (these properties are populated by Sequelize 'include')
-  public readonly employee?: Employee; // Added based on association 'as: employee'
-  public readonly approver?: User; // Added based on association 'as: approver'
+  public readonly employee?: EmployeeModelClass; // Use imported class type
+  public readonly approver?: UserModelClass; // Use imported class type
 
-  // Define associations function (called from src/db/associations.ts)
-  // public static associate(models: any) {
-  //   Leave.belongsTo(models.Employee, { foreignKey: 'employeeId', as: 'employee' });
-  //   Leave.belongsTo(models.User, { foreignKey: 'approverId', as: 'approver' });
-  // }
+  // Define associations function
+  public static associate(models: {
+    Employee: typeof EmployeeModelClass;
+    User: typeof UserModelClass;
+    // Add other models as needed
+  }) {
+    // A Leave record belongs to one Employee
+    Leave.belongsTo(models.Employee, {
+      foreignKey: 'employeeId',
+      as: 'employee', // Allows Leave.getEmployee()
+    });
+    // A Leave record is approved/rejected by one User (Approver)
+    Leave.belongsTo(models.User, {
+      foreignKey: 'approverId',
+      as: 'approver', // Allows Leave.getApprover()
+    });
+  }
 }
 
-// Initialize the Leave model
-Leave.init(
-  {
-    id: {
-      type: DataTypes.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-    },
-    employeeId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'Employees', // Assumes an 'Employees' table exists
-        key: 'id',
+// Export an initializer function
+export const initializeLeave = (sequelize: Sequelize) => {
+  Leave.init(
+    {
+      id: {
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true,
       },
-      onUpdate: 'CASCADE',
-      onDelete: 'CASCADE', // If an employee is deleted, delete their leave records
-    },
-    startDate: {
-      type: DataTypes.DATEONLY,
-      allowNull: false,
-    },
-    endDate: {
-      type: DataTypes.DATEONLY,
-      allowNull: false,
-    },
-    leaveType: {
-      type: DataTypes.ENUM('Vacation', 'Sick', 'Personal', 'Bereavement', 'Other'),
-      allowNull: false,
-    },
-    status: {
-      type: DataTypes.ENUM('Pending', 'Approved', 'Rejected', 'Cancelled'),
-      allowNull: false,
-      defaultValue: 'Pending',
-    },
-    reason: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-    approverId: {
-      type: DataTypes.INTEGER,
-      allowNull: true, // Null until approved/rejected
-      references: {
-        model: 'Users', // Assumes a 'Users' table exists
-        key: 'id',
+      employeeId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'Employees', // Assumes an 'Employees' table exists
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE', // If an employee is deleted, delete their leave records
       },
-      onUpdate: 'CASCADE',
-      onDelete: 'SET NULL', // If approver is deleted, keep the record but nullify approverId
+      startDate: {
+        type: DataTypes.DATEONLY,
+        allowNull: false,
+      },
+      endDate: {
+        type: DataTypes.DATEONLY,
+        allowNull: false,
+      },
+      leaveType: {
+        type: DataTypes.ENUM('Vacation', 'Sick', 'Personal', 'Bereavement', 'Other'),
+        allowNull: false,
+      },
+      status: {
+        type: DataTypes.ENUM('Pending', 'Approved', 'Rejected', 'Cancelled'),
+        allowNull: false,
+        defaultValue: 'Pending',
+      },
+      reason: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      approverId: {
+        type: DataTypes.INTEGER,
+        allowNull: true, // Null until approved/rejected
+        references: {
+          model: 'Users', // Assumes a 'Users' table exists
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL', // If approver is deleted, keep the record but nullify approverId
+      },
+      approvedAt: {
+        type: DataTypes.DATE,
+        allowNull: true, // Null until approved/rejected
+      },
+      comments: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      createdAt: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+      },
+      updatedAt: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+      },
     },
-    approvedAt: {
-      type: DataTypes.DATE,
-      allowNull: true, // Null until approved/rejected
-    },
-    comments: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-    createdAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
-    },
-    updatedAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
-    },
-  },
-  {
-    sequelize: sequelize, // Use the imported instance
-    tableName: 'Leaves', // Explicitly define table name
-    // Optional: Add indexes here if needed
-    // indexes: [{ fields: ['employeeId', 'startDate'] }]
-  }
-);
+    {
+      sequelize: sequelize, // Use the passed instance
+      tableName: 'Leaves', // Explicitly define table name
+      // Optional: Add indexes here if needed
+      // indexes: [{ fields: ['employeeId', 'startDate'] }]
+    }
+  );
 
-export default Leave;
+  return Leave; // Return the initialized model
+};
+
+// Export the class type itself if needed elsewhere
+export { Leave as LeaveModelClass };

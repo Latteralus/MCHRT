@@ -9,7 +9,7 @@ import Button from '@/components/ui/Button';
 import Alert from '@/components/ui/Alert';
 import { withPageAuth } from '@/lib/hoc/withPageAuth';
 import { Role } from '@/types/roles';
-import Department from '@/modules/organization/models/Department';
+import { Department } from '@/db'; // Import from central db index
 
 const fetcher = (url: string) => fetch(url).then((res) => {
     if (!res.ok) {
@@ -36,7 +36,8 @@ const EditUserPage = () => {
         fetcher
     );
     // Fetch departments for the dropdown
-    const { data: departments, error: deptsError, isLoading: deptsLoading } = useSWR<Department[]>('/api/departments', fetcher);
+    // Assuming the API returns data compatible with Department model structure
+    const { data: departments, error: deptsError, isLoading: deptsLoading } = useSWR<InstanceType<typeof Department>[]>('/api/departments', fetcher); // Use InstanceType
 
     const [username, setUsername] = useState('');
     const [selectedRole, setSelectedRole] = useState<Role>(Role.EMPLOYEE);

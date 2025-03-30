@@ -1,8 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
 import { withErrorHandling } from '@/lib/api/withErrorHandling';
-import { ActivityLog } from '@/modules/logging/models/ActivityLog'; // Import model
-import User from '@/modules/auth/models/User'; // Import User for association
+import { ActivityLog, User } from '@/db'; // Import initialized models from central index
 import { formatDistanceToNow } from 'date-fns'; // For relative time formatting
 // Associations are defined centrally in src/db/sequelize.ts now
 // Define the structure for an activity item

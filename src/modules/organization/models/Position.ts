@@ -1,5 +1,5 @@
-import { Model, DataTypes, Optional } from 'sequelize';
-import { sequelize } from '@/db/sequelize'; // Adjust path as needed
+import { Model, DataTypes, Optional, Sequelize } from 'sequelize'; // Added Sequelize import
+import type { EmployeeModelClass } from '@/modules/employees/models/Employee'; // Import Employee class type
 
 // Interface for Position attributes
 interface PositionAttributes {
@@ -20,41 +20,54 @@ class Position extends Model<PositionAttributes, PositionCreationAttributes> imp
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
-  // Define associations here if needed (e.g., hasMany Employees)
-  // public static associations: {
-  //   employees: Association<Position, Employee>; // Assuming Employee model exists
-  // };
+  // Define associations
+  public static associate(models: {
+    Employee: typeof EmployeeModelClass;
+    // Add other models as needed
+  }) {
+    // A Position can have multiple Employees
+    Position.hasMany(models.Employee, {
+      foreignKey: 'positionId',
+      as: 'employees', // Allows Position.getEmployees()
+    });
+  }
 }
 
-Position.init(
-  {
-    id: {
-      type: DataTypes.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
+// Export an initializer function
+export const initializePosition = (sequelize: Sequelize) => {
+  Position.init(
+    {
+      id: {
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true,
+      },
+      name: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        unique: true,
+      },
+      createdAt: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+      },
+      updatedAt: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+      },
     },
-    name: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      unique: true,
-    },
-    createdAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
-    },
-    updatedAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
-    },
-  },
-  {
-    sequelize,
-    tableName: 'Positions',
-    timestamps: true, // Sequelize handles createdAt and updatedAt automatically
-  }
-);
+    {
+      sequelize,
+      tableName: 'Positions',
+      timestamps: true, // Sequelize handles createdAt and updatedAt automatically
+    }
+  );
 
-export { Position }; // Export the class (value)
+  return Position; // Return the initialized model
+};
+
+// Export the class type itself if needed elsewhere
+export { Position as PositionModelClass };
 export type { PositionAttributes, PositionCreationAttributes }; // Export the types

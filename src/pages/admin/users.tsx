@@ -9,7 +9,7 @@ import Alert from '@/components/ui/Alert';
 import { withPageAuth } from '@/lib/hoc/withPageAuth';
 import { Role } from '@/types/roles';
 // import User from '@/modules/auth/models/User'; // Don't import the Sequelize model directly for frontend typing
-import Department from '@/modules/organization/models/Department'; // Default import
+import { Department } from '@/db'; // Import from central db index
 
 const fetcher = (url: string) => fetch(url).then((res) => {
     if (!res.ok) {
@@ -31,7 +31,8 @@ const UsersAdminPage = () => {
     const router = useRouter();
     // Use the UserType interface for SWR data
     const { data: users, error: usersError, isLoading: usersLoading, mutate: mutateUsers } = useSWR<UserType[]>('/api/users', fetcher);
-    const { data: departments, error: deptsError, isLoading: deptsLoading } = useSWR<Department[]>('/api/departments', fetcher);
+    // Assuming API returns data compatible with Department model structure
+    const { data: departments, error: deptsError, isLoading: deptsLoading } = useSWR<InstanceType<typeof Department>[]>('/api/departments', fetcher); // Use InstanceType
 
     const [deleteError, setDeleteError] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState<number | null>(null);

@@ -1,6 +1,5 @@
-import { DataTypes, Model, Optional } from 'sequelize';
-import { sequelize } from '@/db/sequelize'; // Import instance directly
-import Employee from '@/modules/employees/models/Employee'; // Import Employee model for association typing
+import { DataTypes, Model, Optional, Sequelize } from 'sequelize'; // Added Sequelize import
+import type { EmployeeModelClass } from '@/modules/employees/models/Employee'; // Import Employee class type
 
 // Define possible compliance item statuses (consider using enums)
 type ComplianceStatus = 'Active' | 'ExpiringSoon' | 'Expired' | 'PendingReview';
@@ -21,7 +20,7 @@ interface ComplianceAttributes {
   updatedAt?: Date;
 
   // Associations (added via include)
-  employee?: Employee; // Add the associated employee type
+  employee?: EmployeeModelClass; // Use imported class type
 }
 
 // Define creation attributes (optional fields for creation)
@@ -46,79 +45,91 @@ class Compliance extends Model<ComplianceAttributes, ComplianceCreationAttribute
   public readonly updatedAt!: Date;
 
   // Explicitly declare associated model property (helps with TS inference sometimes)
-  public employee?: Employee;
+  public employee?: EmployeeModelClass; // Use imported class type
 
-  // Define associations here later
-  // public static associate(models: any) {
-  //   Compliance.belongsTo(models.Employee, { foreignKey: 'employeeId', as: 'employee' });
-  //   // Potentially link to Document model if uploads are associated
-  // }
+  // Define associations
+  public static associate(models: {
+    Employee: typeof EmployeeModelClass;
+    // Add other models as needed
+  }) {
+    // A Compliance item belongs to one Employee
+    Compliance.belongsTo(models.Employee, {
+      foreignKey: 'employeeId',
+      as: 'employee', // Allows Compliance.getEmployee()
+    });
+    // Potentially link to Document model if uploads are associated
+  }
 }
 
-// Initialize the Compliance model
-Compliance.init(
-  {
-    id: {
-      type: DataTypes.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-    },
-    employeeId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'Employees', // Assumes an 'Employees' table exists
-        key: 'id',
+// Export an initializer function
+export const initializeCompliance = (sequelize: Sequelize) => {
+  Compliance.init(
+    {
+      id: {
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true,
       },
-      onUpdate: 'CASCADE',
-      onDelete: 'CASCADE', // If an employee is deleted, delete their compliance records
+      employeeId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'Employees', // Assumes an 'Employees' table exists
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE', // If an employee is deleted, delete their compliance records
+      },
+      itemType: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      itemName: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      authority: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      licenseNumber: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      issueDate: {
+        type: DataTypes.DATEONLY,
+        allowNull: true,
+      },
+      expirationDate: {
+        type: DataTypes.DATEONLY,
+        allowNull: true, // Some items might not expire
+      },
+      status: {
+        type: DataTypes.ENUM('Active', 'ExpiringSoon', 'Expired', 'PendingReview'),
+        allowNull: false,
+        defaultValue: 'PendingReview', // Or determine based on dates
+      },
+      createdAt: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+      },
+      updatedAt: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+      },
     },
-    itemType: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    itemName: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    authority: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    licenseNumber: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    issueDate: {
-      type: DataTypes.DATEONLY,
-      allowNull: true,
-    },
-    expirationDate: {
-      type: DataTypes.DATEONLY,
-      allowNull: true, // Some items might not expire
-    },
-    status: {
-      type: DataTypes.ENUM('Active', 'ExpiringSoon', 'Expired', 'PendingReview'),
-      allowNull: false,
-      defaultValue: 'PendingReview', // Or determine based on dates
-    },
-    createdAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
-    },
-    updatedAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
-    },
-  },
-  {
-    sequelize: sequelize, // Use the imported instance
-    tableName: 'ComplianceItems', // Explicitly define table name
-    // Optional: Add indexes here if needed
-    // indexes: [{ fields: ['employeeId', 'expirationDate'] }]
-  }
-);
+    {
+      sequelize: sequelize, // Use the passed instance
+      tableName: 'ComplianceItems', // Explicitly define table name
+      // Optional: Add indexes here if needed
+      // indexes: [{ fields: ['employeeId', 'expirationDate'] }]
+    }
+  );
 
-export default Compliance;
+  return Compliance; // Return the initialized model
+};
+
+// Export the class type itself if needed elsewhere
+export { Compliance as ComplianceModelClass };

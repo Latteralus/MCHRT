@@ -92,7 +92,7 @@ const handler: AuthenticatedNextApiHandler = async (req, res, session) => {
                     required: Object.keys(includeEmployeeWhereClause).length > 0 // Make include required if filtering by department
                 },
                 { model: Employee, as: 'employee', attributes: ['id', 'firstName', 'lastName'] },
-                { model: User, as: 'approver', attributes: ['id', 'name'] } // Include approver name
+                { model: User, as: 'approver', attributes: ['id', 'username'] } // Include approver username
             ],
             order: [['startDate', 'DESC']],
             // limit: limit ? parseInt(limit as string) : 10,

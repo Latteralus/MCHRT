@@ -14,8 +14,14 @@ interface EmployeeSelectItem {
  */
 export const fetchEmployeesForSelect = async (): Promise<EmployeeSelectItem[]> => {
     try {
+        // Construct absolute URL for server-side fetching
+        const baseURL = typeof window === 'undefined'
+            ? process.env.NEXTAUTH_URL // Use NEXTAUTH_URL or NEXT_PUBLIC_APP_URL if set
+            : ''; // Client-side uses relative path
+        const url = `${baseURL}/api/employees`;
+
         // Fetch the full list - the API endpoint handles RBAC filtering
-        const response = await axios.get('/api/employees'); // No extra params needed usually
+        const response = await axios.get(url);
 
         // Assuming the API returns an array of objects like { id, firstName, lastName, ... }
         const employees = response.data;

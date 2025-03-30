@@ -1,8 +1,6 @@
 // src/modules/notifications/services/reminderService.ts
 
-import Compliance from '@/modules/compliance/models/Compliance'; // Corrected default import
-import Employee from '@/modules/employees/models/Employee'; // Corrected default import
-import User from '@/modules/auth/models/User'; // Corrected default import
+import { Compliance, Employee, User } from '@/db'; // Import initialized models from central index
 import { sendEmail } from '@/lib/email/sendEmail';
 import { Op, literal } from 'sequelize';
 import { format } from 'date-fns'; // For formatting dates in emails

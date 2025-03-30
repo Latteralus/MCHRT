@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import User from '@/modules/auth/models/User';
+import { User } from '@/db'; // Import initialized User model from central index
 import bcrypt from 'bcrypt';
 import { withRole } from '@/lib/middleware/withRole'; // Import withRole
 import { AuthenticatedNextApiHandler } from '@/lib/middleware/withAuth'; // Import handler type

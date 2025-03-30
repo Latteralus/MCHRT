@@ -1,7 +1,7 @@
 import NextAuth, { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcrypt'; // Import bcrypt for password comparison
-import User from '@/modules/auth/models/User'; // Import the User model
+import { User } from '@/db'; // Import initialized User model from central index
 
 export const authOptions: NextAuthOptions = {
   providers: [

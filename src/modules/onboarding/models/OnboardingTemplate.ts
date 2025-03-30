@@ -1,6 +1,5 @@
-import { Model, DataTypes, Optional, Association } from 'sequelize';
-import { sequelize } from '@/db/sequelize';
-// import { OnboardingTemplateItem } from './OnboardingTemplateItem'; // Removed direct import to break cycle
+import { Model, DataTypes, Optional, Association, Sequelize } from 'sequelize'; // Added Sequelize import
+import type { OnboardingTemplateItemModelClass } from './OnboardingTemplateItem'; // Import Item class type
 
 // Interface for OnboardingTemplate attributes
 interface OnboardingTemplateAttributes {
@@ -27,51 +26,64 @@ class OnboardingTemplate extends Model<OnboardingTemplateAttributes, OnboardingT
 
   // Associations
   // Association types can be defined later or inferred if using associate methods
-  // public readonly items?: OnboardingTemplateItem[]; // Type definition might need adjustment depending on association setup
+  public readonly items?: OnboardingTemplateItemModelClass[]; // Use imported class type
 
-  // Static associations property might be populated by defineAssociations
-  // public static associations: {
-  //   items: Association<OnboardingTemplate, OnboardingTemplateItem>;
-  // };
+  // Define associations
+  public static associate(models: {
+    OnboardingTemplateItem: typeof OnboardingTemplateItemModelClass;
+    // Add other models as needed
+  }) {
+    // An OnboardingTemplate has many Items
+    OnboardingTemplate.hasMany(models.OnboardingTemplateItem, {
+      foreignKey: 'templateId',
+      as: 'items', // Allows OnboardingTemplate.getItems()
+    });
+  }
 }
 
-OnboardingTemplate.init(
-  {
-    id: {
-      type: DataTypes.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
+// Export an initializer function
+export const initializeOnboardingTemplate = (sequelize: Sequelize) => {
+  OnboardingTemplate.init(
+    {
+      id: {
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true,
+      },
+      templateCode: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        unique: true,
+      },
+      name: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      description: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      createdAt: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+      },
+      updatedAt: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+      },
     },
-    templateCode: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      unique: true,
-    },
-    name: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    description: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-    createdAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
-    },
-    updatedAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
-    },
-  },
-  {
-    sequelize,
-    tableName: 'OnboardingTemplates',
-    timestamps: true,
-  }
-);
+    {
+      sequelize,
+      tableName: 'OnboardingTemplates',
+      timestamps: true,
+    }
+  );
 
-export { OnboardingTemplate };
+  return OnboardingTemplate; // Return the initialized model
+};
+
+// Export the class type itself if needed elsewhere
+export { OnboardingTemplate as OnboardingTemplateModelClass };
 export type { OnboardingTemplateAttributes, OnboardingTemplateCreationAttributes };

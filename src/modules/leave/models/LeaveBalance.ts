@@ -1,7 +1,6 @@
 // src/modules/leave/models/LeaveBalance.ts
-import { DataTypes, Model, Optional } from 'sequelize';
-import { sequelize } from '@/db/sequelize'; // Import instance directly
-import type Employee from '@/modules/employees/models/Employee'; // Import Employee type
+import { DataTypes, Model, Optional, Sequelize } from 'sequelize'; // Added Sequelize import
+import type { EmployeeModelClass } from '@/modules/employees/models/Employee'; // Import Employee class type
 
 // Define the attributes for the LeaveBalance model
 interface LeaveBalanceAttributes {
@@ -34,74 +33,86 @@ class LeaveBalance extends Model<LeaveBalanceAttributes, LeaveBalanceCreationAtt
   public readonly updatedAt!: Date;
 
   // Associations
-  public readonly employee?: Employee; // Populated by include
+  public readonly employee?: EmployeeModelClass; // Use imported class type
 
-  // Define associations function (called from src/db/associations.ts)
-  // public static associate(models: any) {
-  //   LeaveBalance.belongsTo(models.Employee, { foreignKey: 'employeeId', as: 'employee' });
-  // }
+  // Define associations function
+  public static associate(models: {
+    Employee: typeof EmployeeModelClass;
+    // Add other models as needed
+  }) {
+    // A LeaveBalance record belongs to one Employee
+    LeaveBalance.belongsTo(models.Employee, {
+      foreignKey: 'employeeId',
+      as: 'employee', // Allows LeaveBalance.getEmployee()
+    });
+  }
 }
 
-// Initialize the LeaveBalance model
-LeaveBalance.init(
-  {
-    id: {
-      type: DataTypes.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-    },
-    employeeId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'Employees', // Assumes an 'Employees' table exists
-        key: 'id',
+// Export an initializer function
+export const initializeLeaveBalance = (sequelize: Sequelize) => {
+  LeaveBalance.init(
+    {
+      id: {
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true,
       },
-      onUpdate: 'CASCADE',
-      onDelete: 'CASCADE', // If employee is deleted, delete their balances
+      employeeId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'Employees', // Assumes an 'Employees' table exists
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE', // If employee is deleted, delete their balances
+      },
+      leaveType: {
+        type: DataTypes.STRING, // Consider ENUM if types are strictly defined
+        allowNull: false,
+      },
+      balance: {
+        type: DataTypes.FLOAT, // Use FLOAT or DECIMAL for hours/days
+        allowNull: false,
+        defaultValue: 0,
+      },
+      accruedYTD: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+        defaultValue: 0,
+      },
+      usedYTD: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+        defaultValue: 0,
+      },
+      lastUpdated: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+      createdAt: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+      },
+      updatedAt: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+      },
     },
-    leaveType: {
-      type: DataTypes.STRING, // Consider ENUM if types are strictly defined
-      allowNull: false,
-    },
-    balance: {
-      type: DataTypes.FLOAT, // Use FLOAT or DECIMAL for hours/days
-      allowNull: false,
-      defaultValue: 0,
-    },
-    accruedYTD: {
-      type: DataTypes.FLOAT,
-      allowNull: true,
-      defaultValue: 0,
-    },
-    usedYTD: {
-      type: DataTypes.FLOAT,
-      allowNull: true,
-      defaultValue: 0,
-    },
-    lastUpdated: {
-      type: DataTypes.DATE,
-      allowNull: true,
-    },
-    createdAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
-    },
-    updatedAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
-    },
-  },
-  {
-    sequelize: sequelize, // Use the imported instance
-    tableName: 'LeaveBalances', // Explicitly define table name
-    indexes: [
-      // Ensure an employee can only have one balance record per leave type
-      { unique: true, fields: ['employeeId', 'leaveType'] }
-    ]
-  }
-);
+    {
+      sequelize: sequelize, // Use the passed instance
+      tableName: 'LeaveBalances', // Explicitly define table name
+      indexes: [
+        // Ensure an employee can only have one balance record per leave type
+        { unique: true, fields: ['employeeId', 'leaveType'] }
+      ]
+    }
+  );
 
-export default LeaveBalance;
+  return LeaveBalance; // Return the initialized model
+};
+
+// Export the class type itself if needed elsewhere
+export { LeaveBalance as LeaveBalanceModelClass };

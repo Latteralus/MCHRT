@@ -8,7 +8,7 @@ import Button from '@/components/ui/Button';
 import Alert from '@/components/ui/Alert';
 import { withPageAuth } from '@/lib/hoc/withPageAuth';
 import { Role } from '@/types/roles';
-import Department from '@/modules/organization/models/Department'; // Default import
+import { Department } from '@/db'; // Import from central db index
 
 const fetcher = (url: string) => fetch(url).then((res) => {
     if (!res.ok) {
@@ -21,7 +21,9 @@ const EditDepartmentPage = () => {
     const router = useRouter();
     const { id } = router.query; // Get department ID from URL query
 
-    const { data: department, error: fetchError, isLoading: isFetching } = useSWR<Department>(
+    // Note: The type used with useSWR might need adjustment if the API returns raw attributes
+    // For now, assuming it returns an object compatible with the Department model structure
+    const { data: department, error: fetchError, isLoading: isFetching } = useSWR<InstanceType<typeof Department>>( // Use InstanceType
         id ? `/api/departments/${id}` : null, // Only fetch if ID is available
         fetcher
     );

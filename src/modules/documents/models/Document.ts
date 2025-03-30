@@ -1,5 +1,7 @@
-import { DataTypes, Model, Optional } from 'sequelize';
-import { sequelize } from '@/db/sequelize'; // Import instance directly
+import { DataTypes, Model, Optional, Sequelize } from 'sequelize'; // Added Sequelize import
+import type { UserModelClass } from '@/modules/auth/models/User'; // Import User class type
+import type { EmployeeModelClass } from '@/modules/employees/models/Employee'; // Import Employee class type
+import type { DepartmentModelClass } from '@/modules/organization/models/Department'; // Import Department class type
 
 // Define the attributes for the Document model
 interface DocumentAttributes {
@@ -37,96 +39,118 @@ class Document extends Model<DocumentAttributes, DocumentCreationAttributes> { /
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
-  // Define associations here later
-  // public static associate(models: any) {
-  //   Document.belongsTo(models.User, { foreignKey: 'ownerId', as: 'owner' });
-  //   Document.belongsTo(models.Employee, { foreignKey: 'employeeId', as: 'employee' });
-  //   Document.belongsTo(models.Department, { foreignKey: 'departmentId', as: 'department' });
-  //   // Potentially link to Compliance model if needed
-  // }
+  // Define associations
+  public static associate(models: {
+    User: typeof UserModelClass;
+    Employee: typeof EmployeeModelClass;
+    Department: typeof DepartmentModelClass;
+    // Add other models as needed
+  }) {
+    // A Document belongs to one Owner (User)
+    Document.belongsTo(models.User, {
+      foreignKey: 'ownerId',
+      as: 'owner', // Allows Document.getOwner()
+    });
+    // A Document can belong to one Employee
+    Document.belongsTo(models.Employee, {
+      foreignKey: 'employeeId',
+      as: 'employee', // Allows Document.getEmployee()
+    });
+    // A Document can belong to one Department
+    Document.belongsTo(models.Department, {
+      foreignKey: 'departmentId',
+      as: 'department', // Allows Document.getDepartment()
+    });
+    // Potentially link to Compliance model if needed
+  }
 }
 
-// Initialize the Document model
-Document.init(
-  {
-    id: {
-      type: DataTypes.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-    },
-    title: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    filePath: {
-      type: DataTypes.STRING, // Store the relative or absolute path on the server
-      allowNull: false,
-      unique: true, // File paths should ideally be unique
-    },
-    fileType: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    fileSize: {
-      type: DataTypes.INTEGER, // Store size in bytes
-      allowNull: true,
-    },
-    ownerId: {
-      type: DataTypes.INTEGER,
-      allowNull: true, // Or false if owner is mandatory
-      references: {
-        model: 'Users', // Assumes a 'Users' table exists
-        key: 'id',
+// Export an initializer function
+export const initializeDocument = (sequelize: Sequelize) => {
+  Document.init(
+    {
+      id: {
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true,
       },
-      onUpdate: 'CASCADE',
-      onDelete: 'SET NULL', // Or 'RESTRICT'
-    },
-    employeeId: {
-      type: DataTypes.INTEGER,
-      allowNull: true, // Document might not be specific to one employee
-      references: {
-        model: 'Employees', // Assumes an 'Employees' table exists
-        key: 'id',
+      title: {
+        type: DataTypes.STRING,
+        allowNull: false,
       },
-      onUpdate: 'CASCADE',
-      onDelete: 'SET NULL', // Or 'CASCADE' if docs should be deleted with employee
-    },
-    departmentId: {
-      type: DataTypes.INTEGER,
-      allowNull: true, // Document might not be specific to one department
-      references: {
-        model: 'Departments', // Assumes a 'Departments' table exists
-        key: 'id',
+      filePath: {
+        type: DataTypes.STRING, // Store the relative or absolute path on the server
+        allowNull: false,
+        unique: true, // File paths should ideally be unique
       },
-      onUpdate: 'CASCADE',
-      onDelete: 'SET NULL',
+      fileType: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      fileSize: {
+        type: DataTypes.INTEGER, // Store size in bytes
+        allowNull: true,
+      },
+      ownerId: {
+        type: DataTypes.INTEGER,
+        allowNull: true, // Or false if owner is mandatory
+        references: {
+          model: 'Users', // Assumes a 'Users' table exists
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL', // Or 'RESTRICT'
+      },
+      employeeId: {
+        type: DataTypes.INTEGER,
+        allowNull: true, // Document might not be specific to one employee
+        references: {
+          model: 'Employees', // Assumes an 'Employees' table exists
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL', // Or 'CASCADE' if docs should be deleted with employee
+      },
+      departmentId: {
+        type: DataTypes.INTEGER,
+        allowNull: true, // Document might not be specific to one department
+        references: {
+          model: 'Departments', // Assumes a 'Departments' table exists
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL',
+      },
+      version: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        defaultValue: 1,
+      },
+      description: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      createdAt: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+      },
+      updatedAt: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+      },
     },
-    version: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      defaultValue: 1,
-    },
-    description: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-    createdAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
-    },
-    updatedAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
-    },
-  },
-  {
-    sequelize: sequelize, // Use the imported instance
-    tableName: 'Documents', // Explicitly define table name
-    // Optional: Add indexes here if needed
-    // indexes: [{ fields: ['employeeId'] }, { fields: ['departmentId'] }]
-  }
-);
+    {
+      sequelize: sequelize, // Use the passed instance
+      tableName: 'Documents', // Explicitly define table name
+      // Optional: Add indexes here if needed
+      // indexes: [{ fields: ['employeeId'] }, { fields: ['departmentId'] }]
+    }
+  );
 
-export default Document;
+  return Document; // Return the initialized model
+};
+
+// Export the class type itself if needed elsewhere
+export { Document as DocumentModelClass };

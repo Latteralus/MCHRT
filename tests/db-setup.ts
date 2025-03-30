@@ -65,42 +65,16 @@ export const teardownTestDb = async () => {
   }
 };
 
-// Optional: Function to clear data between tests for isolation
+// Function to clear data between tests for isolation using sync
 export const clearTestDb = async () => {
     const sequelize = getSequelizeInstance(); // Get instance
-    console.log('[clearTestDb] Starting database clearing...'); // Added log
+    console.log('[clearTestDb] Starting database sync (force: true)...');
     try {
-        const models = sequelize.models;
-        // Order based on potential dependencies (delete dependents first)
-        const modelNames = [
-            'Task',         // Depends on Employee? User?
-            'Document',     // Depends on Employee, Department, User
-            'Compliance',   // Depends on Employee
-            'Attendance',   // Depends on Employee
-            'Leave',        // Depends on Employee, LeaveBalance?
-            'LeaveBalance', // Depends on Employee
-            'Employee',     // Depends on Department, User
-            'Department',   // Depends on User (managerId)
-            'User'          // Base model
-        ];
-
-        for (const modelName of modelNames) {
-            if (models[modelName]) {
-                try { // Add inner try-catch for logging specific model errors
-                    console.log(`[clearTestDb] Destroying ${modelName}...`); // Added log
-                    await models[modelName].destroy({ where: {}, truncate: false, cascade: false }); // Explicitly disable cascade
-                    console.log(`[clearTestDb] ${modelName} destroyed.`); // Added log
-                } catch (modelError) {
-                    console.error(`[clearTestDb] Error destroying ${modelName}:`, modelError);
-                    // Continue clearing other tables even if one fails
-                }
-            } else {
-                console.warn(`[clearTestDb] Model ${modelName} not found in sequelize.models during clearTestDb`);
-            }
-        }
-        console.log('[clearTestDb] Database clearing finished.'); // Added log
+        // Using sync({ force: true }) ensures a clean schema based on models before each test
+        await sequelize.sync({ force: true });
+        console.log('[clearTestDb] Database sync finished.');
     } catch (error) {
-        console.error('[clearTestDb] General error during database clearing:', error);
-        throw error; // Re-throw to fail the specific test
+        console.error('[clearTestDb] Error during database sync:', error);
+        throw error; // Re-throw to fail the specific test's setup
     }
 };

@@ -103,8 +103,10 @@ Note: Onboarding process relies on Tasks linked via relatedEntityType='Onboardin
 
 ### Sequelize Model Management
 
-- Model definitions maintained using JavaScript/TypeScript classes following Sequelize conventions.
-- Database migrations will be managed using the Sequelize CLI.
+- **Initialization:** The Sequelize instance is created and configured in `src/db/index.ts`. This central file also imports initializer functions from each model file (e.g., `src/modules/.../models/MyModel.ts`). Each model file defines its class structure and exports an `initializeMyModel(sequelize)` function which calls `MyModel.init(...)` using the passed Sequelize instance. `src/db/index.ts` calls these initializers for all models.
+- **Associations:** Model associations (e.g., `belongsTo`, `hasMany`) are defined within a static `associate(models)` method inside each model class file. After all models are initialized in `src/db/index.ts`, it iterates through the initialized models and calls their respective `associate` methods, passing the collection of all models to establish the relationships. This pattern avoids circular dependency issues during initialization.
+- **Usage:** Other parts of the application (API routes, services) should import the initialized models directly from `src/db/index.ts` (e.g., `import { User, Department } from '@/db';`).
+- **Migrations:** Database schema migrations continue to be managed using the Sequelize CLI.
 
 ### Backup & Recovery
 
